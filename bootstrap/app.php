@@ -1,6 +1,7 @@
 <?php
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsurePasswordIsChanged;
+use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
             'must_change_password' => EnsurePasswordIsChanged::class,
+            'super_admin'=> EnsureSuperAdmin::class,
         ]);
 
         //

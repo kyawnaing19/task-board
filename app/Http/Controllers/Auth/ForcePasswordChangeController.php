@@ -32,8 +32,10 @@ class ForcePasswordChangeController extends Controller
         $user = $request->user();
         
         $user->update([
-            'password' => Hash::make($request->password),
+            //'password' => Hash::make($request->password),
+            'password'=> $request->password,
             'must_change_password' => false, // Password ပြောင်းပြီးပါက Flag ကို ဖြုတ်မည်
+            'password_expires_at' => null,
         ]);
         //dd($user->toArray());
         

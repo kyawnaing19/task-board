@@ -38,6 +38,12 @@ class AuthService
         ]);
     }
 
+    if ($user->password_expires_at && $user->password_expires_at->isPast()) {
+    throw ValidationException::withMessages([
+        'email' => 'Your temporary password has expired. Please contact your administrator.',
+    ]);
+    }
+
     Auth::login($user, $remember);
 
     $request->session()->regenerate();

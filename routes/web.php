@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +42,20 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/dashboard', function () {
             return Inertia::render('Dashboard');
         })->name('dashboard');
+
+
+        
+
+    Route::middleware('super_admin')
+    ->prefix('employees')
+    ->name('employees.')
+    ->group(function () {
+        Route::get('/', [EmployeeController::class, 'index'])->name('index');
+        Route::post('/', [EmployeeController::class, 'store'])->name('store');
+        Route::patch('/{user}/status', [EmployeeController::class, 'updateStatus'])->name('status');
+        Route::post('/{user}/reset-password', [EmployeeController::class, 'resetPassword'])->name('reset-password');
+        Route::put('/{user}', [EmployeeController::class, 'update'])->name('update');
+    });
 
         // Domain Specific Routes (Projects, Task Groups, Tasks...)
         // Route::resource('projects', ProjectController::class);

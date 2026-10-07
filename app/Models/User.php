@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
+//#[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -27,9 +27,12 @@ class User extends Authenticatable
         'password',
         'role',
         'status',
+        'job_title',
+        'avatar_path',
         'dashboard_assignments_seen_at',
         'email_verified_at',
         'must_change_password',
+        'password_expires_at'
     ];
 
     /**
@@ -44,6 +47,7 @@ class User extends Authenticatable
             'dashboard_assignments_seen_at' => 'datetime',
             'password' => 'hashed',
             'must_change_password' => 'boolean',
+            'password_expires_at'=>'datetime',
         ];
     }
 
@@ -55,5 +59,12 @@ class User extends Authenticatable
     public function isActive(): bool
     {
         return $this->status === 'ACTIVE';
+    }
+
+    protected $appends = ['avatar_url'];
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->avatar_path ? asset('storage/'.$this->avatar_path) : null;
     }
 }
