@@ -5,9 +5,10 @@ export default function AuthenticatedLayout({ header, children }) {
     const { auth } = usePage().props;
     const user = auth.user;
 
-    // Desktop: sidebar starts open
-    // Mobile: sidebar starts closed
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+    // Sidebar state:
+    // Desktop: expanded/collapsed
+    // Mobile: open/closed
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
     const navigation = [
@@ -17,28 +18,38 @@ export default function AuthenticatedLayout({ header, children }) {
             icon: DashboardIcon,
             active: route().current('dashboard'),
         },
+
+        // ...(user?.role === 'SUPER_ADMIN'
+        //     ? [
+        //           {
+        //               name: 'Employees',
+        //               href: route('employees.index'),
+        //               icon: UsersIcon,
+        //               active: route().current('employees.*'),
+        //           },
+        //       ]
+        //     : []),
         ...(user?.role === 'SUPER_ADMIN'
-            ? [
-                  {
-                      name: 'Employees',
-                      href: route('employees.index'),
-                      icon: UsersIcon,
-                      active: route().current('employees.*'),
-                  },
-              ]
-            : []),
+    ? [
+        { name: 'Employees', href: route('employees.index'), icon: UsersIcon, active: route().current('employees.*') },
+        { name: 'Teams', href: route('teams.index'), icon: TeamIcon, active: route().current('teams.*') },
+    ]
+    : []),
+
         {
             name: 'Projects',
             href: '#',
             icon: ProjectIcon,
             active: route().current('projects.*'),
         },
+
         {
             name: 'Task Groups',
             href: '#',
             icon: TaskGroupIcon,
             active: route().current('task-groups.*'),
         },
+
         {
             name: 'Tasks',
             href: '#',
@@ -47,20 +58,14 @@ export default function AuthenticatedLayout({ header, children }) {
         },
     ];
 
-    const closeSidebarOnMobile = () => {
-        if (window.innerWidth < 1024) {
-            setSidebarOpen(false);
-        }
-    };
-
     return (
-        <div className="flex min-h-screen bg-slate-950 text-slate-100">
+        <div className="flex min-h-screen bg-white text-slate-900">
             {/* =========================================================
                 Mobile Backdrop
             ========================================================= */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] lg:hidden"
+                    className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-[2px] lg:hidden"
                     onClick={() => setSidebarOpen(false)}
                     aria-hidden="true"
                 />
@@ -72,44 +77,88 @@ export default function AuthenticatedLayout({ header, children }) {
             <aside
                 className={`
                     fixed inset-y-0 left-0 z-50
-                    flex w-64 flex-col
-                    border-r border-slate-800
-                    bg-slate-900
-                    shadow-2xl shadow-black/20
-                    transition-transform duration-300 ease-in-out
+                    flex flex-col
+                    border-r border-slate-200
+                    bg-white
+                    shadow-sm
+                    transition-all duration-300 ease-in-out
 
-                    ${
-                        sidebarOpen
-                            ? 'translate-x-0'
-                            : '-translate-x-full'
-                    }
+                    /* Mobile */
+                    w-64
+                    ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
 
+                    /* Desktop */
                     lg:translate-x-0
                     ${
                         sidebarOpen
                             ? 'lg:w-64'
-                            : 'lg:w-0 lg:-translate-x-full lg:overflow-hidden lg:border-r-0'
+                            : 'lg:w-[72px]'
                     }
                 `}
             >
-                {/* Sidebar Header */}
-                <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-800 px-5">
-                    <span className="text-sm font-semibold tracking-wide text-slate-400">
-                        Navigation
-                    </span>
+                {/* =====================================================
+                    Sidebar Header
+                ===================================================== */}
+                <div
+                    className={`
+                        flex h-16 shrink-0 items-center
+                        border-b border-slate-200
+                        ${
+                            sidebarOpen
+                                ? 'justify-between px-4'
+                                : 'justify-center px-2'
+                        }
+                    `}
+                >
+                    {/* Brand / Navigation label */}
+                    <div
+                        className={`
+                            min-w-0 overflow-hidden
+                            transition-all duration-200
+                            ${
+                                sidebarOpen
+                                    ? 'w-auto opacity-100'
+                                    : 'hidden opacity-0'
+                            }
+                        `}
+                    >
+                        <span className="text-sm font-semibold tracking-wide text-slate-700">
+                            Navigation
+                        </span>
+                    </div>
 
-                    {/* Close button - mobile only */}
+                    {/* on/off sidebar */}
                     <button
                         type="button"
-                        onClick={() => setSidebarOpen(false)}
-                        className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-800 hover:text-white lg:hidden"
-                        aria-label="Close navigation"
+                        onClick={() => setSidebarOpen((open) => !open)}
+                        className="
+                            shrink-0 rounded-lg p-2
+                            text-slate-500
+                            transition
+                            hover:bg-slate-100
+                            hover:text-slate-900
+                            focus:outline-none
+                            focus:ring-2
+                            focus:ring-indigo-500/30
+                        "
+                        aria-label={
+                            sidebarOpen
+                                ? 'Collapse navigation'
+                                : 'Expand navigation'
+                        }
+                        aria-expanded={sidebarOpen}
                     >
-                        <CloseIcon className="h-5 w-5" />
+                        {sidebarOpen ? (
+                            <MenuOpenIcon className="h-5 w-5" />
+                        ) : (
+                            <MenuIcon className="h-5 w-5" />
+                        )}
                     </button>
                 </div>
 
-                {/* Navigation */}
+                {/* =====================================================
+                    Navigation
+                ===================================================== */}
                 <nav className="flex-1 overflow-y-auto px-3 py-5">
                     <div className="space-y-1">
                         {navigation.map((item) => {
@@ -119,33 +168,54 @@ export default function AuthenticatedLayout({ header, children }) {
                                 <Link
                                     key={item.name}
                                     href={item.href}
-                                    onClick={closeSidebarOnMobile}
                                     className={`
-                                        group flex items-center gap-3
-                                        rounded-xl px-3.5 py-2.5
+                                        group flex items-center
+                                        rounded-xl
+                                        py-2.5
                                         text-sm font-medium
                                         transition-all duration-150
 
                                         ${
+                                            sidebarOpen
+                                                ? 'gap-3 px-3.5'
+                                                : 'justify-center px-2'
+                                        }
+
+                                        ${
                                             item.active
-                                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                                                : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-100'
+                                                ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20'
+                                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                                         }
                                     `}
+                                    title={!sidebarOpen ? item.name : undefined}
                                 >
                                     <Icon
                                         className={`
-                                            h-5 w-5 shrink-0 transition-colors
+                                            h-5 w-5 shrink-0
+                                            transition-colors
 
                                             ${
                                                 item.active
                                                     ? 'text-white'
-                                                    : 'text-slate-500 group-hover:text-slate-300'
+                                                    : 'text-slate-500 group-hover:text-slate-700'
                                             }
                                         `}
                                     />
 
-                                    <span>{item.name}</span>
+                                    <span
+                                        className={`
+                                            whitespace-nowrap
+                                            overflow-hidden
+                                            transition-all duration-200
+                                            ${
+                                                sidebarOpen
+                                                    ? 'w-auto opacity-100'
+                                                    : 'hidden w-0 opacity-0'
+                                            }
+                                        `}
+                                    >
+                                        {item.name}
+                                    </span>
                                 </Link>
                             );
                         })}
@@ -161,49 +231,65 @@ export default function AuthenticatedLayout({ header, children }) {
                     flex min-w-0 flex-1 flex-col
                     transition-[margin] duration-300 ease-in-out
 
+                    /* Desktop sidebar width */
                     ${
                         sidebarOpen
                             ? 'lg:ml-64'
-                            : 'lg:ml-0'
+                            : 'lg:ml-[72px]'
                     }
                 `}
             >
                 {/* =====================================================
                     Top Header
                 ===================================================== */}
-                <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/85 px-4 backdrop-blur-md sm:px-6 lg:px-8">
+                <header
+                    className="
+                        sticky top-0 z-30
+                        flex h-16 shrink-0
+                        items-center justify-between
+                        border-b border-slate-200
+                        bg-white/95
+                        px-4
+                        backdrop-blur-md
+                        sm:px-6
+                        lg:px-8
+                    "
+                >
                     {/* Left */}
                     <div className="flex min-w-0 items-center gap-3">
-                        {/* Sidebar Toggle */}
+                        {/* =================================================
+                            Mobile Sidebar Toggle
+
+                            Desktop မှာ hamburger က sidebar ပေါ်မှာရှိတယ်။
+                            Mobile မှာ sidebar ပိတ်သွားတဲ့အခါ
+                            ပြန်ဖွင့်နိုင်ဖို့ ဒီ button ကိုပဲပြမယ်။
+                        ================================================= */}
                         <button
                             type="button"
-                            onClick={() => setSidebarOpen((open) => !open)}
-                            className="
+                            onClick={() => setSidebarOpen(true)}
+                            className={`
                                 shrink-0 rounded-lg p-2
-                                text-slate-400
+                                text-slate-500
                                 transition
-                                hover:bg-slate-800
-                                hover:text-white
+                                hover:bg-slate-100
+                                hover:text-slate-900
                                 focus:outline-none
                                 focus:ring-2
-                                focus:ring-indigo-500/40
-                            "
-                            aria-label={
-                                sidebarOpen
-                                    ? 'Hide navigation'
-                                    : 'Show navigation'
-                            }
-                            aria-expanded={sidebarOpen}
+                                focus:ring-indigo-500/30
+                                lg:hidden
+                                ${
+                                    sidebarOpen
+                                        ? 'hidden'
+                                        : 'block'
+                                }
+                            `}
+                            aria-label="Open navigation"
                         >
-                            {sidebarOpen ? (
-                                <MenuOpenIcon className="h-5 w-5" />
-                            ) : (
-                                <MenuIcon className="h-5 w-5" />
-                            )}
+                            <MenuIcon className="h-5 w-5" />
                         </button>
 
                         {header && (
-                            <h1 className="truncate text-base font-semibold text-slate-100 sm:text-lg">
+                            <h1 className="truncate text-base font-semibold text-slate-900 sm:text-lg">
                                 {header}
                             </h1>
                         )}
@@ -221,10 +307,10 @@ export default function AuthenticatedLayout({ header, children }) {
                             className="
                                 flex items-center gap-2
                                 rounded-xl px-2 py-1.5
-                                text-slate-300
+                                text-slate-600
                                 transition
-                                hover:bg-slate-800
-                                hover:text-white
+                                hover:bg-slate-100
+                                hover:text-slate-900
                                 focus:outline-none
                                 focus:ring-2
                                 focus:ring-indigo-500/30
@@ -233,7 +319,7 @@ export default function AuthenticatedLayout({ header, children }) {
                             aria-expanded={userDropdownOpen}
                         >
                             {/* Avatar */}
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600/20 text-xs font-semibold text-indigo-300">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600 ring-1 ring-indigo-100">
                                 {user?.name?.charAt(0)?.toUpperCase()}
                             </div>
 
@@ -243,8 +329,9 @@ export default function AuthenticatedLayout({ header, children }) {
 
                             <ChevronDownIcon
                                 className={`
-                                    h-4 w-4 text-slate-500
+                                    h-4 w-4 text-slate-400
                                     transition-transform duration-200
+
                                     ${
                                         userDropdownOpen
                                             ? 'rotate-180'
@@ -254,7 +341,9 @@ export default function AuthenticatedLayout({ header, children }) {
                             />
                         </button>
 
-                        {/* User Dropdown */}
+                        {/* =================================================
+                            User Dropdown
+                        ================================================= */}
                         {userDropdownOpen && (
                             <>
                                 <div
@@ -270,17 +359,17 @@ export default function AuthenticatedLayout({ header, children }) {
                                         absolute right-0 z-20 mt-2
                                         w-60 overflow-hidden
                                         rounded-xl
-                                        border border-slate-800
-                                        bg-slate-900
-                                        shadow-2xl shadow-black/30
+                                        border border-slate-200
+                                        bg-white
+                                        shadow-xl shadow-slate-200/60
                                     "
                                 >
-                                    <div className="border-b border-slate-800 px-4 py-3">
-                                        <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                                    <div className="border-b border-slate-200 px-4 py-3">
+                                        <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
                                             Signed in as
                                         </p>
 
-                                        <p className="mt-1 truncate text-sm font-medium text-slate-200">
+                                        <p className="mt-1 truncate text-sm font-medium text-slate-700">
                                             {user?.email}
                                         </p>
                                     </div>
@@ -294,9 +383,9 @@ export default function AuthenticatedLayout({ header, children }) {
                                             flex w-full items-center gap-2
                                             px-4 py-2.5
                                             text-left text-sm
-                                            text-rose-400
+                                            text-rose-500
                                             transition
-                                            hover:bg-rose-500/10
+                                            hover:bg-rose-50
                                         "
                                     >
                                         <LogoutIcon className="h-4 w-4" />
@@ -311,7 +400,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 {/* =====================================================
                     Page Content
                 ===================================================== */}
-                <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+                <main className="min-w-0 flex-1 bg-slate-50/50 p-4 sm:p-6 lg:p-8">
                     {children}
                 </main>
             </div>
@@ -337,6 +426,14 @@ function DashboardIcon(props) {
                 strokeWidth={2}
                 d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
             />
+        </svg>
+    );
+}
+
+function TeamIcon(props) {
+    return (
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
     );
 }
@@ -431,24 +528,6 @@ function MenuOpenIcon(props) {
     );
 }
 
-function CloseIcon(props) {
-    return (
-        <svg
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            {...props}
-        >
-            <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 6l12 12M18 6L6 18"
-            />
-        </svg>
-    );
-}
-
 function ChevronDownIcon(props) {
     return (
         <svg
@@ -502,4 +581,3 @@ function UsersIcon(props) {
         </svg>
     );
 }
-

@@ -8,15 +8,17 @@ const ROLE_LABELS = {
 };
 
 const inputClass =
-    'mt-1 w-full rounded-xl border border-slate-700/80 bg-slate-950/70 px-4 py-2.5 text-sm text-black outline-none transition placeholder:text-slate-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
+    'mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
+
 export default function CreateEmployeeModal({ open, onClose, roles }) {
-    const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
-        name: '',
-        email: '',
-        job_title: '',
-        role: '',
-        avatar: null,
-    });
+    const { data, setData, post, processing, errors, reset, clearErrors } =
+        useForm({
+            name: '',
+            email: '',
+            job_title: '',
+            role: '',
+            avatar: null,
+        });
 
     const [preview, setPreview] = useState(null);
     const [fileError, setFileError] = useState(null);
@@ -89,17 +91,17 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-slate-950/85 backdrop-blur-md"
+                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                 onClick={handleClose}
             />
 
             {/* Modal */}
-            <div className="relative flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-slate-700/70 bg-slate-900 shadow-2xl shadow-black/40">
+            <div className="relative flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/15">
                 {/* Header */}
-                <div className="border-b border-slate-800/80 bg-slate-900/95 px-6 py-5 sm:px-7">
+                <div className="border-b border-slate-200 bg-white px-6 py-5 sm:px-7">
                     <div className="flex items-start justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
                                 <svg
                                     className="h-5 w-5"
                                     viewBox="0 0 24 24"
@@ -116,12 +118,13 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
                             </div>
 
                             <div>
-                                <h2 className="text-lg font-semibold tracking-tight text-white">
+                                <h2 className="text-lg font-semibold tracking-tight text-slate-900">
                                     Create employee
                                 </h2>
 
-                                <p className="mt-0.5 text-xs text-slate-400">
-                                    Add a new employee account to your organization.
+                                <p className="mt-0.5 text-xs text-slate-500">
+                                    Add a new employee account to your
+                                    organization.
                                 </p>
                             </div>
                         </div>
@@ -129,7 +132,7 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
                         <button
                             type="button"
                             onClick={handleClose}
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-800 hover:text-white"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                             aria-label="Close"
                         >
                             <svg
@@ -150,10 +153,10 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
                 </div>
 
                 {/* Body */}
-                <div className="overflow-y-auto px-6 py-6 sm:px-7">
+                <div className="overflow-y-auto bg-white px-6 py-6 sm:px-7">
                     {/* Temporary password notice */}
-                    <div className="mb-6 flex gap-3 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4">
-                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+                    <div className="mb-6 flex gap-3 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
                             <svg
                                 className="h-4 w-4"
                                 viewBox="0 0 24 24"
@@ -170,13 +173,13 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
                         </div>
 
                         <div>
-                            <p className="text-sm font-medium text-indigo-300">
+                            <p className="text-sm font-medium text-indigo-700">
                                 Temporary password
                             </p>
 
-                            <p className="mt-0.5 text-xs leading-5 text-slate-400">
-                                A temporary password valid for 24 hours will be generated
-                                automatically.
+                            <p className="mt-0.5 text-xs leading-5 text-slate-600">
+                                A temporary password valid for 24 hours will
+                                be generated automatically.
                             </p>
                         </div>
                     </div>
@@ -184,23 +187,24 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
                     <form onSubmit={submit} className="space-y-5">
                         {/* Avatar */}
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-slate-300">
+                            <label className="mb-2 block text-sm font-medium text-slate-700">
                                 Profile photo
-                                <span className="ml-1 text-xs font-normal text-slate-500">
+                                <span className="ml-1 text-xs font-normal text-slate-400">
                                     Optional
                                 </span>
                             </label>
 
-                            <div className="flex items-center gap-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+                            <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                 {preview ? (
                                     <img
                                         src={preview}
                                         alt=""
-                                        className="h-16 w-16 shrink-0 rounded-2xl object-cover ring-2 ring-slate-700"
+                                        className="h-16 w-16 shrink-0 rounded-2xl object-cover ring-2 ring-slate-200"
                                     />
                                 ) : (
-                                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 text-xl font-semibold text-slate-400 ring-1 ring-slate-700">
-                                        {data.name.charAt(0).toUpperCase() || '?'}
+                                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-xl font-semibold text-slate-500 ring-1 ring-slate-200">
+                                        {data.name.charAt(0).toUpperCase() ||
+                                            '?'}
                                     </div>
                                 )}
 
@@ -209,15 +213,15 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
                                         type="file"
                                         accept="image/png,image/jpeg,image/webp"
                                         onChange={handleFile}
-                                        className="block w-full text-xs text-slate-400 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-2 file:text-xs file:font-medium file:text-slate-200 file:transition hover:file:bg-slate-700"
+                                        className="block w-full text-xs text-slate-500 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-2 file:text-xs file:font-medium file:text-slate-700 file:transition hover:file:bg-slate-300"
                                     />
 
-                                    <p className="mt-1.5 text-[11px] text-slate-600">
+                                    <p className="mt-1.5 text-[11px] text-slate-400">
                                         PNG, JPG or WebP · Maximum 2MB
                                     </p>
 
                                     {(fileError || errors.avatar) && (
-                                        <p className="mt-1.5 text-xs text-rose-400">
+                                        <p className="mt-1.5 text-xs text-rose-600">
                                             {fileError || errors.avatar}
                                         </p>
                                     )}
@@ -227,21 +231,23 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
 
                         {/* Name */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300">
+                            <label className="block text-sm font-medium text-slate-700">
                                 Full name
                             </label>
 
                             <input
                                 type="text"
                                 value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
+                                onChange={(e) =>
+                                    setData('name', e.target.value)
+                                }
                                 className={inputClass}
                                 placeholder="e.g. John Doe"
                                 required
                             />
 
                             {errors.name && (
-                                <p className="mt-1.5 text-xs text-rose-400">
+                                <p className="mt-1.5 text-xs text-rose-600">
                                     {errors.name}
                                 </p>
                             )}
@@ -249,21 +255,23 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
 
                         {/* Email */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300">
+                            <label className="block text-sm font-medium text-slate-700">
                                 Email address
                             </label>
 
                             <input
                                 type="email"
                                 value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
+                                onChange={(e) =>
+                                    setData('email', e.target.value)
+                                }
                                 className={inputClass}
                                 placeholder="name@example.com"
                                 required
                             />
 
                             {errors.email && (
-                                <p className="mt-1.5 text-xs text-rose-400">
+                                <p className="mt-1.5 text-xs text-rose-600">
                                     {errors.email}
                                 </p>
                             )}
@@ -271,9 +279,9 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
 
                         {/* Job title */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300">
+                            <label className="block text-sm font-medium text-slate-700">
                                 Job title
-                                <span className="ml-1 text-xs font-normal text-slate-500">
+                                <span className="ml-1 text-xs font-normal text-slate-400">
                                     Optional
                                 </span>
                             </label>
@@ -281,13 +289,15 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
                             <input
                                 type="text"
                                 value={data.job_title}
-                                onChange={(e) => setData('job_title', e.target.value)}
+                                onChange={(e) =>
+                                    setData('job_title', e.target.value)
+                                }
                                 className={inputClass}
                                 placeholder="e.g. Software Developer"
                             />
 
                             {errors.job_title && (
-                                <p className="mt-1.5 text-xs text-rose-400">
+                                <p className="mt-1.5 text-xs text-rose-600">
                                     {errors.job_title}
                                 </p>
                             )}
@@ -295,32 +305,44 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
 
                         {/* Role */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300">
+                            <label className="block text-sm font-medium text-slate-700">
                                 Role
                             </label>
 
-                            <div className="relative text-black">
-                                <select 
-                                     value={data.role}
-                                    onChange={(e) => setData('role', e.target.value)}
+                            <div className="relative text-slate-900">
+                                <select
+                                    value={data.role}
+                                    onChange={(e) =>
+                                        setData('role', e.target.value)
+                                    }
                                     className={`${inputClass} ${
-                                        data.role ? 'text-black' : 'text-black'
+                                        data.role
+                                            ? 'text-slate-900'
+                                            : 'text-slate-500'
                                     } appearance-none pr-10`}
                                     required
                                 >
-                                    <option value="" className='text-black' disabled >
+                                    <option
+                                        value=""
+                                        className="text-slate-500"
+                                        disabled
+                                    >
                                         Select a role…
                                     </option>
 
                                     {roles.map((role) => (
-                                        <option key={role} value={role} className='text-black'>
+                                        <option
+                                            key={role}
+                                            value={role}
+                                            className="text-slate-900"
+                                        >
                                             {ROLE_LABELS[role] ?? role}
                                         </option>
                                     ))}
                                 </select>
 
                                 <svg
-                                    className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+                                    className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
                                     viewBox="0 0 24 24"
                                     fill="none"
                                     stroke="currentColor"
@@ -335,15 +357,15 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
                             </div>
 
                             {errors.role && (
-                                <p className="mt-1.5 text-xs text-rose-400">
+                                <p className="mt-1.5 text-xs text-rose-600">
                                     {errors.role}
                                 </p>
                             )}
 
                             {data.role === 'SUPER_ADMIN' && (
-                                <div className="mt-2 flex gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5">
+                                <div className="mt-2 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
                                     <svg
-                                        className="mt-0.5 h-4 w-4 shrink-0 text-amber-400"
+                                        className="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
                                         viewBox="0 0 24 24"
                                         fill="none"
                                         stroke="currentColor"
@@ -352,24 +374,24 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
                                         <path
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
-                                            d="M12 9v4m0 4h.01M10.3 3.8 2.9 17a2 2 0 0 0 1.75 3h14.7a2 2 0 0 0 1.75-3L13.7 3.8a2 2 0 0 0-3.4 0Z"
+                                            d="M12 9v4m0 4h.01M10.3 3.8 2.9 17a2 2 0 0 0 1.75 3h14.7a2 2 0 0 0 1.75 3L13.7 3.8a2 2 0 0 0-3.4 0Z"
                                         />
                                     </svg>
 
-                                    <p className="text-xs  leading-5 text-amber-300/90">
-                                        Super admins have full access, including managing
-                                        other employees.
+                                    <p className="text-xs leading-5 text-amber-700">
+                                        Super admins have full access, including
+                                        managing other employees.
                                     </p>
                                 </div>
                             )}
                         </div>
 
                         {/* Footer */}
-                        <div className="flex items-center justify-end gap-3 border-t border-slate-800/80 pt-5">
+                        <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-5">
                             <button
                                 type="button"
                                 onClick={handleClose}
-                                className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                                className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
                             >
                                 Cancel
                             </button>
@@ -377,7 +399,7 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 {processing && (
                                     <svg
@@ -404,7 +426,9 @@ export default function CreateEmployeeModal({ open, onClose, roles }) {
                                     </svg>
                                 )}
 
-                                {processing ? 'Creating...' : 'Create employee'}
+                                {processing
+                                    ? 'Creating...'
+                                    : 'Create employee'}
                             </button>
                         </div>
                     </form>

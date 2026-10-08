@@ -15,6 +15,7 @@ class UpdateEmployeeRequest extends FormRequest
     {
         return [
             'name'          => ['required', 'string', 'max:255'],
+            'email'         => ['required', 'email:rfc', 'max:255', 'unique:users,email'],
             'job_title'     => ['nullable', 'string', 'max:255'],
             'avatar'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_avatar' => ['nullable', 'boolean'],

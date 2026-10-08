@@ -5,6 +5,7 @@ export default function EditEmployeeModal({ employee, onClose }) {
     const { data, setData, post, processing, errors, transform } = useForm({
         _method: 'put',
         name: employee.name,
+        email: employee.email,
         job_title: employee.job_title ?? '',
         avatar: null,
         remove_avatar: false,
@@ -73,23 +74,21 @@ export default function EditEmployeeModal({ employee, onClose }) {
     const shownAvatar =
         preview ?? (data.remove_avatar ? null : employee.avatar_url);
 
-    
     const inputClass =
-    'mt-1 w-full rounded-lg border border-slate-700 bg-white px-3.5 py-2 text-sm text-black outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
-
+        'mt-1 w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20';
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm"
             onMouseDown={(e) => {
                 if (e.target === e.currentTarget) onClose();
             }}
         >
-            <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl shadow-black/40">
+            <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/15">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+                <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
                             <svg
                                 className="h-5 w-5"
                                 viewBox="0 0 24 24"
@@ -111,9 +110,10 @@ export default function EditEmployeeModal({ employee, onClose }) {
                         </div>
 
                         <div>
-                            <h2 className="text-base font-semibold text-white">
+                            <h2 className="text-base font-semibold text-slate-900">
                                 Edit Employee
                             </h2>
+
                             <p className="text-xs text-slate-500">
                                 Update employee information
                             </p>
@@ -123,7 +123,7 @@ export default function EditEmployeeModal({ employee, onClose }) {
                     <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-800 hover:text-white"
+                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                         aria-label="Close"
                     >
                         <svg
@@ -144,12 +144,12 @@ export default function EditEmployeeModal({ employee, onClose }) {
 
                 <form onSubmit={submit}>
                     {/* Body */}
-                    <div className="px-5 py-5">
+                    <div className="bg-white px-5 py-5">
                         {/* Profile */}
                         <div className="mb-5 flex items-center gap-4">
                             {/* Clean avatar */}
                             <div className="relative shrink-0">
-                                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-slate-800">
+                                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200">
                                     {shownAvatar ? (
                                         <img
                                             src={shownAvatar}
@@ -167,7 +167,7 @@ export default function EditEmployeeModal({ employee, onClose }) {
 
                                 <label
                                     htmlFor="edit-avatar"
-                                    className="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 border-slate-900 bg-indigo-600 text-white shadow-lg transition hover:bg-indigo-500"
+                                    className="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-indigo-600 text-white shadow-lg transition hover:bg-indigo-700"
                                     title="Change avatar"
                                 >
                                     <svg
@@ -200,9 +200,10 @@ export default function EditEmployeeModal({ employee, onClose }) {
                             </div>
 
                             <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-white">
+                                <p className="truncate text-sm font-medium text-slate-900">
                                     {employee.name}
                                 </p>
+
                                 <p className="mt-0.5 text-xs text-slate-500">
                                     JPG, PNG or other image · Max 2MB
                                 </p>
@@ -212,14 +213,14 @@ export default function EditEmployeeModal({ employee, onClose }) {
                                         <button
                                             type="button"
                                             onClick={removeAvatar}
-                                            className="text-xs font-medium text-rose-400 transition hover:text-rose-300"
+                                            className="text-xs font-medium text-rose-600 transition hover:text-rose-700"
                                         >
                                             Remove photo
                                         </button>
                                     )}
 
                                     {fileError && (
-                                        <span className="text-xs text-rose-400">
+                                        <span className="text-xs text-rose-600">
                                             {fileError}
                                         </span>
                                     )}
@@ -230,7 +231,7 @@ export default function EditEmployeeModal({ employee, onClose }) {
                         {/* Fields */}
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
-                                <label className="text-xs font-medium text-slate-400">
+                                <label className="text-xs font-medium text-slate-600">
                                     Full name
                                 </label>
 
@@ -245,14 +246,14 @@ export default function EditEmployeeModal({ employee, onClose }) {
                                 />
 
                                 {errors.name && (
-                                    <p className="mt-1 text-xs text-rose-400">
+                                    <p className="mt-1 text-xs text-rose-600">
                                         {errors.name}
                                     </p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="text-xs font-medium text-slate-400">
+                                <label className="text-xs font-medium text-slate-600">
                                     Job title
                                 </label>
 
@@ -267,7 +268,7 @@ export default function EditEmployeeModal({ employee, onClose }) {
                                 />
 
                                 {errors.job_title && (
-                                    <p className="mt-1 text-xs text-rose-400">
+                                    <p className="mt-1 text-xs text-rose-600">
                                         {errors.job_title}
                                     </p>
                                 )}
@@ -275,22 +276,39 @@ export default function EditEmployeeModal({ employee, onClose }) {
                         </div>
 
                         {/* Account info */}
-                        <div className="mt-5 rounded-xl bg-slate-950/40 px-4 py-3">
+                        <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div>
-                                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-600">
+                                    <label className="text-xs font-medium text-slate-600">
                                         Email
-                                    </p>
-                                    <p className="mt-1 truncate text-sm text-slate-300">
-                                        {employee.email}
-                                    </p>
+                                    </label>
+
+                                    <input
+                                        type="email"
+                                        value={data.email}
+                                        onChange={(e) =>
+                                            setData(
+                                                'email',
+                                                e.target.value,
+                                            )
+                                        }
+                                        className={inputClass}
+                                        placeholder="employee@example.com"
+                                    />
+
+                                    {errors.email && (
+                                        <p className="mt-1 text-xs text-rose-600">
+                                            {errors.email}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
-                                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-600">
+                                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
                                         Role
                                     </p>
-                                    <p className="mt-1 text-sm text-slate-300">
+
+                                    <p className="mt-1 text-sm text-slate-700">
                                         {employee.role?.name ??
                                             employee.role ??
                                             '—'}
@@ -301,12 +319,12 @@ export default function EditEmployeeModal({ employee, onClose }) {
                     </div>
 
                     {/* Footer */}
-                    <div className="flex items-center justify-end gap-2 border-t border-slate-800 bg-slate-950/30 px-5 py-3">
+                    <div className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={processing}
-                            className="rounded-lg px-4 py-2 text-sm font-medium text-slate-400 transition hover:bg-slate-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Cancel
                         </button>
@@ -314,7 +332,7 @@ export default function EditEmployeeModal({ employee, onClose }) {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {processing ? 'Saving...' : 'Save changes'}
                         </button>

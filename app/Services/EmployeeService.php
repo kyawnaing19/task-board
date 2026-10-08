@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\Enums\UserStatus as EnumsUserStatus;
+
 use App\Enums\UserStatus;
 use App\Models\User;
 use App\Repositories\Contracts\EmployeeRepositoryInterface;
@@ -35,7 +35,7 @@ class EmployeeService
             'email'                => $data['email'],
             'job_title'            => $data['job_title'] ?? null,
             'role'                 => $data['role'],
-            'status'               => EnumsUserStatus::ACTIVE->value,
+            'status'               => UserStatus::ACTIVE->value,
             'password'             => $tempPassword, // User model ရဲ့ 'hashed' cast က hash လုပ်ပေးမယ်
             'must_change_password' => true,
             'password_expires_at'  => now()->addHours(self::TEMP_PASSWORD_HOURS),
@@ -46,10 +46,14 @@ class EmployeeService
         return [$user, $tempPassword];
     }
 
+    public function showDetail(User $user)
+    {
+        return $this->employees->showDetail($user);
+    }
  
     public function update(User $user, array $data, ?UploadedFile $avatar = null, bool $removeAvatar = false): User
     {
-        $attributes = Arr::only($data, ['name', 'job_title']); // whitelist
+        $attributes = Arr::only($data, ['name', 'email','job_title']); // whitelist
 
         $oldAvatar = $user->avatar_path;
 
@@ -72,9 +76,9 @@ class EmployeeService
     /**
      * Activate / Deactivate
      */
-    public function setStatus(User $actor, User $target, EnumsUserStatus $status): User
+    public function setStatus(User $actor, User $target, UserStatus $status): User
     {
-        if ($actor->is($target) && $status === EnumsUserStatus::INACTIVE) {
+        if ($actor->is($target) && $status === UserStatus::INACTIVE) {
             throw ValidationException::withMessages([
                 'status' => 'You cannot deactivate your own account.',
             ]);

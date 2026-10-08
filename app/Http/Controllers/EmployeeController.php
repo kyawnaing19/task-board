@@ -23,12 +23,31 @@ class EmployeeController extends Controller
         protected EmployeeRepositoryInterface $employees
     ) {}
 
-    public function index(): Response
+   public function index(Request $request): Response
     {
         return Inertia::render('Employees/Index', [
-            'employees' => $this->employees->paginate(),
-            'roles'     => array_column(UserRole::cases(), 'value'),
+            'employees' => $this->employees->paginate(
+                15,
+                $request->input('search')
+            ),
+
+            'roles' => array_column(
+                UserRole::cases(),
+                'value'
+            ),
+
+            'filters' => [
+                'search' => $request->input('search', ''),
+            ],
         ]);
+    }
+
+    public function showDetail(User $user):Response
+    {
+        $data=$this->service->showDetail($user);
+         return Inertia::render('Employees/Show', [
+        'user' => $data,
+    ]);
     }
 
     public function store(StoreEmployeeRequest $request): RedirectResponse
@@ -61,13 +80,13 @@ class EmployeeController extends Controller
     public function updateStatus(Request $request, User $user): RedirectResponse
     {
         $data = $request->validate([
-            'status' => ['required', Rule::enum(EnumsUserStatus::class)],
+            'status' => ['required', Rule::enum(UserStatus::class)],
         ]);
 
         $this->service->setStatus(
             $request->user(),
             $user,
-            EnumsUserStatus::from($data['status'])
+            UserStatus::from($data['status'])
         );
 
         return back()->with('success', 'Employee status updated.');

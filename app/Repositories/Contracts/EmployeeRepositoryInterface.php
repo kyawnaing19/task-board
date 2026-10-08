@@ -7,9 +7,12 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface EmployeeRepositoryInterface
 {
-    public function paginate(int $perPage = 15): LengthAwarePaginator;
+    //public function paginate(int $perPage = 15): LengthAwarePaginator;
+    public function paginate(int $perPage = 15,?string $search = null): LengthAwarePaginator;
 
     public function create(array $data): User;
 
+    public function showDetail( User $user) : array;
+        
     public function update(User $user, array $data): User;
 }
