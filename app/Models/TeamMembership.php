@@ -38,4 +38,9 @@ class TeamMembership extends Model
     {
         return $query->whereNull('removed_at');
     }
+
+    public function scopeActiveAccount(Builder $query): Builder
+    {
+        return $query->whereHas('user', fn ($u) => $u->where('status', 'ACTIVE'));
+    }
 }

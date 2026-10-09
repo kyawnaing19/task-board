@@ -3,7 +3,9 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\Team;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 interface TeamRepositoryInterface
 {
@@ -12,6 +14,15 @@ interface TeamRepositoryInterface
     public function create(array $data): Team;
 
     public function update(Team $team, array $data): Team;
+
+    /** Active (unarchived) teams that include this employee */
+    public function forMember(User $user): Collection;
+
+    /** Returns the team only if it is active and includes the employee, otherwise null */
+    public function findForMember(User $user, int $teamId): ?Team;
+
+    /** Active account members for the colleague list */
+    public function colleagues(Team $team): Collection;
 
 
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Employee;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateEmployeeRequest extends FormRequest
 {
@@ -10,12 +11,14 @@ class UpdateEmployeeRequest extends FormRequest
     {
         return $this->user()?->isSuperAdmin() ?? false;
     }
+    
 
     public function rules(): array
     {
+        $userId = $this->route('user')?->id ?? $this->route('user');
         return [
             'name'          => ['required', 'string', 'max:255'],
-            'email'         => ['required', 'email:rfc', 'max:255', 'unique:users,email'],
+            'email'         => ['required', 'email:rfc', 'max:255', Rule::unique('users', 'email')->ignore($userId),],
             'job_title'     => ['nullable', 'string', 'max:255'],
             'avatar'        => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_avatar' => ['nullable', 'boolean'],
@@ -23,5 +26,6 @@ class UpdateEmployeeRequest extends FormRequest
             
             'role'          => ['prohibited'],
         ];
+
     }
 }

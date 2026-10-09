@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import ConfirmationModal from '@/Components/ConfirmationModal';
+
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import CreateEmployeeModal from './Partials/CreateEmployeeModal';
@@ -15,6 +17,8 @@ export default function Index({ employees, roles, filters }) {
     const [detail, setDetail] = useState(null);
     const [dismissed, setDismissed] = useState(null);
     const [copied, setCopied] = useState(false);
+    const [confirmation, setConfirmation] = useState(null);
+    const [processing, setProcessing] = useState(false);
 
     // Server-side search
     const [search, setSearch] = useState(filters?.search ?? '');
@@ -44,41 +48,70 @@ export default function Index({ employees, roles, filters }) {
     }, [search]);
 
     const toggleStatus = (user) => {
-        const next =
-            user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    const next =
+        user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
-        const label =
-            next === 'INACTIVE' ? 'deactivate' : 'activate';
-
-        if (
-            !confirm(
-                `Are you sure you want to ${label} ${user.name}?`,
-            )
-        ) {
-            return;
-        }
-
-        router.patch(
-            route('employees.status', user.id),
-            { status: next },
-            { preserveScroll: true },
-        );
+    setConfirmation({
+        type: 'status',
+        user,
+        next,
+        title:
+            next === 'INACTIVE'
+                ? 'Deactivate employee?'
+                : 'Activate employee?',
+        message:
+            next === 'INACTIVE'
+                ? `Are you sure you want to deactivate ${user.name}? They may lose access to the application.`
+                : `Are you sure you want to activate ${user.name}?`,
+        confirmText:
+            next === 'INACTIVE' ? 'Deactivate employee' : 'Activate employee',
+        variant: next === 'INACTIVE' ? 'danger' : 'primary',
+        });
     };
 
     const resetPassword = (user) => {
-        if (
-            !confirm(
-                `Generate a new temporary password for ${user.name}?`,
-            )
-        ) {
-            return;
-        }
+    setConfirmation({
+        type: 'password',
+        user,
+        title: 'Reset employee password?',
+        message: `Are you sure you want to generate a new temporary password for ${user.name}?`,
+        confirmText: 'Reset password',
+        variant: 'primary',
+        });
+    };
 
-        router.post(
-            route('employees.reset-password', user.id),
-            {},
-            { preserveScroll: true },
+    const handleConfirm = () => {
+    if (!confirmation || processing) return;
+
+    setProcessing(true);
+
+    const { type, user, next } = confirmation;
+
+    const options = {
+        preserveScroll: true,
+
+        onSuccess: () => {
+            setConfirmation(null);
+        },
+
+        onFinish: () => {
+            setProcessing(false);
+        },
+    };
+
+    if (type === 'status') {
+        router.patch(
+            route('employees.status', user.id),
+            { status: next },
+            options,
         );
+        } else if (type === 'password') {
+            router.post(
+                route('employees.reset-password', user.id),
+                {},
+                options,
+            );
+        }
     };
 
     const copyPassword = async () => {
@@ -526,6 +559,21 @@ export default function Index({ employees, roles, filters }) {
                     onClose={() => setEditing(null)}
                 />
             )}
+
+        <ConfirmationModal
+        show={Boolean(confirmation)}
+        title={confirmation?.title}
+        message={confirmation?.message}
+        confirmText={confirmation?.confirmText}
+        variant={confirmation?.variant}
+        processing={processing}
+        onConfirm={handleConfirm}
+        onCancel={() => {
+            if (!processing) {
+                setConfirmation(null);
+            }
+        }}
+    />
         </AuthenticatedLayout>
     );
 }

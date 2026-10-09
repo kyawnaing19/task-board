@@ -10,7 +10,6 @@ export default function AuthenticatedLayout({ header, children }) {
     // Mobile: open/closed
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-
     const navigation = [
         {
             name: 'Dashboard',
@@ -34,7 +33,12 @@ export default function AuthenticatedLayout({ header, children }) {
         { name: 'Employees', href: route('employees.index'), icon: UsersIcon, active: route().current('employees.*') },
         { name: 'Teams', href: route('teams.index'), icon: TeamIcon, active: route().current('teams.*') },
     ]
-    : []),
+    : [
+        {   name: 'My Teams',
+            href: route('my-teams.index'),
+            icon: TeamIcon,
+            active: route().current('my-teams.*') },
+    ]),
 
         {
             name: 'Projects',

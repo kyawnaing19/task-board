@@ -36,6 +36,7 @@ class ForcePasswordChangeController extends Controller
             'password'=> $request->password,
             'must_change_password' => false, // Password ပြောင်းပြီးပါက Flag ကို ဖြုတ်မည်
             'password_expires_at' => null,
+            
         ]);
         //dd($user->toArray());
         
