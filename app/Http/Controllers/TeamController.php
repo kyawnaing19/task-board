@@ -38,6 +38,31 @@ class TeamController extends Controller
         ]);
     }
 
+    public function show(Team $team): Response
+    {
+        $team->load(['creator:id,name', 'archiver:id,name']);
+
+        $members = $team->memberships()
+            ->active()
+            ->with('user:id,name,email,job_title,avatar_path,status')
+            ->orderByDesc('added_at')
+            ->get()
+            ->map(fn ($m) => [
+                'id'         => $m->user->id,
+                'name'       => $m->user->name,
+                'email'      => $m->user->email,
+                'job_title'  => $m->user->job_title,
+                'avatar_url' => $m->user->avatar_url,
+                'status'     => $m->user->status,
+                'added_at'   => $m->added_at,
+            ]);
+
+        return Inertia::render('Teams/Show', [
+            'team'    => $team,
+            'members' => $members,
+        ]);
+    }
+
     public function store(StoreTeamRequest $request): RedirectResponse
     {
         $team = $this->service->create($request->user(), $request->validated());

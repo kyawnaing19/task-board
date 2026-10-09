@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\TeamMemberController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -54,12 +55,23 @@ Route::middleware(['auth', 'active'])->group(function () {
             ->name('teams.')
             ->group(function () {
                 Route::get('/', [TeamController::class, 'index'])->name('index');
+                Route::get('/{team}', [TeamController::class, 'show'])->name('show');
                 Route::post('/', [TeamController::class, 'store'])->name('store');
                 Route::put('/{team}', [TeamController::class, 'update'])->name('update');
                 Route::post('/{team}/archive', [TeamController::class, 'archive'])->name('archive');
                 Route::get('/{team}/archive-preview', [TeamController::class, 'archivePreview'])->name('archive-preview');
                 Route::post('/{team}/restore', [TeamController::class, 'restore'])->name('restore');
             });
+
+        
+
+        Route::prefix('/{team}/members')->name('teams.members.')->group(function () {
+            Route::get('/candidates', [TeamMemberController::class, 'candidates'])->name('candidates');
+            Route::post('/preview', [TeamMemberController::class, 'previewAdd'])->name('preview-add');
+            Route::post('/', [TeamMemberController::class, 'store'])->name('store');
+            Route::get('/{user}/preview-removal', [TeamMemberController::class, 'previewRemove'])->name('preview-remove');
+            Route::delete('/{user}', [TeamMemberController::class, 'destroy'])->name('destroy');
+        });    
 
         // Domain Specific Routes (Projects, Task Groups, Tasks...)
         // Route::resource('projects', ProjectController::class);

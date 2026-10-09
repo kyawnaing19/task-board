@@ -355,15 +355,16 @@ export default function Index({ teams, filters }) {
                                                     </div>
 
                                                     <div className="min-w-0">
-                                                        <p className="truncate font-medium text-slate-900">
+                                                        <Link
+                                                            href={route('teams.show', team.id)}
+                                                            className="font-medium text-slate-900 transition-colors hover:text-indigo-600"
+                                                        >
                                                             {team.name}
-                                                        </p>
+                                                        </Link>
 
                                                         {team.description && (
                                                             <p className="mt-0.5 line-clamp-2 max-w-xl text-xs text-slate-500">
-                                                                {
-                                                                    team.description
-                                                                }
+                                                                {team.description}
                                                             </p>
                                                         )}
                                                     </div>
