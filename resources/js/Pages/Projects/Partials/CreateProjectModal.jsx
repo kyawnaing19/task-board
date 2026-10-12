@@ -4,7 +4,7 @@ import { useForm } from '@inertiajs/react';
 const inputClass =
     'mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100';
 
-const MAX_DESCRIPTION = 5000;
+const MAX_DESCRIPTION = 150;
 
 export default function CreateProjectModal({ open, onClose }) {
     const {

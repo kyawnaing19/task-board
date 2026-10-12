@@ -3,6 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import EditProjectModal from './Partials/EditProjectModal';
 import { formatDate, isOverdue } from '@/lib/dates';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 
 const STATUS_STYLES = {
     ACTIVE: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200',
@@ -15,26 +16,66 @@ export default function Show({ project, read_only }) {
     const [editing, setEditing] = useState(false);
     const [busy, setBusy] = useState(false);
 
+    const [confirmation, setConfirmation] = useState(null);
+    const [processing, setProcessing] = useState(false);
+
+    const confirmAction = () => {
+        if (!confirmation || processing) return;
+
+        setProcessing(true);
+
+        router[confirmation.method](
+            confirmation.url,
+            confirmation.data,
+            {
+                preserveScroll: true,
+                onStart: () => setProcessing(true),
+                onFinish: () => {
+                    setProcessing(false);
+                    setConfirmation(null);
+                },
+            },
+        );
+    };
+
     const archived = !!project.archived_at;
     const completed = project.status === 'COMPLETED';
 
     const changeStatus = (target) => {
-        const message =
-            target === 'COMPLETED'
+        const isCompleting = target === 'COMPLETED';
+
+        setConfirmation({
+            method: 'patch',
+            url: route('projects.status', project.id),
+            title: isCompleting ? 'Complete project?' : 'Reopen project?',
+            message: isCompleting
                 ? `Mark ${project.code} as completed? The project, its teams, members and tasks become read-only.`
-                : `Reopen ${project.code}? It becomes editable again.`;
+                : `Reopen ${project.code}? It becomes editable again.`,
+            data: { status: target },
+            variant: isCompleting ? 'danger' : 'primary',
+        });
+    };
 
-        if (!confirm(message)) return;
+    const archive = () => {
+        setConfirmation({
+            method: 'post',
+            url: route('projects.archive', project.id),
+            title: 'Archive project?',
+            message: `Archive ${project.code}? It stays read-only and is only visible from the Archived filter.`,
+            data: {},
+            variant: 'danger',
+        });
+    };
 
-        router.patch(
-            route('projects.status', project.id),
-            { status: target },
-            {
-                preserveScroll: true,
-                onStart: () => setBusy(true),
-                onFinish: () => setBusy(false),
-            },
-        );
+    const restore = () => {
+        setConfirmation({
+            method: 'post',
+            url: route('projects.restore', project.id),
+            title: 'Restore project?',
+            message: `Restore ${project.code}? It returns as a completed, read-only project.`,
+            data: {},
+            variant: 'primary',
+        });
     };
 
     // Archived projects do not display the status action.
@@ -172,9 +213,7 @@ export default function Show({ project, read_only }) {
                         {statusAction && (
                             <button
                                 type="button"
-                                onClick={() =>
-                                    changeStatus(statusAction.target)
-                                }
+                                onClick={() => changeStatus(statusAction.target)}
                                 disabled={busy}
                                 className={`inline-flex items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-medium shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${statusAction.style}`}
                             >
@@ -205,6 +244,30 @@ export default function Show({ project, read_only }) {
                                 ) : (
                                     statusAction.label
                                 )}
+                            </button>
+                        )}
+
+                        {/* Archive completed project */}
+                        {completed && !archived && (
+                            <button
+                                type="button"
+                                onClick={archive}
+                                disabled={busy}
+                                className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-medium text-rose-600 shadow-sm transition-colors hover:bg-rose-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {busy ? 'Archiving...' : 'Archive'}
+                            </button>
+                        )}
+
+                        {/* Restore archived project */}
+                        {archived && (
+                            <button
+                                type="button"
+                                onClick={restore}
+                                disabled={busy}
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {busy ? 'Restoring...' : 'Restore'}
                             </button>
                         )}
                     </div>
@@ -491,6 +554,20 @@ export default function Show({ project, read_only }) {
                     onClose={() => setEditing(false)}
                 />
             )}
+
+            <ConfirmationModal
+        show={Boolean(confirmation)}
+        title={confirmation?.title ?? 'Are you sure?'}
+        message={confirmation?.message ?? ''}
+        confirmText="Confirm"
+        cancelText="Cancel"
+        variant={confirmation?.variant ?? 'danger'}
+        processing={processing}
+        onConfirm={confirmAction}
+        onCancel={() => {
+            if (!processing) setConfirmation(null);
+        }}
+    />
         </AuthenticatedLayout>
     );
 }

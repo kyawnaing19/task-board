@@ -6,6 +6,7 @@ use App\Enums\ProjectStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 
 class Project extends Model
@@ -51,6 +52,11 @@ class Project extends Model
     public function archiver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'archived_by');
+    }
+
+    public function teamLinks(): HasMany
+    {
+        return $this->hasMany(ProjectTeam::class);
     }
 
     public function isArchived(): bool

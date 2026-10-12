@@ -6,6 +6,7 @@ use App\Enums\ProjectStatus;
 use App\Models\Project;
 use App\Models\User;
 use App\Repositories\Contracts\ProjectRepositoryInterface;
+use App\Repositories\Contracts\ProjectTeamRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -13,7 +14,8 @@ class ProjectService
 {
     public function __construct(
         protected ProjectRepositoryInterface $projects,
-        protected ProjectCodeGenerator $codes
+        protected ProjectCodeGenerator $codes,
+        protected ProjectTeamRepositoryInterface $teamLinks,
     ) {}
 
     public function create(User $actor, array $data): Project
@@ -78,6 +80,50 @@ class ProjectService
         });
     }
 
+    public function archive(User $actor, Project $project): Project
+    {
+        return DB::transaction(function () use ($actor, $project) {
+            $locked = $this->projects->lock($project);
+
+            if ($locked->isArchived()) {
+                throw ValidationException::withMessages([
+                    'project' => 'This project is already archived.',
+                ]);
+            }
+
+            if (! $locked->isCompleted()) {
+                throw ValidationException::withMessages([
+                    'project' => 'Only completed projects can be archived. Mark the project as completed first.',
+                ]);
+            }
+
+            return $this->projects->update($locked, [
+                'archived_at' => now(),
+                'archived_by' => $actor->id,
+            ]);
+        });
+    }
+
+    public function restore(Project $project): Project
+    {
+        return DB::transaction(function () use ($project) {
+            $locked = $this->projects->lock($project);
+
+            if (! $locked->isArchived()) {
+                throw ValidationException::withMessages([
+                    'project' => 'This project is not archived.',
+                ]);
+            }
+
+            // Archived → Completed။ Relationship record တွေကို ဘာမှ ပြန်မဆောက်ဘူး။
+            return $this->projects->update($locked, [
+                'archived_at' => null,
+                'archived_by' => null,
+                'status'      => ProjectStatus::COMPLETED,
+            ]);
+        });
+    }
+
     /**
      * Completed / Archived project မှာ ဘာပြင်ပြင် (metadata, dates, team, member, task) မလုပ်ခင် ဒီ method ကို ခေါ်ရမယ်။
      * နောက်ပိုင်း Team linkage / member / task service တွေက ဒါကို ပြန်သုံးမယ်။
@@ -104,8 +150,23 @@ class ProjectService
     }
 
    
-    public function reopenBlockers(Project $project): array
+   public function reopenBlockers(Project $project): array
     {
-        return [];
+        $teams = $this->teamLinks->archivedLinkedTeams($project);
+
+        if ($teams->isEmpty()) {
+            return [];
+        }
+
+        $names = $teams->pluck('name');
+        $shown = $names->take(5)->implode(', ');
+        $more = $names->count() > 5 ? ' and '.($names->count() - 5).' more' : '';
+
+        return [
+            "This project is linked to {$teams->count()} archived team(s): {$shown}{$more}. "
+            .'Restore the team(s) or resolve the linkage before reopening.',
+        ];
     }
+
+
 }

@@ -68,4 +68,18 @@ class ProjectController extends Controller
             ? 'Project marked as completed.'
             : 'Project reopened.');
     }
+
+    public function archive(Request $request, Project $project): RedirectResponse
+    {
+        $this->service->archive($request->user(), $project);
+
+        return back()->with('success', "Project {$project->code} archived.");
+    }
+
+    public function restore(Project $project): RedirectResponse
+    {
+        $this->service->restore($project);
+
+        return back()->with('success', "Project {$project->code} restored as completed.");
+    }
 }
