@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MyTeamController;
+use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use Illuminate\Support\Facades\Route;
@@ -75,7 +76,17 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::delete('/{user}', [TeamMemberController::class, 'destroy'])->name('destroy');
         }); 
         
-        
+
+        Route::middleware('super_admin')
+            ->prefix('projects')
+            ->name('projects.')
+            ->group(function () {
+                Route::get('/', [ProjectController::class, 'index'])->name('index');
+                Route::post('/', [ProjectController::class, 'store'])->name('store');
+                Route::get('/{project}', [ProjectController::class, 'show'])->name('show');
+                Route::put('/{project}', [ProjectController::class, 'update'])->name('update');
+                Route::patch('/{project}/status', [ProjectController::class, 'changeStatus'])->name('status');
+            });
         
 
         Route::prefix('my-teams')->name('my-teams.')->group(function () {

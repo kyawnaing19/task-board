@@ -18,16 +18,6 @@ export default function AuthenticatedLayout({ header, children }) {
             active: route().current('dashboard'),
         },
 
-        // ...(user?.role === 'SUPER_ADMIN'
-        //     ? [
-        //           {
-        //               name: 'Employees',
-        //               href: route('employees.index'),
-        //               icon: UsersIcon,
-        //               active: route().current('employees.*'),
-        //           },
-        //       ]
-        //     : []),
         ...(user?.role === 'SUPER_ADMIN'
     ? [
         { name: 'Employees', href: route('employees.index'), icon: UsersIcon, active: route().current('employees.*') },
@@ -42,7 +32,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
         {
             name: 'Projects',
-            href: '#',
+            href: user?.role === 'SUPER_ADMIN' ? route('projects.index') : '#',
             icon: ProjectIcon,
             active: route().current('projects.*'),
         },

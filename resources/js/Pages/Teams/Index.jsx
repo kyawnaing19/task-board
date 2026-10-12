@@ -346,30 +346,48 @@ export default function Index({ teams, filters }) {
                                         >
                                             {/* Team */}
                                             <td className="px-5 py-4">
-                                                <div className="flex min-w-0 items-center gap-3">
-                                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-sm font-semibold text-indigo-600">
-                                                        {team.name
-                                                            ?.charAt(0)
-                                                            ?.toUpperCase() ||
-                                                            'T'}
-                                                    </div>
+    <div className="flex min-w-0 items-center gap-3">
+        {/* Team Icon */}
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-sm font-bold text-indigo-600 ring-1 ring-inset ring-indigo-100 transition-colors group-hover:bg-indigo-100">
+            {team.name?.charAt(0)?.toUpperCase() || 'T'}
+        </div>
 
-                                                    <div className="min-w-0">
-                                                        <Link
-                                                            href={route('teams.show', team.id)}
-                                                            className="font-medium text-slate-900 transition-colors hover:text-indigo-600"
-                                                        >
-                                                            {team.name}
-                                                        </Link>
+        {/* Team Information — consistent left alignment */}
+        <div className="min-w-0 flex-1 text-left">
+            <Link
+                href={route('teams.show', team.id)}
+                className="group/link inline-flex max-w-full items-center gap-1.5 rounded-sm text-sm font-semibold text-slate-900 transition-colors hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            >
+                <span className="truncate">
+                    {team.name || 'Unnamed Team'}
+                </span>
 
-                                                        {team.description && (
-                                                            <p className="mt-0.5 line-clamp-2 max-w-xl text-xs text-slate-500">
-                                                                {team.description}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </td>
+                <svg
+                    className="h-4 w-4 shrink-0 text-slate-400 transition-all group-hover/link:translate-x-0.5 group-hover/link:text-indigo-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    aria-hidden="true"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 5l7 7-7 7"
+                    />
+                </svg>
+            </Link>
+
+            <p className="mt-1 line-clamp-2 text-left text-xs leading-5 text-slate-500">
+                {team.description || 'No description available'}
+            </p>
+
+            {/* <p className="mt-1 text-left text-xs font-medium text-indigo-600 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+                View team details
+            </p> */}
+        </div>
+    </div>
+</td>
 
                                             {/* Created by */}
                                             <td className="hidden px-5 py-4 text-slate-600 md:table-cell">
