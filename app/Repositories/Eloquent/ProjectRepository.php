@@ -9,10 +9,27 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ProjectRepository implements ProjectRepositoryInterface
 {
-    public function paginate(string $filter = 'active', int $perPage = 15): LengthAwarePaginator
+    // public function paginate(string $filter = 'active', int $perPage = 15): LengthAwarePaginator
+    // {
+    //     return Project::query()
+    //         ->with('creator:id,name')
+    //         ->when(
+    //             $filter === 'archived',
+    //             fn ($q) => $q->archived(),
+    //             fn ($q) => $q->notArchived()->where(
+    //                 'status',
+    //                 ($filter === 'completed' ? ProjectStatus::COMPLETED : ProjectStatus::ACTIVE)->value
+    //             )
+    //         )
+    //         ->latest('id')
+    //         ->paginate($perPage)
+    //         ->withQueryString();
+    // }
+    public function paginate(string $filter = 'active', int $perPage = 15, ?array $projectIds = null): LengthAwarePaginator
     {
         return Project::query()
-            ->with('creator:id,name')
+            ->when($projectIds === null, fn ($q) => $q->with('creator:id,name'))
+            ->when($projectIds !== null, fn ($q) => $q->whereIn('id', $projectIds))
             ->when(
                 $filter === 'archived',
                 fn ($q) => $q->archived(),
@@ -24,6 +41,11 @@ class ProjectRepository implements ProjectRepositoryInterface
             ->latest('id')
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    public function find(int $id): ?Project
+    {
+        return Project::query()->find($id);
     }
 
     public function create(array $data): Project

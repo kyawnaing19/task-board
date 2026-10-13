@@ -7,7 +7,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface ProjectRepositoryInterface
 {
-    public function paginate(string $filter = 'active', int $perPage = 15): LengthAwarePaginator;
+    //public function paginate(string $filter = 'active', int $perPage = 15): LengthAwarePaginator;
+    public function paginate(string $filter = 'active', int $perPage = 15, ?array $projectIds = null): LengthAwarePaginator;
 
     public function create(array $data): Project;
 
@@ -15,4 +16,13 @@ interface ProjectRepositoryInterface
 
 /** Lock the row within the transaction and retrieve it with the latest state */
     public function lock(Project $project): Project;
+
+    /**
+     * @param 'active'|'completed'|'archived' $filter
+     * @param int[]|null $projectIds ပေးရင် ဒီ id တွေထဲကပဲ ပြန်မယ် (Employee view)
+     */
+
+    public function find(int $id): ?Project;
+
+
 }

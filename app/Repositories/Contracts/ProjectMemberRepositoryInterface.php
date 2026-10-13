@@ -24,4 +24,7 @@ interface ProjectMemberRepositoryInterface
     public function findActive(Project $project, int $userId, bool $lock = false): ?ProjectMember;
 
     public function end(ProjectMember $member, int $actorId): void;
+
+    /** Employee view အတွက် ကန့်သတ်ထားတဲ့ column (name, job title, avatar) သာ ယူမယ် */
+    public function directory(array $userIds): Collection;
 }

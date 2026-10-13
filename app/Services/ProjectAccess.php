@@ -218,4 +218,37 @@ class ProjectAccess
     {
         return $query->distinct()->pluck($column)->map(fn ($id) => (int) $id)->all();
     }
+
+    /**
+ * Employee တစ်ယောက်ရဲ့ effective access ရှိတဲ့ Project id အားလုံး (source နှစ်ခု ပေါင်း၊ distinct)။
+ * Super Admin နဲ့ inactive user ဆိုရင် အလွတ်ပြန်မယ်။
+ *
+ * @return int[]
+ */
+    public function projectIdsFor(User $user): array
+    {
+        if ($user->isSuperAdmin() || ! $user->isActive()) {
+            return [];
+        }
+
+        $viaTeams = DB::table('team_members as tm')
+            ->join('project_teams as pt', 'pt.team_id', '=', 'tm.team_id')
+            ->join('teams as t', 't.id', '=', 'tm.team_id')
+            ->where('tm.user_id', $user->id)
+            ->whereNull('tm.removed_at')
+            ->whereNull('pt.removed_at')
+            ->whereNull('t.archived_at')
+            ->pluck('pt.project_id');
+
+        $individual = DB::table('project_members')
+            ->where('user_id', $user->id)
+            ->whereNull('removed_at')
+            ->pluck('project_id');
+
+        return $viaTeams->merge($individual)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
 }

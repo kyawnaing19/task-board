@@ -90,4 +90,12 @@ class ProjectMemberRepository implements ProjectMemberRepositoryInterface
             'removed_by' => $actorId,
         ]);
     }
+
+    public function directory(array $userIds): Collection
+    {
+        return User::query()
+            ->whereIn('id', $userIds)
+            ->orderBy('name')
+            ->get(['id', 'name', 'job_title', 'avatar_path']);
+    }
 }

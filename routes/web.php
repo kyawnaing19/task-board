@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\MyProjectController;
 use App\Http\Controllers\MyTeamController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
@@ -117,6 +118,12 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/', [MyTeamController::class, 'index'])->name('index');
             Route::get('/{team}', [MyTeamController::class, 'show'])->whereNumber('team')->name('show');
         });
+
+
+    Route::prefix('my-projects')->name('my-projects.')->group(function () {
+        Route::get('/', [MyProjectController::class, 'index'])->name('index');
+        Route::get('/{project}', [MyProjectController::class, 'show'])->whereNumber('project')->name('show');
+    });
 
         // Domain Specific Routes (Projects, Task Groups, Tasks...)
         // Route::resource('projects', ProjectController::class);
