@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MyTeamController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectTeamController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
@@ -97,6 +98,15 @@ Route::middleware(['auth', 'active'])->group(function () {
                     Route::post('/', [ProjectTeamController::class, 'store'])->name('store');
                     Route::get('/{team}/preview-removal', [ProjectTeamController::class, 'previewRemove'])->name('preview-remove');
                     Route::delete('/{team}', [ProjectTeamController::class, 'destroy'])->name('destroy');
+                });
+
+
+                Route::prefix('/{project}/members')->name('members.')->group(function () {
+                    Route::get('/candidates', [ProjectMemberController::class, 'candidates'])->name('candidates');
+                    Route::post('/preview', [ProjectMemberController::class, 'previewAdd'])->name('preview-add');
+                    Route::post('/', [ProjectMemberController::class, 'store'])->name('store');
+                    Route::get('/{user}/preview-removal', [ProjectMemberController::class, 'previewRemove'])->name('preview-remove');
+                    Route::delete('/{user}', [ProjectMemberController::class, 'destroy'])->name('destroy');
                 });
 
 

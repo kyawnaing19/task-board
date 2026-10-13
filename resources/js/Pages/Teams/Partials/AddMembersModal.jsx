@@ -474,23 +474,41 @@ export default function AddMembersModal({ team, onClose }) {
                                     </p>
                                 </div>
 
-                                <p className="mt-3 text-sm leading-6 text-slate-700">
-                                    <span className="font-semibold text-slate-900">
-                                        {impact.employees}
-                                    </span>{' '}
-                                    {impact.employees === 1
-                                        ? 'employee'
-                                        : 'employees'}{' '}
-                                    will be added and will immediately gain
-                                    access to{' '}
-                                    <span className="font-semibold text-slate-900">
-                                        {impact.projects}
-                                    </span>{' '}
-                                    {impact.projects === 1
-                                        ? 'project'
-                                        : 'projects'}{' '}
-                                    linked to this team.
+                                <p className="mt-2 text-sm leading-6 text-slate-700">
+                                <span className="font-semibold text-slate-900">
+                                    {impact.employees}
+                                </span>{' '}
+                                {impact.employees === 1 ? 'employee' : 'employees'} will be added to
+                                the team.
+                            </p>
+
+                            <p className="mt-2 text-sm leading-6 text-slate-700">
+                                {impact.projects === 0 ? (
+                                    'This team is not linked to any project, so no project access changes.'
+                                ) : (
+                                    <>
+                                        The team is linked to{' '}
+                                        <span className="font-semibold text-slate-900">
+                                            {impact.projects}
+                                        </span>{' '}
+                                        {impact.projects === 1 ? 'project' : 'projects'}.{' '}
+                                        <span className="font-semibold text-slate-900">
+                                            {impact.access_grants}
+                                        </span>{' '}
+                                        new project access{' '}
+                                        {impact.access_grants === 1 ? 'grant' : 'grants'} will take
+                                        effect immediately.
+                                    </>
+                                )}
+                            </p>
+
+                            {impact.projects > 0 && (
+                                <p className="mt-2 text-xs leading-5 text-slate-500">
+                                    Includes active, completed, and archived projects. Access employees
+                                    already have through another team or an individual membership is
+                                    not counted.
                                 </p>
+                            )}
                             </div>
 
                             {/* Selected employee list */}

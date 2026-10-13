@@ -58,6 +58,12 @@ class Project extends Model
     {
         return $this->hasMany(ProjectTeam::class);
     }
+    
+    public function memberLinks(): HasMany
+    {
+        return $this->hasMany(ProjectMember::class);
+    }
+
 
     public function isArchived(): bool
     {

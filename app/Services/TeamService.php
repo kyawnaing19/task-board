@@ -13,8 +13,9 @@ use Illuminate\Validation\ValidationException;
 class TeamService
 {
     public function __construct(
-        protected TeamRepositoryInterface $teams,
-        protected ProjectTeamRepositoryInterface $projectLinks
+    protected TeamRepositoryInterface $teams,
+    protected ProjectTeamRepositoryInterface $projectLinks,
+    protected ProjectAccess $access
     ) {}
 
     public function create(User $actor, array $data): Team
@@ -101,10 +102,15 @@ class TeamService
         ];
     }
 
-   
+    /**
+ * Archive confirmation မှာ ပြမယ့် impact: ဒီ Team ကတစ်ခုတည်းသော source ဖြစ်လို့
+ * Completed/Archived Project တွေအပေါ် access ဆုံးရှုံးမယ့် Employee နဲ့ Project အရေအတွက်။
+ *
+ * @return array{employees: int, projects: int}
+ */
     public function archiveImpact(Team $team): array
     {
-        return ['employees' => 0, 'projects' => 0];
+        return $this->access->lossOnTeamArchive($team->id);
     }
 
     protected function duplicateNameException(): ValidationException

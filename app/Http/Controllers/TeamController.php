@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Team\StoreTeamRequest;
 use App\Http\Requests\Team\UpdateTeamRequest;
 use App\Models\Team;
+use App\Repositories\Contracts\ProjectTeamRepositoryInterface;
 use App\Repositories\Contracts\TeamRepositoryInterface;
 use App\Services\TeamService;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +18,8 @@ class TeamController extends Controller
 {
     public function __construct(
         protected TeamService $service,
-        protected TeamRepositoryInterface $teams
+        protected TeamRepositoryInterface $teams,
+        protected ProjectTeamRepositoryInterface $projectLinks
     ) {}
 
     public function index(Request $request): Response
@@ -60,6 +62,7 @@ class TeamController extends Controller
         return Inertia::render('Teams/Show', [
             'team'    => $team,
             'members' => $members,
+            'projects' => $this->projectLinks->linkedProjects($team),
         ]);
     }
 

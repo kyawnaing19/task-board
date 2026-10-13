@@ -83,6 +83,14 @@ class ProjectTeamRepository implements ProjectTeamRepositoryInterface
         ]);
     }
 
+    public function linkedProjects(Team $team): Collection
+    {
+        return Project::query()
+            ->whereHas('teamLinks', fn ($q) => $q->active()->where('team_id', $team->id))
+            ->orderByDesc('id')
+            ->get(['id', 'code', 'name', 'status', 'archived_at']);
+    }
+
     public function archivedLinkedTeams(Project $project): Collection
     {
         return Team::query()

@@ -353,9 +353,11 @@ export default function Index({ teams, filters }) {
                                                     </div>
 
                                                     <div className="min-w-0 flex-1 text-left">
+                                                       
                                                         <Link
                                                             href={route('teams.show', team.id)}
                                                             className="group/link inline-flex max-w-full items-center gap-1.5 rounded-sm text-sm font-semibold text-slate-900 transition-colors hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                                                                
                                                         >
                                                             <span className="truncate">
                                                                 {team.name || 'Unnamed Team'}

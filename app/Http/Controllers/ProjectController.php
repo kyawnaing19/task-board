@@ -7,7 +7,10 @@ use App\Http\Requests\Project\ChangeProjectStatusRequest;
 use App\Http\Requests\Project\StoreProjectRequest;
 use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Models\Project;
+use App\Repositories\Contracts\ProjectMemberRepositoryInterface;
 use App\Repositories\Contracts\ProjectRepositoryInterface;
+use App\Repositories\Contracts\ProjectTeamRepositoryInterface;
+use App\Services\ProjectAccess;
 use App\Services\ProjectService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +21,10 @@ class ProjectController extends Controller
 {
     public function __construct(
         protected ProjectService $service,
-        protected ProjectRepositoryInterface $projects
+        protected ProjectRepositoryInterface $projects,
+        protected ProjectTeamRepositoryInterface $teamLinks,
+        protected ProjectMemberRepositoryInterface $memberLinks,
+        protected ProjectAccess $access
     ) {}
 
     public function index(Request $request): Response
@@ -41,13 +47,54 @@ class ProjectController extends Controller
             ->with('success', "Project {$project->code} created.");
     }
 
+    // public function show(Project $project): Response
+    // {
+    //     $project->load(['creator:id,name', 'archiver:id,name']);
+
+    //     return Inertia::render('Projects/Show', [
+    //         'project'   => $project,
+    //         'read_only' => $project->isReadOnly(),
+    //         'teams'     => $this->teamLinks->linkedTeams($project)->map(fn ($team) => [
+    //             'id'            => $team->id,
+    //             'name'          => $team->name,
+    //             'description'   => $team->description,
+    //             'members_count' => $team->members_count,
+    //             'archived'      => $team->archived_at !== null,
+    //         ])->values(),
+    //         // Team source ကနေ လက်ရှိ access ရနေတဲ့ Employee အရေအတွက် (individual source ကို နောက်အဆင့်မှာ ထပ်ပေါင်းမယ်)
+    //         'access_count' => count($this->access->memberIds($project)),
+    //     ]);
+    // }
+
     public function show(Project $project): Response
     {
         $project->load(['creator:id,name', 'archiver:id,name']);
 
+        $individuals = $this->memberLinks->members($project);
+        $sources = $this->access->teamSources($project, $individuals->pluck('user_id')->all());
+
         return Inertia::render('Projects/Show', [
             'project'   => $project,
             'read_only' => $project->isReadOnly(),
+            'teams'     => $this->teamLinks->linkedTeams($project)->map(fn ($team) => [
+                'id'            => $team->id,
+                'name'          => $team->name,
+                'description'   => $team->description,
+                'members_count' => $team->members_count,
+                'archived'      => $team->archived_at !== null,
+            ])->values(),
+            'members'   => $individuals->map(fn ($m) => [
+                'id'         => $m->user->id,
+                'name'       => $m->user->name,
+                'email'      => $m->user->email,
+                'job_title'  => $m->user->job_title,
+                'avatar_url' => $m->user->avatar_url,
+                'status'     => $m->user->status,
+                'added_at'   => $m->added_at,
+                'via_teams'  => $sources[$m->user_id] ?? [],
+            ])->values(),
+            // Source နှစ်ခု ပေါင်းပြီး distinct ရေတွက်ထားတဲ့ effective member အရေအတွက်
+            'access_count' => count($this->access->memberIds($project)),
         ]);
     }
 

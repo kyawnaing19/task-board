@@ -27,6 +27,9 @@ interface ProjectTeamRepositoryInterface
 
     public function end(ProjectTeam $link, int $actorId): void;
 
+    /** Team နဲ့ active link ရှိတဲ့ project များ (status / archive မရွေး) */
+    public function linkedProjects(Team $team): Collection;
+
 /** Teams that have an active link with the project but are archived */
     public function archivedLinkedTeams(Project $project): Collection;
 

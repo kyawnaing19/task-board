@@ -57,8 +57,16 @@ const confirmAction = () => {
 };
 
 const menuItems = (project) => {
+    const detailItem = {
+        label: 'Detail',
+        onClick: () => {
+            router.visit(route('projects.show', project.id));
+        },
+    };
+
     if (project.archived_at) {
         return [
+            detailItem,
             {
                 label: 'Restore',
                 onClick: () =>
@@ -76,6 +84,7 @@ const menuItems = (project) => {
 
     if (project.status === 'COMPLETED') {
         return [
+            detailItem,
             {
                 label: 'Reopen project',
                 onClick: () =>
@@ -104,6 +113,7 @@ const menuItems = (project) => {
     }
 
     return [
+        detailItem,
         {
             label: 'Mark as completed',
             onClick: () =>
@@ -319,7 +329,7 @@ const menuItems = (project) => {
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                                             <Link
-                                                                href={route('projects.show', project.id)}
+                                                                // href={route('projects.show', project.id)}
                                                                 className="group/link inline-flex max-w-full items-center gap-1.5 rounded-sm text-sm font-semibold text-slate-900 transition-colors hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                                                             >
                                                                 <span className="truncate">

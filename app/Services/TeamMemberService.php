@@ -11,9 +11,12 @@ use Illuminate\Validation\ValidationException;
 
 class TeamMemberService
 {
+   
     public function __construct(
-        protected TeamMemberRepositoryInterface $members
+    protected TeamMemberRepositoryInterface $members,
+    protected ProjectAccess $access
     ) {}
+
 
     public function candidates(Team $team, ?string $search = null): Collection
     {
@@ -25,16 +28,31 @@ class TeamMemberService
     /**
      * @return array{employees: int, projects: int}
      */
+    // 
+    /**
+ * ထည့်မယ့် impact။ projects = ဒီ Team နဲ့ ချိတ်ထားတဲ့ Project အားလုံး (Active/Completed/Archived)၊
+ * access_grants = access အသစ်ရမယ့် (employee, project) အရေအတွက်။
+ *
+ * @return array{employees: int, projects: int, access_grants: int}
+ */
     public function addImpact(Team $team, array $userIds): array
     {
         $userIds = $this->normalize($userIds);
         $this->assertEditable($team);
         $this->assertEligible($team, $userIds);
 
-        return ['employees' => count($userIds), 'projects' => 0];
+        $impact = $this->access->grantsFromTeamAdd($team->id, $userIds);
+
+        return [
+            'employees'     => count($userIds),
+            'projects'      => $impact['projects'],
+            'access_grants' => $impact['grants'],
+        ];
     }
 
     /**
+     * ဖယ်မယ့် impact။ Task assignment နဲ့ history ကို မထိဘူး။
+     *
      * @return array{projects: int, projects_losing_access: int}
      */
     public function removeImpact(Team $team, User $user): array
@@ -45,8 +63,14 @@ class TeamMemberService
             throw $this->notMember();
         }
 
-        return ['projects' => 0, 'projects_losing_access' => 0];
+        $impact = $this->access->lossOnTeamMemberRemoval($team->id, $user->id);
+
+        return [
+            'projects'               => $impact['projects'],
+            'projects_losing_access' => $impact['losing'],
+        ];
     }
+
 
     public function add(User $actor, Team $team, array $userIds): int
     {

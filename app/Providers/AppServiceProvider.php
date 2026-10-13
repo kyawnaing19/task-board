@@ -2,12 +2,14 @@
 namespace App\Providers;
 
 use App\Repositories\Contracts\EmployeeRepositoryInterface;
+use App\Repositories\Contracts\ProjectMemberRepositoryInterface;
 use App\Repositories\Contracts\ProjectRepositoryInterface;
 use App\Repositories\Contracts\ProjectTeamRepositoryInterface;
 use App\Repositories\Contracts\TeamMemberRepositoryInterface;
 use App\Repositories\Contracts\TeamRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Eloquent\EmployeeRepository;
+use App\Repositories\Eloquent\ProjectMemberRepository;
 use App\Repositories\Eloquent\ProjectRepository;
 use App\Repositories\Eloquent\ProjectTeamRepository;
 use App\Repositories\Eloquent\TeamMemberRepository;
@@ -26,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(TeamMemberRepositoryInterface::class,TeamMemberRepository::class);
         $this->app->bind(ProjectRepositoryInterface::class,ProjectRepository::class);
         $this->app->bind(ProjectTeamRepositoryInterface::class,ProjectTeamRepository::class);
+        $this->app->bind(ProjectMemberRepositoryInterface::class,ProjectMemberRepository::class);
     }
 
     public function boot(): void
