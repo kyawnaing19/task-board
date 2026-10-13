@@ -30,7 +30,6 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/force-change-password', [ForcePasswordChangeController::class, 'update'])
         ->name('password.update');
 
-    // 2. Protected Application Routes (must_change_password စစ်ဆေးပြီးမှ ဝင်ခွင့်ပြုမည်)
     Route::middleware(['must_change_password'])->group(function () {
 
         Route::get('/', function () {
@@ -99,6 +98,7 @@ Route::middleware(['auth', 'active'])->group(function () {
                     Route::post('/', [ProjectTeamController::class, 'store'])->name('store');
                     Route::get('/{team}/preview-removal', [ProjectTeamController::class, 'previewRemove'])->name('preview-remove');
                     Route::delete('/{team}', [ProjectTeamController::class, 'destroy'])->name('destroy');
+                    Route::post('/resolve-archived', [ProjectTeamController::class, 'resolveArchived'])->name('resolve-archived');
                 });
 
 

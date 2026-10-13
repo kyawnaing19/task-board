@@ -113,4 +113,23 @@ class ProjectTeamRepository implements ProjectTeamRepositoryInterface
     {
         return ProjectTeam::query()->active()->where('project_id', $project->id)->select('team_id');
     }
+
+    public function lockArchivedLinks(Project $project): Collection
+    {
+        // Team row ကို အရင် lock လုပ်ပြီး archived ဖြစ်နေတုန်းဆိုမှ ရွေးမယ်
+        $teamIds = Team::query()
+            ->archived()
+            ->whereIn('id', $this->activeLinkTeamIds($project))
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->pluck('id');
+
+        return ProjectTeam::query()
+            ->active()
+            ->where('project_id', $project->id)
+            ->whereIn('team_id', $teamIds)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get();
+    }
 }

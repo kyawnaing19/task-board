@@ -52,4 +52,13 @@ class ProjectTeamController extends Controller
 
         return back()->with('success', "Team \"{$team->name}\" removed from the project.");
     }
+
+    public function resolveArchived(Request $request, Project $project): RedirectResponse
+    {
+        $count = $this->service->resolveArchivedLinkage($request->user(), $project);
+
+        return back()->with('success', $count === 1
+            ? '1 archived team linkage resolved.'
+            : "{$count} archived team linkages resolved.");
+    }
 }

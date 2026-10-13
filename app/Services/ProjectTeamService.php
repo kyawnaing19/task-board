@@ -93,6 +93,45 @@ class ProjectTeamService
         });
     }
 
+       /**
+ * Completed project ရဲ့ read-only rule အတွက် တစ်ခုတည်းသော narrow exception။
+ * assertEditable() ကို ရည်ရွယ်ချက်ရှိရှိ မခေါ်ဘူး၊ archived team linkage ကို end-date လုပ်တာကလွဲပြီး ဘာမှ မထိဘူး။
+ *
+ * @return int end-date လုပ်လိုက်တဲ့ link အရေအတွက်
+ */
+    public function resolveArchivedLinkage(User $actor, Project $project): int
+    {
+        return DB::transaction(function () use ($actor, $project) {
+            $locked = $this->projects->lock($project);
+
+            if ($locked->isArchived()) {
+                throw ValidationException::withMessages([
+                    'project' => 'Archived projects are read-only. Restore the project first.',
+                ]);
+            }
+
+            if (! $locked->isCompleted()) {
+                throw ValidationException::withMessages([
+                    'project' => 'Archived team linkage only needs to be resolved on completed projects.',
+                ]);
+            }
+
+            $links = $this->links->lockArchivedLinks($locked);
+
+            if ($links->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'project' => 'There is no archived team linkage to resolve.',
+                ]);
+            }
+
+            foreach ($links as $link) {
+                $this->links->end($link, $actor->id);
+            }
+
+            return $links->count();
+        });
+    }
+
     protected function normalize(array $ids): array
     {
         return array_values(array_unique(array_map('intval', $ids)));
@@ -119,4 +158,8 @@ class ProjectTeamService
             'project' => 'This team is not linked to the project.',
         ]);
     }
+
+ 
+
+
 }

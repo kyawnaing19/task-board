@@ -35,4 +35,7 @@ interface ProjectTeamRepositoryInterface
 
 /** Number of active (not archived) projects linked to the team */
     public function activeProjectCountForTeam(Team $team): int;
+
+    /** Archive လုပ်ထားတဲ့ team နဲ့ active link ဖြစ်နေတာတွေကို team နဲ့ link row နှစ်ခုလုံး lock လုပ်ပြီး ယူမယ် */
+    public function lockArchivedLinks(Project $project): Collection;
 }

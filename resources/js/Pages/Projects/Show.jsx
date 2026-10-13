@@ -83,6 +83,54 @@ export default function Show({ project, read_only, teams, members, access_count 
             variant: 'primary',
         });
     };
+
+    // const resolveArchivedLinkage = () => {
+    // run(
+    //     'post',
+    //     route('projects.teams.resolve-archived', project.id),
+    //     `End the link between ${project.code} and ${archivedTeams
+    //         .map((t) => `"${t.name}"`)
+    //         .join(', ')}?\n\n` +
+    //         'No employee loses access (archived teams already give none). ' +
+    //         'The link is end-dated, not deleted, and will not come back if the team is restored later.',
+    //     );
+    // };
+
+    const resolveArchivedLinkage = () => {
+    const teamNames = archivedTeams
+        .map((team) => `"${team.name}"`)
+        .join(', ');
+
+    const confirmed = window.confirm(
+        `End the link between ${project.code} and ${teamNames}?\n\n` +
+            'No employee loses access (archived teams already give none). ' +
+            'The link is end-dated, not deleted, and will not come back if the team is restored later.',
+    );
+
+    if (!confirmed) return;
+
+    router.post(
+        route('projects.teams.resolve-archived', project.id),
+        {},
+        {
+            preserveScroll: true,
+
+            onStart: () => {
+                console.log('Resolving archived team linkage...');
+            },
+
+            onSuccess: () => {
+                console.log('Archived team linkage resolved successfully.');
+            },
+
+            onError: (errors) => {
+                console.error('Failed to resolve archived team linkage:', errors);
+            },
+        },
+    );
+};
+
+
     // Archived projects do not display the status action.
     const statusAction = archived
         ? null
@@ -484,12 +532,43 @@ export default function Show({ project, read_only, teams, members, access_count 
                                 </button>
                             )}
                         </div>
-                        {archivedTeams.length > 0 && (
+                        {/* {archivedTeams.length > 0 && (
                             <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-xs leading-5 text-amber-800">
                                 {archivedTeams.length} linked {archivedTeams.length === 1 ? 'team is' : 'teams are'} archived.
                                 Their members have no access through {archivedTeams.length === 1 ? 'it' : 'them'} until restored.
                             </div>
-                        )}
+                        )} */}
+                        {archivedTeams.length > 0 && (
+    <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-xs text-amber-800">
+        <p className="leading-5">
+            {archivedTeams.length} linked{' '}
+            {archivedTeams.length === 1 ? 'team is' : 'teams are'} archived:{' '}
+            <span className="font-semibold text-amber-900">
+                {archivedTeams.map((t) => t.name).join(', ')}
+            </span>
+            . Their members have no access through{' '}
+            {archivedTeams.length === 1 ? 'it' : 'them'} until restored.
+        </p>
+
+        {completed && !archived && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+                <span className="text-amber-700">
+                    This blocks reopening the project. Restore the team(s) from
+                    the Teams page, or:
+                </span>
+
+                <button
+                    onClick={resolveArchivedLinkage}
+                    disabled={busy}
+                    className="inline-flex items-center rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-medium text-amber-800 shadow-sm transition-colors hover:border-amber-400 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    {busy ? 'Working…' : 'Resolve archived team linkage'}
+                </button>
+            </div>
+        )}
+    </div>
+)}
+
                         {teams.length === 0 ? (
                             <p className="px-5 py-10 text-center text-sm text-slate-500">
                                 No teams linked yet.
