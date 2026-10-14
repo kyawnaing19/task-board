@@ -5,6 +5,7 @@ use App\Repositories\Contracts\EmployeeRepositoryInterface;
 use App\Repositories\Contracts\ProjectMemberRepositoryInterface;
 use App\Repositories\Contracts\ProjectRepositoryInterface;
 use App\Repositories\Contracts\ProjectTeamRepositoryInterface;
+use App\Repositories\Contracts\TagRepositoryInterface;
 use App\Repositories\Contracts\TaskGroupRepositoryInterface;
 use App\Repositories\Contracts\TeamMemberRepositoryInterface;
 use App\Repositories\Contracts\TeamRepositoryInterface;
@@ -13,6 +14,7 @@ use App\Repositories\Eloquent\EmployeeRepository;
 use App\Repositories\Eloquent\ProjectMemberRepository;
 use App\Repositories\Eloquent\ProjectRepository;
 use App\Repositories\Eloquent\ProjectTeamRepository;
+use App\Repositories\Eloquent\TagRepository;
 use App\Repositories\Eloquent\TaskGroupRepository;
 use App\Repositories\Eloquent\TeamMemberRepository;
 use App\Repositories\Eloquent\TeamRepository as EloquentTeamRepository;
@@ -32,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ProjectTeamRepositoryInterface::class,ProjectTeamRepository::class);
         $this->app->bind(ProjectMemberRepositoryInterface::class,ProjectMemberRepository::class);
         $this->app->bind(TaskGroupRepositoryInterface::class,TaskGroupRepository::class);
+        $this->app->bind(TagRepositoryInterface::class,TagRepository::class);
     }
 
     public function boot(): void

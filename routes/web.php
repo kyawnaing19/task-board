@@ -8,6 +8,7 @@ use App\Http\Controllers\MyTeamController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectTeamController;
+use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskGroupController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
@@ -131,6 +132,18 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/change/{flag}', [TaskGroupController::class, 'changeFlag'])
                         ->whereIn('flag', ['initial', 'completed'])->name('flag.change');
                 
+            });
+        
+
+        Route::middleware('super_admin')
+            ->prefix('tags')
+            ->name('tags.')
+            ->group(function () {
+                Route::get('/', [TagController::class, 'index'])->name('index');
+                Route::post('/', [TagController::class, 'store'])->name('store');
+                Route::put('/{tag}', [TagController::class, 'update'])->name('update');
+                Route::post('/{tag}/archive', [TagController::class, 'archive'])->name('archive');
+                Route::post('/{tag}/restore', [TagController::class, 'restore'])->name('restore');
             });
         
 
