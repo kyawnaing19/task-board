@@ -5,6 +5,7 @@ namespace App\Repositories\Eloquent;
 use App\Models\Tag;
 use App\Repositories\Contracts\TagRepositoryInterface;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class TagRepository implements TagRepositoryInterface
 {
@@ -50,8 +51,14 @@ class TagRepository implements TagRepositoryInterface
      * TODO (Tasks module): task_tag pivot ကနေ tag တစ်ခုချင်းစီ ဘယ်နှစ် task ချိတ်ထားလဲ ရေတွက်မယ်။
      * Archived task နဲ့ Completed/Archived project ထဲက task ပါ ပါမယ်။
      */
-    public function usageCounts(array $ids): array
+   public function usageCounts(array $ids): array
     {
-        return array_fill_keys($ids, 0);
+        $counts = DB::table('task_tag')
+            ->whereIn('tag_id', $ids)
+            ->selectRaw('tag_id, COUNT(*) as aggregate')
+            ->groupBy('tag_id')
+            ->pluck('aggregate', 'tag_id');
+
+        return collect($ids)->mapWithKeys(fn ($id) => [$id => (int) ($counts[$id] ?? 0)])->all();
     }
 }

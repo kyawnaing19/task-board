@@ -28,4 +28,7 @@ interface TaskGroupRepositoryInterface
 
     /** Flag ကို from ကနေ to ဆီ လွှဲမယ်။ unique index မထိအောင် from ကို အရင် NULL လုပ်မယ် */
     public function moveFlag(string $column, ?TaskGroup $from, TaskGroup $to): void;
+
+    /** Task ထည့်မယ့် group ကို shared lock နဲ့ ယူမယ်။ $id မပေးရင် Initial group။ */
+    public function lockForPlacement(?int $id): ?TaskGroup;
 }

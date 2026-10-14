@@ -67,4 +67,12 @@ class TaskGroupRepository implements TaskGroupRepositoryInterface
 
         TaskGroup::query()->whereKey($to->id)->update([$column => 1]);
     }
+
+    public function lockForPlacement(?int $id): ?TaskGroup
+    {
+        return TaskGroup::query()
+            ->when($id, fn ($q) => $q->whereKey($id), fn ($q) => $q->where('is_initial', 1))
+            ->sharedLock()
+            ->first();
+    }
 }

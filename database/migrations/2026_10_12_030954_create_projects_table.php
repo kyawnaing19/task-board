@@ -18,6 +18,8 @@ return new class extends Migration
 
             $table->string('status', 20)->default('ACTIVE')->index(); // ACTIVE | COMPLETED
 
+            $table->unsignedBigInteger('task_sequence')->default(0);
+
             
             $table->timestamp('archived_at')->nullable()->index();
             $table->foreignId('archived_by')->nullable()->constrained('users')->nullOnDelete();

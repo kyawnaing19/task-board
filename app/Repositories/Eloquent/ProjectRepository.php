@@ -64,4 +64,13 @@ class ProjectRepository implements ProjectRepositoryInterface
     {
         return Project::query()->whereKey($project->id)->lockForUpdate()->firstOrFail();
     }
+
+    public function nextTaskSequence(Project $locked): int
+    {
+        $next = ((int) $locked->task_sequence) + 1;
+
+        Project::query()->whereKey($locked->id)->update(['task_sequence' => $next]);
+
+        return $next;
+    }
 }

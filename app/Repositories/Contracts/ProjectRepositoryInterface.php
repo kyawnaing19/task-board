@@ -25,4 +25,7 @@ interface ProjectRepositoryInterface
     public function find(int $id): ?Project;
 
 
+    /** Project row ကို lock လုပ်ပြီးသားမှာ ခေါ်ရမယ်။ Task sequence ကို တိုးပြီး ပြန်ပေးမယ်။ */
+    public function nextTaskSequence(Project $locked): int;
+
 }

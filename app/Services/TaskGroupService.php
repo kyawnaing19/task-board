@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Task;
 use App\Models\TaskGroup;
 use App\Models\User;
 use App\Repositories\Contracts\TaskGroupRepositoryInterface;
@@ -119,7 +120,8 @@ class TaskGroupService
      */
     public function archiveImpact(TaskGroup $group): array
     {
-        return ['tasks' => 0];
+        // Archived task နဲ့ Completed/Archived project ထဲက task ပါ ရေတွက်မယ်
+        return ['tasks' => Task::query()->where('group_id', $group->id)->count()];
     }
 
     /** Replacement အဖြစ် ရွေးလို့ရတဲ့ group များ (Active၊ ကိုယ်တိုင်မဟုတ်) */
@@ -169,7 +171,12 @@ class TaskGroupService
      */
     protected function moveTasks(TaskGroup $from, TaskGroup $to): void
     {
-        //
+        // ယာယီ guard: Task ရွှေ့တာကို Step 10 မှာ ရေးမယ်။ အဲဒီအထိ task ရှိတဲ့ group ကို archive မလုပ်ခွင့်ပေးဘူး။
+        if (Task::query()->where('group_id', $from->id)->exists()) {
+            throw ValidationException::withMessages([
+                'group' => 'Moving tasks out of a group is not available yet. This group still contains tasks.',
+            ]);
+        }
     }
 
     /**

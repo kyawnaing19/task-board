@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Task;
 use App\Models\TaskGroup;
 use App\Models\User;
 use App\Repositories\Contracts\TaskGroupRepositoryInterface;
@@ -160,7 +161,7 @@ class TaskGroupFlagService
      */
     protected function countTasks(TaskGroup $group): int
     {
-        return 0;
+        return Task::query()->where('group_id', $group->id)->count();
     }
 
     /**
@@ -172,7 +173,14 @@ class TaskGroupFlagService
      */
     protected function migrateCompletedTasks(?TaskGroup $from, TaskGroup $to, CarbonInterface $now): void
     {
-        //
+        // ယာယီ guard: Task ရွှေ့တာနဲ့ completed_at သတ်မှတ်တာကို Step 10 မှာ ရေးမယ်။
+        $ids = array_filter([$from?->id, $to->id]);
+
+        if (Task::query()->whereIn('group_id', $ids)->exists()) {
+            throw ValidationException::withMessages([
+                'group' => 'Changing the Completed group is not available yet while tasks exist in the groups involved.',
+            ]);
+        }
     }
 
     protected function column(string $flag): string
