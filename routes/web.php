@@ -8,6 +8,7 @@ use App\Http\Controllers\MyTeamController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectTeamController;
+use App\Http\Controllers\TaskGroupController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use Illuminate\Support\Facades\Route;
@@ -112,6 +113,25 @@ Route::middleware(['auth', 'active'])->group(function () {
 
 
             });
+
+
+        Route::middleware('super_admin')
+            ->prefix('task-groups')
+            ->name('task-groups.')
+            ->group(function () {
+                Route::get('/', [TaskGroupController::class, 'index'])->name('index');
+                Route::post('/', [TaskGroupController::class, 'store'])->name('store');
+                Route::post('/reorder', [TaskGroupController::class, 'reorder'])->name('reorder');
+                Route::put('/{taskGroup}', [TaskGroupController::class, 'update'])->name('update');
+                Route::get('/{taskGroup}/archive-preview', [TaskGroupController::class, 'archivePreview'])->name('archive-preview');
+                Route::post('/{taskGroup}/archive', [TaskGroupController::class, 'archive'])->name('archive');
+                Route::post('/{taskGroup}/restore', [TaskGroupController::class, 'restore'])->name('restore');
+                Route::get('/change/{flag}/preview', [TaskGroupController::class, 'previewFlag'])
+                        ->whereIn('flag', ['initial', 'completed'])->name('flag.preview');
+                Route::post('/change/{flag}', [TaskGroupController::class, 'changeFlag'])
+                        ->whereIn('flag', ['initial', 'completed'])->name('flag.change');
+                
+            });
         
 
         Route::prefix('my-teams')->name('my-teams.')->group(function () {
@@ -120,10 +140,10 @@ Route::middleware(['auth', 'active'])->group(function () {
         });
 
 
-    Route::prefix('my-projects')->name('my-projects.')->group(function () {
-        Route::get('/', [MyProjectController::class, 'index'])->name('index');
-        Route::get('/{project}', [MyProjectController::class, 'show'])->whereNumber('project')->name('show');
-    });
+        Route::prefix('my-projects')->name('my-projects.')->group(function () {
+            Route::get('/', [MyProjectController::class, 'index'])->name('index');
+            Route::get('/{project}', [MyProjectController::class, 'show'])->whereNumber('project')->name('show');
+        });
 
         // Domain Specific Routes (Projects, Task Groups, Tasks...)
         // Route::resource('projects', ProjectController::class);

@@ -30,13 +30,6 @@ export default function AuthenticatedLayout({ header, children }) {
             active: route().current('my-teams.*') },
     ]),
 
-        // {
-        //     name: 'Projects',
-        //     href: user?.role === 'SUPER_ADMIN' ? route('projects.index') : '#',
-        //     icon: ProjectIcon,
-        //     active: route().current('projects.*'),
-        // },
-
         {
         name: 'Projects',
         href: user?.role === 'SUPER_ADMIN' ? route('projects.index') : route('my-projects.index'),
@@ -46,12 +39,15 @@ export default function AuthenticatedLayout({ header, children }) {
 
 
 
-        {
-            name: 'Task Groups',
-            href: '#',
-            icon: TaskGroupIcon,
-            active: route().current('task-groups.*'),
-        },
+        // {
+        //     name: 'Task Groups',
+        //     href: '#',
+        //     icon: TaskGroupIcon,
+        //     active: route().current('task-groups.*'),
+        // },
+        ...(user?.role === 'SUPER_ADMIN'
+        ? [{ name: 'Task Groups', href: route('task-groups.index'), icon: TaskGroupIcon, active: route().current('task-groups.*') }]
+        : []),
 
         {
             name: 'Tasks',
