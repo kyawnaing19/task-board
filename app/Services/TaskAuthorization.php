@@ -54,4 +54,23 @@ class TaskAuthorization
             'Only the task creator, its current assignees or a Super Admin can change this task.'
         );
     }
+
+    /** Project ထဲမှာ မပါရင် 404 */
+    public function assertCanView(User $user, Project $project): void
+    {
+        abort_unless($this->canViewProject($user, $project), 404);
+    }
+
+    /**
+     * Creator သို့မဟုတ် Assignee လား (eager load ပြီးသား assignees ကို သုံးတာမို့ query မထပ်ဘူး)။
+     * Project access ကို caller က စစ်ပြီးသားဖြစ်ရမယ်။
+     */
+    public function ownsLoaded(User $user, Task $task): bool
+    {
+        return $task->created_by === $user->id
+            || $task->assignees->contains('id', $user->id);
+    }
+
+
+
 }

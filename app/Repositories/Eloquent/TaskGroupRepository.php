@@ -3,6 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Models\TaskGroup;
+use App\Models\TaskGroupEvent;
 use App\Repositories\Contracts\TaskGroupRepositoryInterface;
 use Illuminate\Support\Collection;
 
@@ -74,5 +75,22 @@ class TaskGroupRepository implements TaskGroupRepositoryInterface
             ->when($id, fn ($q) => $q->whereKey($id), fn ($q) => $q->where('is_initial', 1))
             ->sharedLock()
             ->first();
+    }
+
+    public function lockCompleted(): ?TaskGroup
+    {
+        return TaskGroup::query()->where('is_completed', 1)->sharedLock()->first();
+    }
+
+
+    public function recordEvent(TaskGroup $group, ?int $actorId, string $type, array $payload = []): TaskGroupEvent
+    {
+        return TaskGroupEvent::create([
+            'group_id'   => $group->id,
+            'actor_id'   => $actorId,
+            'type'       => $type,
+            'payload'    => $payload ?: null,
+            'created_at' => now(),
+        ]);
     }
 }

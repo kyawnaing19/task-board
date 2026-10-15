@@ -15,6 +15,8 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\TaskBoardController;
+
 
 // Guest Routes
 Route::middleware('guest')->group(function () {
@@ -166,6 +168,25 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::patch('/tasks/{task}', [TaskController::class, 'update'])
             ->whereNumber('task')
             ->name('tasks.update');
+        Route::patch('/tasks/{task}/move', [TaskController::class, 'move'])
+            ->whereNumber('task')
+            ->name('tasks.move');
+        Route::post('/tasks/{task}/archive', [TaskController::class, 'archive'])
+            ->whereNumber('task')->name('tasks.archive');
+        Route::post('/tasks/{task}/restore', [TaskController::class, 'restore'])
+            ->whereNumber('task')->name('tasks.restore');
+        Route::get('/projects/{project}/tasks/archived', [TaskController::class, 'archived'])
+            ->whereNumber('project')->name('projects.tasks.archived');
+        Route::get('/projects/{project}/board', [TaskBoardController::class, 'board'])
+            ->whereNumber('project')->name('projects.board');
+        Route::get('/projects/{project}/board/options', [TaskBoardController::class, 'options'])
+            ->whereNumber('project')->name('projects.board.options');
+        Route::get('/projects/{project}/board/groups/{taskGroup}', [TaskBoardController::class, 'group'])
+            ->whereNumber(['project', 'taskGroup'])->name('projects.board.group');
+        Route::get('/tasks/{task}', [TaskBoardController::class, 'show'])
+            ->whereNumber('task')->name('tasks.show');
+        Route::get('/tasks/{task}/history', [TaskBoardController::class, 'history'])
+            ->whereNumber('task')->name('tasks.history');
 
 
         // Domain Specific Routes (Projects, Task Groups, Tasks...)

@@ -134,9 +134,11 @@ export default function Index({ projects, filters }) {
 
                                 {/* Project Rows */}
                                 {rows.map((project, index) => (
+                                    
                                     <tr
                                         key={project.id}
-                                        className="transition-colors hover:bg-slate-50"
+                                        className="transition-colors hover:bg-slate-50 cursor-pointer"
+                                        onClick={() => router.visit(route('my-projects.show', project.id))}
                                     >
                                         {/* Project */}
                                         <td className="px-5 py-4">

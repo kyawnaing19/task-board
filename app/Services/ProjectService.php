@@ -7,15 +7,20 @@ use App\Models\Project;
 use App\Models\User;
 use App\Repositories\Contracts\ProjectRepositoryInterface;
 use App\Repositories\Contracts\ProjectTeamRepositoryInterface;
+use App\Repositories\Contracts\TaskGroupRepositoryInterface;
+use App\Repositories\Contracts\TaskRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ProjectService
 {
+
     public function __construct(
-        protected ProjectRepositoryInterface $projects,
-        protected ProjectCodeGenerator $codes,
-        protected ProjectTeamRepositoryInterface $teamLinks,
+    protected ProjectRepositoryInterface $projects,
+    protected ProjectCodeGenerator $codes,
+    protected ProjectTeamRepositoryInterface $teamLinks,
+    protected TaskRepositoryInterface $tasks,
+    protected TaskGroupRepositoryInterface $groups
     ) {}
 
     public function create(User $actor, array $data): Project
@@ -54,6 +59,9 @@ class ProjectService
     public function changeStatus(Project $project, ProjectStatus $target): Project
     {
         return DB::transaction(function () use ($project, $target) {
+            if ($target === ProjectStatus::COMPLETED) {
+            $this->groups->lockCompleted();
+            }
             $locked = $this->projects->lock($project);
 
             if ($locked->isArchived()) {
@@ -79,6 +87,7 @@ class ProjectService
             return $this->projects->update($locked, ['status' => $target]);
         });
     }
+
 
     public function archive(User $actor, Project $project): Project
     {
@@ -146,9 +155,21 @@ class ProjectService
   
     public function completionBlockers(Project $project): array
     {
-        return [];
-    }
+        $open = $this->tasks->countOpen($project);
 
+        if ($open === 0) {
+            return [];
+        }
+
+        $completed = $this->groups->holderOf('is_completed');
+        $label = $completed ? " \"{$completed->name}\"" : '';
+
+        return [sprintf(
+            '%s must be moved to the Completed group%s before this project can be completed.',
+            $open === 1 ? '1 open task' : number_format($open).' open tasks',
+            $label
+        )];
+    }
    
    public function reopenBlockers(Project $project): array
     {

@@ -315,7 +315,8 @@ const menuItems = (project) => {
                                     return (
                                         <tr
                                             key={project.id}
-                                            className="transition-colors hover:bg-slate-50/80"
+                                            className="transition-colors hover:bg-blue-50/80 cursor-pointer"
+                                            onClick={() => router.visit(route('projects.show', project.id))}
                                         >
                                             {/* Project details */}
                                             <td className="px-5 py-4">
@@ -328,14 +329,14 @@ const menuItems = (project) => {
                                                     </div>
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                            <Link
+                                                            {/* <Link
                                                                 // href={route('projects.show', project.id)}
                                                                 className="group/link inline-flex max-w-full items-center gap-1.5 rounded-sm text-sm font-semibold text-slate-900 transition-colors hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                                                            >
+                                                            > */}
                                                                 <span className="truncate">
                                                                     {project.name || 'Unnamed Project'}
                                                                 </span>
-                                                                <svg
+                                                                {/* <svg
                                                                     className="h-4 w-4 shrink-0 text-slate-400 transition-all group-hover/link:translate-x-0.5 group-hover/link:text-indigo-600"
                                                                     fill="none"
                                                                     viewBox="0 0 24 24"
@@ -348,8 +349,8 @@ const menuItems = (project) => {
                                                                         strokeLinejoin="round"
                                                                         d="M9 5l7 7-7 7"
                                                                     />
-                                                                </svg>
-                                                            </Link>
+                                                                </svg> */}
+                                                            {/* </Link> */}
                                                             {project.archived_at && (
                                                                 <span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 ring-1 ring-inset ring-slate-200">
                                                                     Archived

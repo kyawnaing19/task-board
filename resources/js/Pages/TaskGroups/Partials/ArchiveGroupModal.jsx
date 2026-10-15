@@ -35,6 +35,7 @@ export default function ArchiveGroupModal({ group, onClose }) {
     }, [group.id]);
 
     const blocked = preview?.blockers?.length > 0;
+    const replacement = preview?.replacements.find((g) => String(g.id) === replacementId);
 
     const confirm = () => {
         setBusy(true);
@@ -138,6 +139,15 @@ export default function ArchiveGroupModal({ group, onClose }) {
                                     Includes archived tasks and tasks in
                                     completed or archived projects.
                                 </p>
+                                <p className={`mt-1 text-xs ${
+                                        preview.impact.exceeds_limit
+                                            ? 'text-rose-300'
+                                            : 'text-slate-500'
+                                    }`}
+                                >
+                                    {preview.impact.tasks.toLocaleString()} of{' '}
+                                    {preview.impact.limit.toLocaleString()} tasks allowed in a single change.
+                                </p>
                             </div>
 
                             {/* Replacement group */}
@@ -171,6 +181,15 @@ export default function ArchiveGroupModal({ group, onClose }) {
                                         </option>
                                     ))}
                                 </select>
+                                <p className={`mt-1 text-xs ${
+                                        preview.impact.exceeds_limit
+                                            ? 'text-rose-300'
+                                            : 'text-slate-500'
+                                    }`}
+                                >
+                                    {preview.impact.tasks.toLocaleString()} of{' '}
+                                    {preview.impact.limit.toLocaleString()} tasks allowed in a single change.
+                                </p>
                             </div>
                         </>
                     )}

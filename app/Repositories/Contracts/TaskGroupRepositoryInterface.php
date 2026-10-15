@@ -3,6 +3,7 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\TaskGroup;
+use App\Models\TaskGroupEvent;
 use Illuminate\Support\Collection;
 
 interface TaskGroupRepositoryInterface
@@ -31,4 +32,9 @@ interface TaskGroupRepositoryInterface
 
     /** Task ထည့်မယ့် group ကို shared lock နဲ့ ယူမယ်။ $id မပေးရင် Initial group။ */
     public function lockForPlacement(?int $id): ?TaskGroup;
+
+    /** Completed group ကို shared lock နဲ့ ယူမယ် (Project completion gate အတွက်) */
+    public function lockCompleted(): ?TaskGroup;
+
+    public function recordEvent(TaskGroup $group, ?int $actorId, string $type, array $payload = []): TaskGroupEvent;
 }

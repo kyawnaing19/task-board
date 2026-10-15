@@ -11,6 +11,11 @@ class TaskActivity extends Model
     public const UPDATED = 'updated';
     public const ASSIGNEES_CHANGED = 'assignees_changed';
     public const TAGS_CHANGED = 'tags_changed';
+    public const MOVED = 'moved';
+    public const REORDERED = 'reordered';
+    public const ARCHIVED = 'archived';
+    public const RESTORED = 'restored';
+
 
     public $timestamps = false;
 

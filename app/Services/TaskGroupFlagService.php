@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\Task;
 use App\Models\TaskGroup;
+use App\Models\TaskGroupEvent;
 use App\Models\User;
 use App\Repositories\Contracts\TaskGroupRepositoryInterface;
+use App\Repositories\Contracts\TaskRepositoryInterface;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -22,7 +24,8 @@ class TaskGroupFlagService
     ];
 
     public function __construct(
-        protected TaskGroupRepositoryInterface $groups
+    protected TaskGroupRepositoryInterface $groups,
+    protected TaskRepositoryInterface $tasks
     ) {}
 
     /**
@@ -55,8 +58,7 @@ class TaskGroupFlagService
     {
         $column = $this->column($flag);
 
-        return DB::transaction(function () use ($flag, $column, $target) {
-            // Group row အားလုံးကို lock လုပ်ပြီးမှ state ကို ပြန်စစ်မယ်
+        return DB::transaction(function () use ($actor, $flag, $column, $target) {
             $this->groups->lockAll();
 
             $fresh = $target->fresh();
@@ -67,12 +69,27 @@ class TaskGroupFlagService
                 throw ValidationException::withMessages(['group' => $blockers[0]]);
             }
 
+            $moved = 0;
+            $marked = 0;
+
             if ($flag === 'completed') {
                 // Flag မလွှဲခင် task တွေကို ရွှေ့မယ်၊ အားလုံး transaction တစ်ခုတည်းထဲမှာ
-                $this->migrateCompletedTasks($current, $fresh, now());
+                [$moved, $marked] = $this->migrateCompletedTasks($current, $fresh, now());
             }
 
             $this->groups->moveFlag($column, $current, $fresh);
+
+            $this->groups->recordEvent(
+                $fresh,
+                $actor->id,
+                $flag === 'initial' ? TaskGroupEvent::INITIAL_CHANGED : TaskGroupEvent::COMPLETED_CHANGED,
+                [
+                    'from'                   => $current ? ['id' => $current->id, 'name' => $current->name] : null,
+                    'to'                     => ['id' => $fresh->id, 'name' => $fresh->name],
+                    'tasks_moved'            => $moved,
+                    'tasks_marked_completed' => $marked,
+                ]
+            );
 
             return $fresh->refresh();
         });
@@ -156,31 +173,30 @@ class TaskGroupFlagService
         return $blockers;
     }
 
-    /**
-     * TODO (Tasks module): group ထဲက task အရေအတွက်။ Archived task နဲ့ Completed/Archived project ထဲက task ပါ ပါမယ်။
-     */
     protected function countTasks(TaskGroup $group): int
     {
-        return Task::query()->where('group_id', $group->id)->count();
+        return $this->tasks->countInGroup($group->id);
     }
 
     /**
-     * TODO (Tasks module): $from ထဲက task အားလုံးကို $to ဆီ ရွှေ့မယ်။
-     *   - System-level: Archived task နဲ့ Completed/Archived project ထဲက task ပါ ပါမယ်၊ read-only စည်းမျဉ်းကို ကျော်မယ်။
-     *   - ရွှေ့တဲ့ task တွေရဲ့ ရှိပြီးသား completed_at ကို မပြောင်းဘူး။
-     *   - $to ထဲမှာ အရင်ကတည်းက ရှိနေတဲ့ task တွေရဲ့ completed_at ကို $now (migration time) အဖြစ် သတ်မှတ်မယ်။
-     *   - ရွှေ့တဲ့ task တွေကို $to ရဲ့ နောက်ဆုံးနေရာကနေ ဆက်စီမယ် (sort position)။
+     * @return array{0: int, 1: int} [ရွှေ့လိုက်တဲ့ task အရေအတွက်, completed_at အသစ်သတ်မှတ်ခံရတဲ့ task အရေအတွက်]
      */
-    protected function migrateCompletedTasks(?TaskGroup $from, TaskGroup $to, CarbonInterface $now): void
+    protected function migrateCompletedTasks(?TaskGroup $from, TaskGroup $to, CarbonInterface $now): array
     {
-        // ယာယီ guard: Task ရွှေ့တာနဲ့ completed_at သတ်မှတ်တာကို Step 10 မှာ ရေးမယ်။
-        $ids = array_filter([$from?->id, $to->id]);
+        // ၁။ Group အသစ်ထဲမှာ ရှိပြီးသား task တွေကို migration time နဲ့ completed ဖြစ်စေမယ်။
+        //    ရွှေ့မယ့် task တွေ မဝင်ခင် အရင်လုပ်ရမယ် (မဟုတ်ရင် ရွှေ့လာတဲ့ task တွေရဲ့ မူလ completed_at ပါ ပျက်မယ်)
+        $marked = $this->tasks->countInGroup($to->id);
+        $this->tasks->setCompletedAtInGroup($to->id, $now);
 
-        if (Task::query()->whereIn('group_id', $ids)->exists()) {
-            throw ValidationException::withMessages([
-                'group' => 'Changing the Completed group is not available yet while tasks exist in the groups involved.',
-            ]);
+        // ၂။ မူလ Completed group ထဲက task အားလုံး (archived ပါ) ကို ရွှေ့မယ်၊ completed_at မထိဘူး
+        $moved = 0;
+
+        if ($from) {
+            $moved = $this->tasks->countInGroup($from->id);
+            $this->tasks->appendGroupTasks($from->id, $to->id);
         }
+
+        return [$moved, $marked];
     }
 
     protected function column(string $flag): string

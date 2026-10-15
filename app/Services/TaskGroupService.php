@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\Task;
 use App\Models\TaskGroup;
+use App\Models\TaskGroupEvent;
 use App\Models\User;
 use App\Repositories\Contracts\TaskGroupRepositoryInterface;
+use App\Repositories\Contracts\TaskRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -14,8 +16,9 @@ class TaskGroupService
     public const MIN_ACTIVE_GROUPS = 2;
 
     public function __construct(
-        protected TaskGroupRepositoryInterface $groups
-    ) {}
+    protected TaskGroupRepositoryInterface $groups,
+    protected TaskRepositoryInterface $tasks
+) {}
 
     public function create(User $actor, array $data): TaskGroup
     {
@@ -106,23 +109,21 @@ class TaskGroupService
         if ($activeCount <= self::MIN_ACTIVE_GROUPS) {
             $blockers[] = 'At least '.self::MIN_ACTIVE_GROUPS.' active groups must remain.';
         }
+        $taskCount = $this->tasks->countInGroup($group->id);
+        $limit = TaskGroupFlagService::MAX_MIGRATION_TASKS;
+
+        if ($taskCount > $limit) {
+            $blockers[] = sprintf(
+                'This group holds %s tasks, which is above the limit of %s for a single change. '
+                .'Move some of them to another group first.',
+                number_format($taskCount),
+                number_format($limit)
+            );
+        }
 
         return $blockers;
     }
 
-    /**
-     * Archive confirmation မှာ ပြမယ့် impact။
-     *
-     * TODO (Tasks module): ဒီ group ထဲက task အားလုံး (Archived task နဲ့ Completed/Archived project ထဲက task ပါ)
-     * အရေအတွက်ကို ရေတွက်မယ်။
-     *
-     * @return array{tasks: int}
-     */
-    public function archiveImpact(TaskGroup $group): array
-    {
-        // Archived task နဲ့ Completed/Archived project ထဲက task ပါ ရေတွက်မယ်
-        return ['tasks' => Task::query()->where('group_id', $group->id)->count()];
-    }
 
     /** Replacement အဖြစ် ရွေးလို့ရတဲ့ group များ (Active၊ ကိုယ်တိုင်မဟုတ်) */
     public function replacementCandidates(TaskGroup $group)
@@ -132,6 +133,18 @@ class TaskGroupService
             ->where('id', '!=', $group->id)
             ->ordered()
             ->get(['id', 'name', 'color', 'is_initial', 'is_completed']);
+    }
+
+    /**
+     * @return array{tasks: int, limit: int, exceeds_limit: bool}
+     */
+    public function archiveImpact(TaskGroup $group): array
+    {
+        // Archived task နဲ့ Completed/Archived project ထဲက task ပါ ရေတွက်မယ်
+        $tasks = $this->tasks->countInGroup($group->id);
+        $limit = TaskGroupFlagService::MAX_MIGRATION_TASKS;
+
+        return ['tasks' => $tasks, 'limit' => $limit, 'exceeds_limit' => $tasks > $limit];
     }
 
     public function archive(User $actor, TaskGroup $group, int $replacementId): TaskGroup
@@ -153,30 +166,45 @@ class TaskGroupService
                 ]);
             }
 
-            $this->moveTasks($fresh, $replacement);
+            $moved = $this->moveTasks($fresh, $replacement);
 
-            return $this->groups->update($fresh, [
+            $archived = $this->groups->update($fresh, [
                 'archived_at' => now(),
                 'archived_by' => $actor->id,
             ]);
+
+            $this->groups->recordEvent($archived, $actor->id, TaskGroupEvent::ARCHIVED, [
+                'replacement'      => ['id' => $replacement->id, 'name' => $replacement->name],
+                'tasks_moved'      => $moved,
+                'marked_completed' => $replacement->is_completed ? $moved : 0,
+            ]);
+
+            return $archived;
         });
     }
 
     /**
-     * Group ထဲက task အားလုံးကို Replacement group ဆီ ရွှေ့မယ် (System-level၊ Archived task နဲ့
-     * Completed/Archived project ထဲက task ပါ ပါမယ်၊ read-only စည်းမျဉ်းကို ကျော်မယ်)။
+     * Group ထဲက task အားလုံးကို Replacement group ဆီ ရွှေ့မယ် (System-level)။
+     * Replacement က Completed group ဆိုရင် ရွှေ့တဲ့ task အားလုံး (archived ပါ) ကို migration time နဲ့ completed ဖြစ်စေမယ်။
+     * (Archive လုပ်တဲ့ group က flag မကိုင်ရတာမို့ ရွှေ့မယ့် task တွေက completed မဟုတ်ခဲ့ဘူး။)
      *
-     * TODO (Tasks module): Task ရှိလာမှ ရေးမယ်။ Replacement က Completed group ဖြစ်နေရင်
-     * ရွှေ့တဲ့ task တွေရဲ့ completed_at ကို ဘယ်လိုကိုင်မလဲ ဆုံးဖြတ်ရမယ်။
+     * @return int ရွှေ့လိုက်တဲ့ task အရေအတွက်
      */
-    protected function moveTasks(TaskGroup $from, TaskGroup $to): void
+    protected function moveTasks(TaskGroup $from, TaskGroup $to): int
     {
-        // ယာယီ guard: Task ရွှေ့တာကို Step 10 မှာ ရေးမယ်။ အဲဒီအထိ task ရှိတဲ့ group ကို archive မလုပ်ခွင့်ပေးဘူး။
-        if (Task::query()->where('group_id', $from->id)->exists()) {
-            throw ValidationException::withMessages([
-                'group' => 'Moving tasks out of a group is not available yet. This group still contains tasks.',
-            ]);
+        $count = $this->tasks->countInGroup($from->id);
+
+        if ($count === 0) {
+            return 0;
         }
+
+        $this->tasks->appendGroupTasks($from->id, $to->id);
+
+        if ($to->is_completed) {
+            $this->tasks->fillMissingCompletedAt($to->id, now());
+        }
+
+        return $count;
     }
 
     /**
