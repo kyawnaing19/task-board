@@ -32,7 +32,7 @@ export default function Show({
 }) {
     const { flash, errors } = usePage().props;
 
-    // Project tabs
+    // Project tab
     const [tab, setTab] = useProjectTab();
 
     // Modal states
@@ -71,7 +71,7 @@ export default function Show({
 
         router[confirmation.method](
             confirmation.url,
-            confirmation.data,
+            confirmation.data ?? {},
             {
                 preserveScroll: true,
 
@@ -81,8 +81,8 @@ export default function Show({
                 },
 
                 onFinish: () => {
-                    setBusy(false);
                     setProcessing(false);
+                    setBusy(false);
                     setConfirmation(null);
                 },
             },
@@ -124,13 +124,9 @@ export default function Show({
         setConfirmation({
             method: 'post',
             url: route('projects.archive', project.id),
-
             title: 'Archive project?',
-
-            message: `Archive ${project.code}? It stays read-only and is only visible from the Archived filter.`,
-
+            message: `Archive ${project.code}? It will remain read-only and can be accessed from the Archived filter.`,
             data: {},
-
             variant: 'danger',
         });
     };
@@ -143,13 +139,9 @@ export default function Show({
         setConfirmation({
             method: 'post',
             url: route('projects.restore', project.id),
-
             title: 'Restore project?',
-
-            message: `Restore ${project.code}? It returns as a completed, read-only project.`,
-
+            message: `Restore ${project.code}?`,
             data: {},
-
             variant: 'primary',
         });
     };
@@ -167,8 +159,7 @@ export default function Show({
 
         const confirmed = window.confirm(
             `End the link between ${project.code} and ${teamNames}?\n\n` +
-                'No employee loses access (archived teams already give none). ' +
-                'The link is end-dated, not deleted, and will not come back if the team is restored later.',
+                'The link will be end-dated, not deleted. Restoring the team later will not automatically recreate the link.',
         );
 
         if (!confirmed) return;
@@ -191,229 +182,205 @@ export default function Show({
     };
 
     // --------------------------------------------------
-    // Project status action
+    // Status action
     // --------------------------------------------------
 
     const statusAction = archived
         ? null
         : completed
           ? {
-                label: 'Reopen project',
+                label: 'Reopen',
                 target: 'ACTIVE',
                 style: 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
             }
           : {
-                label: 'Mark as completed',
+                label: 'Complete',
                 target: 'COMPLETED',
                 style: 'border-sky-200 bg-white text-sky-700 hover:bg-sky-50',
             };
 
     return (
-        <AuthenticatedLayout header="Projects">
-            <Head title={`${project.code} ${project.name}`} />
+        <AuthenticatedLayout
+    header={
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden text-sm">
+            {/* Breadcrumb */}
+            <Link
+                
+                href={route(
+                            'projects.index',
+                            archived
+                                ? { status: 'archived' }
+                                : completed
+                                  ? { status: 'completed' }
+                                  : {},
+                        )}
+                className="shrink-0 text-blue-800 transition hover:text-indigo-600"
+            >
+                Projects
+            </Link>
 
-            <div className="w-full space-y-6">
-                {/* =========================================
-                    Back navigation
-                ========================================= */}
+            <svg
+                className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+            >
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m9 18 6-6-6-6"
+                />
+            </svg>
 
-                <Link
-                    href={route(
-                        'projects.index',
+            {/* Project name */}
+            <span
+                className="shrink-0 font-semibold text-slate-900"
+                title={project.name}
+            >
+                {project.name}
+            </span>
+
+            <span className="shrink-0 text-slate-300">|</span>
+
+            {/* Project code */}
+            <span className="shrink-0 font-mono text-xs font-semibold text-slate-600">
+                {project.code}
+            </span>
+
+            <span className="shrink-0 text-slate-300">·</span>
+
+            {/* Status */}
+            <span
+                className={`inline-flex shrink-0 items-center gap-1 text-xs font-medium ${
+                    archived
+                        ? 'text-amber-700'
+                        : completed
+                          ? 'text-sky-700'
+                          : 'text-emerald-700'
+                }`}
+            >
+                <span
+                    className={`h-1.5 w-1.5 rounded-full ${
                         archived
-                            ? { status: 'archived' }
+                            ? 'bg-amber-500'
                             : completed
-                              ? { status: 'completed' }
-                              : {},
-                    )}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-indigo-600"
-                >
-                    <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        aria-hidden="true"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M15 19l-7-7 7-7"
-                        />
-                    </svg>
+                              ? 'bg-sky-500'
+                              : 'bg-emerald-500'
+                    }`}
+                />
+                {archived
+                    ? 'Archived'
+                    : completed
+                      ? 'Completed'
+                      : 'Active'}
+            </span>
 
-                    Back to projects
-                </Link>
+            <span className="shrink-0 text-slate-300">·</span>
+
+            {/* Creator and date */}
+            <span className="truncate text-xs text-slate-500">
+                Created by{' '}
+                <span className="font-semibold text-slate-700">
+                    {project.creator?.name ?? 'Super Admin'}
+                </span>
+               {' '}on{' '}
+{project.created_at && !Number.isNaN(Date.parse(project.created_at))
+    ? formatDate(project.created_at)
+    : '—'}
+            </span>
+        </div>
+    }
+>
+            <Head title={`${project.name} | Projects`} />
+
+            <div className="w-full min-w-0 space-y-2">
+                
 
                 {/* =========================================
-                    Project header
-                ========================================= */}
+                        PROJECT TABS + ACTION BUTTONS
+                    ========================================= */}
 
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-3">
-                            {/* Project icon */}
+                    <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        {/* LEFT: Board and Overview tabs */}
+                        <div className="min-w-0 flex-1">
+                            <ProjectTabs
+                                tab={tab}
+                                onChange={setTab}
+                            />
+                        </div>
 
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-indigo-100 bg-indigo-50 text-lg font-bold text-indigo-600">
-                                {project.name?.charAt(0)?.toUpperCase() ||
-                                    'P'}
-                            </div>
-
-                            <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <span className="font-mono text-xs font-medium text-slate-500">
-                                        {project.code}
-                                    </span>
-
-                                    <span
-                                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                                            STATUS_STYLES[project.status] ||
-                                            'bg-slate-100 text-slate-600'
-                                        }`}
+                        {/* RIGHT: Project action buttons */}
+                        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                            {!read_only && (
+                                <button
+                                    type="button"
+                                    onClick={() => setEditing(true)}
+                                    disabled={busy}
+                                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <svg
+                                        className="h-3.5 w-3.5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth={1.8}
+                                        aria-hidden="true"
                                     >
-                                        <span
-                                            className={`h-1.5 w-1.5 rounded-full ${
-                                                completed
-                                                    ? 'bg-sky-500'
-                                                    : 'bg-emerald-500'
-                                            }`}
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="m16.862 4.487 1.687-1.687a2.121 2.121 0 0 1 3 3l-9.5 9.5a4 4 0 0 1-1.692 1.006l-3.1.9.9-3.1a4 4 0 0 1 1.006-1.692l7.699-7.927ZM19 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"
                                         />
+                                    </svg>
+                                    Edit
+                                </button>
+                            )}
 
-                                        {completed ? 'Completed' : 'Active'}
-                                    </span>
+                            {statusAction && (
+                                <button
+                                    type="button"
+                                    onClick={() => changeStatus(statusAction.target)}
+                                    disabled={busy}
+                                    className={`inline-flex h-8 items-center rounded-lg border px-3 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${statusAction.style}`}
+                                >
+                                    {busy ? 'Working...' : statusAction.label}
+                                </button>
+                            )}
 
-                                    {archived && (
-                                        <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
-                                            Archived
-                                        </span>
-                                    )}
-                                </div>
+                            {completed && !archived && (
+                                <button
+                                    type="button"
+                                    onClick={archive}
+                                    disabled={busy}
+                                    className="inline-flex h-8 items-center rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    Archive
+                                </button>
+                            )}
 
-                                <h1 className="mt-1 break-words text-2xl font-bold tracking-tight text-slate-900">
-                                    {project.name}
-                                </h1>
-
-                                <p className="mt-1.5 text-xs text-slate-500">
-                                    Created by{' '}
-                                    <span className="font-medium text-slate-700">
-                                        {project.creator?.name ?? '—'}
-                                    </span>{' '}
-                                    on{' '}
-                                    {new Date(
-                                        project.created_at,
-                                    ).toLocaleDateString()}
-                                </p>
-                            </div>
+                            {archived && (
+                                <button
+                                    type="button"
+                                    onClick={restore}
+                                    disabled={busy}
+                                    className="inline-flex h-8 items-center rounded-lg border border-indigo-200 bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    Restore
+                                </button>
+                            )}
                         </div>
                     </div>
 
-                    {/* Project actions */}
-
-                    <div className="flex flex-wrap items-center gap-2">
-                        {!read_only && (
-                            <button
-                                type="button"
-                                onClick={() => setEditing(true)}
-                                disabled={busy}
-                                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <svg
-                                    className="h-4 w-4"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={1.8}
-                                    aria-hidden="true"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="m16.862 4.487 1.687-1.687a2.121 2.121 0 0 1 3 3l-9.5 9.5a4 4 0 0 1-1.692 1.006l-3.1.9.9-3.1a4 4 0 0 1 1.006-1.692l7.699-7.927ZM19 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"
-                                    />
-                                </svg>
-
-                                Edit project
-                            </button>
-                        )}
-
-                        {statusAction && (
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    changeStatus(statusAction.target)
-                                }
-                                disabled={busy}
-                                className={`inline-flex items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-medium shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${statusAction.style}`}
-                            >
-                                {busy ? (
-                                    <>
-                                        <svg
-                                            className="mr-2 h-4 w-4 animate-spin"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            aria-hidden="true"
-                                        >
-                                            <circle
-                                                className="opacity-25"
-                                                cx="12"
-                                                cy="12"
-                                                r="10"
-                                                stroke="currentColor"
-                                                strokeWidth="4"
-                                            />
-
-                                            <path
-                                                className="opacity-75"
-                                                fill="currentColor"
-                                                d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"
-                                            />
-                                        </svg>
-
-                                        Working...
-                                    </>
-                                ) : (
-                                    statusAction.label
-                                )}
-                            </button>
-                        )}
-
-                        {/* Archive completed project */}
-
-                        {completed && !archived && (
-                            <button
-                                type="button"
-                                onClick={archive}
-                                disabled={busy}
-                                className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-medium text-rose-600 shadow-sm transition-colors hover:bg-rose-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                {busy ? 'Archiving...' : 'Archive'}
-                            </button>
-                        )}
-
-                        {/* Restore archived project */}
-
-                        {archived && (
-                            <button
-                                type="button"
-                                onClick={restore}
-                                disabled={busy}
-                                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                {busy ? 'Restoring...' : 'Restore'}
-                            </button>
-                        )}
-                    </div>
-                </div>
-
                 {/* =========================================
-                    Read-only notices
+                    READ-ONLY NOTICES
                 ========================================= */}
 
-                {archived ? (
-                    <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-800">
+                {archived && (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
                         <svg
-                            className="mt-0.5 h-5 w-5 shrink-0 text-amber-600"
+                            className="mt-0.5 h-4 w-4 shrink-0"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -432,57 +399,57 @@ export default function Show({
                                 Archived project
                             </p>
 
-                            <p className="mt-1 leading-5 text-amber-700">
-                                This project is archived and read-only. Restore
-                                it to make it visible in the normal lists
-                                again.
+                            <p className="mt-0.5 leading-5 text-amber-700">
+                                This project is archived and read-only.
+                                Restore it to return it to the normal
+                                project list.
                             </p>
                         </div>
                     </div>
-                ) : (
-                    completed && (
-                        <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3.5 text-sm text-sky-800">
-                            <svg
-                                className="mt-0.5 h-5 w-5 shrink-0 text-sky-600"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={1.8}
-                                aria-hidden="true"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 16.5h.008v.008H12V16.5Z"
-                                />
-                            </svg>
+                )}
 
-                            <div>
-                                <p className="font-semibold">
-                                    Completed project
-                                </p>
+                {!archived && completed && (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-xs text-sky-800">
+                        <svg
+                            className="mt-0.5 h-4 w-4 shrink-0"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={1.8}
+                            aria-hidden="true"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 16.5h.008v.008H12V16.5Z"
+                            />
+                        </svg>
 
-                                <p className="mt-1 leading-5 text-sky-700">
-                                    This project is completed and read-only.
-                                    Reopen it to edit its details, teams,
-                                    members, or tasks.
-                                </p>
-                            </div>
+                        <div>
+                            <p className="font-semibold">
+                                Completed project
+                            </p>
+
+                            <p className="mt-0.5 leading-5 text-sky-700">
+                                This project is read-only. Reopen it to
+                                make changes to the project, teams, members,
+                                and tasks.
+                            </p>
                         </div>
-                    )
+                    </div>
                 )}
 
                 {/* =========================================
-                    Success message
+                    SUCCESS MESSAGE
                 ========================================= */}
 
                 {flash?.success && (
                     <div
                         role="status"
-                        className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+                        className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800"
                     >
                         <svg
-                            className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600"
+                            className="mt-0.5 h-4 w-4 shrink-0"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -501,59 +468,66 @@ export default function Show({
                 )}
 
                 {/* =========================================
-                    Transition/read-only errors
+                    ERROR MESSAGE
                 ========================================= */}
 
                 {(errors?.status || errors?.project) && !anyModal && (
                     <div
                         role="alert"
-                        className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
+                        className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-700"
                     >
                         {errors.status || errors.project}
                     </div>
                 )}
 
                 {/* =========================================
-                    Project tabs
+                    PROJECT TABS
                 ========================================= */}
 
-                <ProjectTabs
-                    tab={tab}
-                    onChange={setTab}
-                />
+                {/* <div className="min-w-0">
+                    <ProjectTabs
+                        tab={tab}
+                        onChange={setTab}
+                    />
+                </div> */}
 
                 {/* =========================================
-                    Board tab
-
-                    Keep mounted while hidden so board filters,
-                    pagination and local state can persist.
+                    PROJECT BOARD
                 ========================================= */}
 
-                <div className={tab === 'board' ? '' : 'hidden'}>
+                <section
+                    aria-label="Project board"
+                    className={
+                        tab === 'board'
+                            ? 'relative -mx-2 block w-[calc(100%+1rem)] min-w-0 sm:-mx-3 sm:w-[calc(100%+1.5rem)] lg:-mx-4 lg:w-[calc(100%+2rem)]'
+                            : 'hidden'
+                    }
+                >
                     <ProjectBoard
                         key={`${project.status}-${project.archived_at ?? 'live'}`}
                         projectId={project.id}
                     />
-                </div>
+                </section>
 
                 {/* =========================================
-                    Overview tab
+                    PROJECT OVERVIEW
                 ========================================= */}
 
-                <div
+                <section
+                    aria-label="Project overview"
                     className={
-                        tab === 'overview' ? 'space-y-6' : 'hidden'
+                        tab === 'overview'
+                            ? 'w-full min-w-0 space-y-2'
+                            : 'hidden'
                     }
                 >
-                    {/* =====================================
-                        Project details
-                    ===================================== */}
+                    {/* Project details */}
 
-                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                        <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
                                 <svg
-                                    className="h-5 w-5"
+                                    className="h-4 w-4"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
@@ -573,21 +547,19 @@ export default function Show({
                                     Project details
                                 </h2>
 
-                                <p className="mt-0.5 text-xs text-slate-500">
-                                    Overview and schedule
+                                <p className="text-xs text-slate-500">
+                                    Description and schedule
                                 </p>
                             </div>
                         </div>
 
-                        <dl className="grid gap-6 p-5 sm:grid-cols-2">
-                            {/* Description */}
-
+                        <dl className="grid gap-4 p-3 sm:grid-cols-2">
                             <div className="sm:col-span-2">
-                                <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                                     Description
                                 </dt>
 
-                                <dd className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">
+                                <dd className="mt-1.5 whitespace-pre-line text-sm leading-6 text-slate-700">
                                     {project.description || (
                                         <span className="italic text-slate-400">
                                             No description available.
@@ -596,16 +568,14 @@ export default function Show({
                                 </dd>
                             </div>
 
-                            {/* Start date */}
-
                             <div>
-                                <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                                     Start date
                                 </dt>
 
-                                <dd className="mt-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                                <dd className="mt-1.5 flex items-center gap-2 text-sm font-medium text-slate-700">
                                     <svg
-                                        className="h-4 w-4 text-slate-400"
+                                        className="h-4 w-4 shrink-0 text-slate-400"
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"
@@ -623,16 +593,14 @@ export default function Show({
                                 </dd>
                             </div>
 
-                            {/* Due date */}
-
                             <div>
-                                <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                                     Target due date
                                 </dt>
 
-                                <dd className="mt-2 flex flex-wrap items-center gap-2 text-sm font-medium">
+                                <dd className="mt-1.5 flex flex-wrap items-center gap-2 text-sm font-medium">
                                     <svg
-                                        className={`h-4 w-4 ${
+                                        className={`h-4 w-4 shrink-0 ${
                                             isOverdue(project)
                                                 ? 'text-rose-500'
                                                 : 'text-slate-400'
@@ -661,7 +629,7 @@ export default function Show({
                                     </span>
 
                                     {isOverdue(project) && (
-                                        <span className="inline-flex rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-200">
+                                        <span className="inline-flex rounded-md bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-700 ring-1 ring-inset ring-rose-200">
                                             Overdue
                                         </span>
                                     )}
@@ -670,17 +638,13 @@ export default function Show({
                         </dl>
                     </div>
 
-                    {/* =====================================
-                        Teams and individual members
-                    ===================================== */}
+                    {/* Teams and members */}
 
-                    <div className="grid gap-6 lg:grid-cols-2">
-                        {/* =================================
-                            Teams
-                        ================================= */}
+                    <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+                        {/* Teams */}
 
-                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
                                 <div className="min-w-0">
                                     <h2 className="text-sm font-semibold text-slate-900">
                                         Teams{' '}
@@ -694,7 +658,7 @@ export default function Show({
                                         {access_count === 1
                                             ? 'employee has'
                                             : 'employees have'}{' '}
-                                        access to this project in total
+                                        access in total
                                     </p>
                                 </div>
 
@@ -702,7 +666,7 @@ export default function Show({
                                     <button
                                         type="button"
                                         onClick={() => setLinking(true)}
-                                        className="shrink-0 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                                        className="inline-flex h-8 shrink-0 items-center rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                                     >
                                         + Link teams
                                     </button>
@@ -712,7 +676,7 @@ export default function Show({
                             {/* Archived team warning */}
 
                             {archivedTeams.length > 0 && (
-                                <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-xs text-amber-800">
+                                <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
                                     <p className="leading-5">
                                         {archivedTeams.length} linked{' '}
                                         {archivedTeams.length === 1
@@ -724,29 +688,25 @@ export default function Show({
                                                 .map((team) => team.name)
                                                 .join(', ')}
                                         </span>
-                                        . Their members have no access through{' '}
-                                        {archivedTeams.length === 1
-                                            ? 'it'
-                                            : 'them'}{' '}
-                                        until restored.
+                                        .
                                     </p>
 
                                     {completed && !archived && (
-                                        <div className="mt-3 flex flex-wrap items-center gap-3">
-                                            <span className="text-amber-700">
-                                                This blocks reopening the
-                                                project. Restore the team(s)
-                                                from the Teams page, or:
-                                            </span>
+                                        <div className="mt-2">
+                                            <p className="leading-5 text-amber-700">
+                                                Restore the archived team(s),
+                                                or resolve their linkage with
+                                                this project.
+                                            </p>
 
                                             <button
                                                 type="button"
                                                 onClick={resolveArchivedLinkage}
                                                 disabled={busy}
-                                                className="inline-flex items-center rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-medium text-amber-800 shadow-sm transition-colors hover:border-amber-400 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+                                                className="mt-2 inline-flex h-7 items-center rounded-lg border border-amber-300 bg-white px-2.5 text-xs font-medium text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
                                             >
                                                 {busy
-                                                    ? 'Working…'
+                                                    ? 'Working...'
                                                     : 'Resolve archived team linkage'}
                                             </button>
                                         </div>
@@ -754,18 +714,16 @@ export default function Show({
                                 </div>
                             )}
 
-                            {/* Teams empty state */}
-
                             {teams.length === 0 ? (
-                                <p className="px-5 py-10 text-center text-sm text-slate-500">
+                                <div className="px-4 py-8 text-center text-xs text-slate-500">
                                     No teams linked yet.
-                                </p>
+                                </div>
                             ) : (
                                 <ul className="divide-y divide-slate-100">
                                     {teams.map((team) => (
                                         <li
                                             key={team.id}
-                                            className="flex items-center justify-between gap-3 px-5 py-3 transition hover:bg-slate-50/70"
+                                            className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-slate-50"
                                         >
                                             <div className="min-w-0">
                                                 <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -780,15 +738,15 @@ export default function Show({
                                                     </Link>
 
                                                     {team.archived && (
-                                                        <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">
+                                                        <span className="inline-flex shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">
                                                             Archived
                                                         </span>
                                                     )}
                                                 </div>
 
-                                                <p className="mt-0.5 text-xs text-slate-500">
-                                                    {team.members_count}{' '}
-                                                    {team.members_count === 1
+                                                <p className="mt-1 text-xs text-slate-500">
+                                                    {team.members_count ?? 0}{' '}
+                                                    {(team.members_count ?? 0) === 1
                                                         ? 'member'
                                                         : 'members'}
                                                 </p>
@@ -800,7 +758,7 @@ export default function Show({
                                                     onClick={() =>
                                                         setUnlinking(team)
                                                     }
-                                                    className="shrink-0 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+                                                    className="inline-flex h-7 shrink-0 items-center rounded-lg border border-rose-200 bg-white px-2.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                                                 >
                                                     Remove
                                                 </button>
@@ -811,18 +769,14 @@ export default function Show({
                             )}
                         </div>
 
-                        {/* =================================
-                            Individual members
-                        ================================= */}
+                        {/* Individual members */}
 
-                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                            {/* Header */}
-
-                            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-                                <div className="flex min-w-0 items-center gap-3">
-                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                                <div className="flex min-w-0 items-center gap-2.5">
+                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
                                         <svg
-                                            className="h-5 w-5"
+                                            className="h-4 w-4"
                                             fill="none"
                                             viewBox="0 0 24 24"
                                             stroke="currentColor"
@@ -846,8 +800,7 @@ export default function Show({
                                         </h2>
 
                                         <p className="mt-0.5 text-xs text-slate-500">
-                                            Employees with direct project
-                                            access
+                                            Direct project access
                                         </p>
                                     </div>
                                 </div>
@@ -858,10 +811,10 @@ export default function Show({
                                         onClick={() =>
                                             setAddingMembers(true)
                                         }
-                                        className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                                        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-indigo-600 px-2.5 text-xs font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                                     >
                                         <svg
-                                            className="h-4 w-4"
+                                            className="h-3.5 w-3.5"
                                             fill="none"
                                             viewBox="0 0 24 24"
                                             stroke="currentColor"
@@ -880,11 +833,9 @@ export default function Show({
                                 )}
                             </div>
 
-                            {/* Empty state */}
-
                             {members.length === 0 ? (
-                                <div className="px-5 py-10 text-center">
-                                    <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                                <div className="px-4 py-8 text-center">
+                                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
                                         <svg
                                             className="h-5 w-5"
                                             fill="none"
@@ -901,7 +852,7 @@ export default function Show({
                                         </svg>
                                     </div>
 
-                                    <p className="mt-3 text-sm font-medium text-slate-700">
+                                    <p className="mt-2.5 text-sm font-medium text-slate-700">
                                         No individual members yet
                                     </p>
 
@@ -916,26 +867,24 @@ export default function Show({
                                             onClick={() =>
                                                 setAddingMembers(true)
                                             }
-                                            className="mt-4 rounded-lg px-3 py-2 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-50 hover:text-indigo-700"
+                                            className="mt-3 rounded-lg px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-50"
                                         >
                                             + Add your first members
                                         </button>
                                     )}
                                 </div>
                             ) : (
-                                /* Members list */
-
                                 <ul className="divide-y divide-slate-100">
                                     {members.map((member) => (
                                         <li
                                             key={member.id}
-                                            className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-slate-50/80"
+                                            className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-slate-50"
                                         >
-                                            <div className="flex min-w-0 flex-1 items-center gap-3">
+                                            <div className="flex min-w-0 flex-1 items-center gap-2.5">
                                                 <Avatar
                                                     name={member.name}
                                                     src={member.avatar_url}
-                                                    className="h-10 w-10 shrink-0"
+                                                    className="h-9 w-9 shrink-0"
                                                 />
 
                                                 <div className="min-w-0 flex-1">
@@ -944,15 +893,16 @@ export default function Show({
                                                             {member.name}
                                                         </p>
 
-                                                        {member.status !==
-                                                            'ACTIVE' && (
-                                                            <span className="inline-flex shrink-0 items-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-700">
-                                                                Inactive
-                                                            </span>
-                                                        )}
+                                                        {member.status &&
+                                                            member.status !==
+                                                                'ACTIVE' && (
+                                                                <span className="inline-flex shrink-0 items-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-700">
+                                                                    Inactive
+                                                                </span>
+                                                            )}
                                                     </div>
 
-                                                    <p className="mt-0.5 truncate text-xs text-slate-500">
+                                                    <p className="mt-1 truncate text-xs text-slate-500">
                                                         {member.job_title ||
                                                             member.email}
                                                     </p>
@@ -980,7 +930,7 @@ export default function Show({
                                                             member,
                                                         )
                                                     }
-                                                    className="shrink-0 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+                                                    className="inline-flex h-7 shrink-0 items-center rounded-lg border border-rose-200 bg-white px-2.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                                                 >
                                                     Remove
                                                 </button>
@@ -991,15 +941,12 @@ export default function Show({
                             )}
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
 
-            {/* =============================================
-                Modals
-
-                Keep modals outside the tab content so they
-                remain independent of the selected tab.
-            ============================================= */}
+            {/* =========================================
+                MODALS
+            ========================================= */}
 
             {editing && (
                 <EditProjectModal
@@ -1039,8 +986,6 @@ export default function Show({
                     onClose={() => setRemovingMember(null)}
                 />
             )}
-
-            {/* Project action confirmation */}
 
             <ConfirmationModal
                 show={Boolean(confirmation)}

@@ -24,83 +24,89 @@ export default function Show({
     const completed = project.status === 'COMPLETED';
 
     return (
-        <AuthenticatedLayout header="Projects">
-            <Head title={`${project.code} ${project.name}`} />
+        <AuthenticatedLayout
+            header={
+                <div className="flex min-w-0 items-center gap-2 overflow-hidden text-sm">
+                    <Link
+                        href={route(
+                            'my-projects.index',
+                            archived
+                                ? { status: 'archived' }
+                                : completed
+                                  ? { status: 'completed' }
+                                  : {},
+                        )}
+                        className="shrink-0 text-blue-800 transition hover:text-indigo-600"
+                    >
+                        My projects
+                    </Link>
 
-            <div className="w-full space-y-6">
-                {/* Back Link */}
-                <Link
-                    href={route(
-                        'my-projects.index',
-                        archived
-                            ? { status: 'archived' }
-                            : completed
-                              ? { status: 'completed' }
-                              : {},
-                    )}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-indigo-600"
-                >
                     <svg
-                        className="h-4 w-4"
-                        viewBox="0 0 24 24"
+                        className="h-3.5 w-3.5 shrink-0 text-slate-400"
                         fill="none"
+                        viewBox="0 0 24 24"
                         stroke="currentColor"
-                        strokeWidth="1.8"
+                        strokeWidth={2}
                         aria-hidden="true"
                     >
                         <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            d="M15.75 19.5 8.25 12l7.5-7.5"
+                            d="m9 18 6-6-6-6"
                         />
                     </svg>
 
-                    Back to projects
-                </Link>
+                    <span
+                        className="shrink-0 truncate font-semibold text-slate-900"
+                        title={project.name}
+                    >
+                        {project.name}
+                    </span>
 
-                {/* Project Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                        <div className="mb-2 flex flex-wrap items-center gap-2">
-                            <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-xs font-medium text-slate-500">
-                                {project.code}
-                            </span>
+                    <span className="shrink-0 text-slate-300">|</span>
 
-                            <span
-                                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                                    STATUS_STYLES[project.status] ??
-                                    'bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-200'
-                                }`}
-                            >
-                                <span
-                                    className={`h-1.5 w-1.5 rounded-full ${
-                                        completed
-                                            ? 'bg-sky-500'
-                                            : 'bg-emerald-500'
-                                    }`}
-                                />
+                    <span className="shrink-0 font-mono text-xs font-semibold text-slate-600">
+                        {project.code}
+                    </span>
 
-                                {completed ? 'Completed' : 'Active'}
-                            </span>
+                    <span className="shrink-0 text-slate-300">·</span>
 
-                            {archived && (
-                                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200">
-                                    Archived
-                                </span>
-                            )}
-                        </div>
-
-                        <h1 className="break-words text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                            {project.name}
-                        </h1>
-                    </div>
+                    <span
+                        className={`inline-flex shrink-0 items-center gap-1 text-xs font-medium ${
+                            archived
+                                ? 'text-amber-700'
+                                : completed
+                                  ? 'text-sky-700'
+                                  : 'text-emerald-700'
+                        }`}
+                    >
+                        <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                                archived
+                                    ? 'bg-amber-500'
+                                    : completed
+                                      ? 'bg-sky-500'
+                                      : 'bg-emerald-500'
+                            }`}
+                        />
+                        {archived
+                            ? 'Archived'
+                            : completed
+                              ? 'Completed'
+                              : 'Active'}
+                    </span>
                 </div>
+            }
+        >
+            <Head title={`${project.code} ${project.name}`} />
+
+            <div className="w-full min-w-0 space-y-2">
 
                 {/* Read-only Notice */}
                 {(archived || completed) && (
-                    <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+                    <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
                         <svg
-                            className="mt-0.5 h-5 w-5 shrink-0 text-amber-600"
+                            className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -115,13 +121,13 @@ export default function Show({
                         </svg>
 
                         <div>
-                            <p className="text-sm font-semibold text-amber-900">
+                            <p className="text-xs font-semibold text-amber-900">
                                 {archived
                                     ? 'This project is archived.'
                                     : 'This project is completed.'}
                             </p>
 
-                            <p className="mt-0.5 text-sm text-amber-800">
+                            <p className="mt-0.5 text-xs text-amber-800">
                                 This project is read-only.
                             </p>
                         </div>
@@ -129,30 +135,35 @@ export default function Show({
                 )}
 
                 {/* Project Tabs */}
-                <ProjectTabs
-                    tab={tab}
-                    onChange={setTab}
-                />
+                <div className="min-w-0">
+                    <ProjectTabs
+                        tab={tab}
+                        onChange={setTab}
+                    />
+                </div>
 
                 {/* Board Tab */}
-                <div className={tab === 'board' ? '' : 'hidden'}>
+                <section
+                    aria-label="Project board"
+                    className={tab === 'board' ? 'block w-full min-w-0' : 'hidden'}
+                >
                     <ProjectBoard
                         key={`${project.status}-${project.archived_at ?? 'live'}`}
                         projectId={project.id}
                     />
-                </div>
+                </section>
 
                 {/* Overview Tab */}
                 <div
                     className={
                         tab === 'overview'
-                            ? 'space-y-6'
+                            ? 'w-full min-w-0 space-y-2'
                             : 'hidden'
                     }
                 >
                     {/* Project Details */}
                     <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                        <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+                        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
                             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50">
                                 <svg
                                     className="h-5 w-5 text-indigo-600"
@@ -181,7 +192,7 @@ export default function Show({
                             </div>
                         </div>
 
-                        <dl className="grid gap-x-8 gap-y-6 p-5 sm:grid-cols-2">
+                        <dl className="grid gap-4 p-3 sm:grid-cols-2">
                             <div className="sm:col-span-2">
                                 <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                                     Description
@@ -196,7 +207,7 @@ export default function Show({
                                 </dd>
                             </div>
 
-                            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+                            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
                                 <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                                     Start date
                                 </dt>
@@ -206,7 +217,7 @@ export default function Show({
                                 </dd>
                             </div>
 
-                            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+                            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
                                 <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                                     Target due date
                                 </dt>
@@ -235,7 +246,7 @@ export default function Show({
                     {/* Teams */}
                     {teams.length > 0 && (
                         <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                            <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+                            <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
                                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50">
                                     <svg
                                         className="h-5 w-5 text-violet-600"
@@ -268,7 +279,7 @@ export default function Show({
                                 </span>
                             </div>
 
-                            <div className="flex flex-wrap gap-2.5 p-5">
+                            <div className="flex flex-wrap gap-2 p-3">
                                 {teams.map((team) =>
                                     team.can_view ? (
                                         <Link
@@ -341,7 +352,7 @@ export default function Show({
 
                     {/* Members */}
                     <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                        <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+                        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
                             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
                                 <svg
                                     className="h-5 w-5 text-emerald-600"
@@ -379,7 +390,7 @@ export default function Show({
                                 {members.map((member) => (
                                     <li
                                         key={member.id}
-                                        className="flex items-center gap-3 px-5 py-4 transition-colors hover:bg-slate-50"
+                                        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50"
                                     >
                                         <Avatar
                                             name={member.name}
@@ -406,7 +417,7 @@ export default function Show({
                                 ))}
                             </ul>
                         ) : (
-                            <div className="flex flex-col items-center px-5 py-12 text-center">
+                            <div className="flex flex-col items-center px-4 py-8 text-center">
                                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
                                     <svg
                                         className="h-6 w-6 text-slate-400"

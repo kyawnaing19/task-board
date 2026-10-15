@@ -291,11 +291,22 @@ export default function AuthenticatedLayout({ header, children }) {
                             <MenuIcon className="h-5 w-5" />
                         </button>
 
-                        {header && (
+                        {/* {header && (
                             <h1 className="truncate text-base font-semibold text-slate-900 sm:text-lg">
                                 {header}
                             </h1>
-                        )}
+                        )} */}
+                        {header && (
+    <div className="min-w-0 flex-1">
+        {typeof header === 'string' ? (
+            <h1 className="truncate text-base font-semibold text-slate-900 sm:text-lg">
+                {header}
+            </h1>
+        ) : (
+            header
+        )}
+    </div>
+)}
                     </div>
 
                     {/* =================================================
