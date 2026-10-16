@@ -1,8 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { usePage } from '@inertiajs/react';
+
 import Avatar from '@/Components/Avatar';
 import GroupPill from '@/Components/GroupPill';
-import { errorMessage, getJson, patchJson, postJson } from '@/lib/http';
+
+import {
+    errorMessage,
+    getJson,
+    patchJson,
+    postJson,
+} from '@/lib/http';
+
 import { formatDateTime } from '@/lib/taskFormat';
 
 import Section from './Drawer/Section';
@@ -11,6 +19,7 @@ import DescriptionField from './Drawer/DescriptionField';
 import DatesField from './Drawer/DatesField';
 import PeopleField from './Drawer/PeopleField';
 import TagsField from './Drawer/TagsField';
+import AttachmentsField from './Drawer/AttachmentsField';
 import HistoryTimeline from './Drawer/HistoryTimeline';
 
 const PERSON_LABELS = {
@@ -120,6 +129,7 @@ export default function TaskDrawer({
     onMove,
 }) {
     const { auth } = usePage().props;
+
     const viewer = auth.user;
     const isAdmin = viewer.role === 'SUPER_ADMIN';
 
@@ -175,6 +185,10 @@ export default function TaskDrawer({
 
         getJson(route('tasks.show', taskId), controller.signal)
             .then((payload) => {
+                if (controller.signal.aborted) {
+                    return;
+                }
+
                 if (payload.task.project.id !== projectId) {
                     setLoadError(
                         'This task belongs to a different project.',
@@ -350,6 +364,16 @@ export default function TaskDrawer({
     const task = data?.task;
     const perm = task?.permissions;
 
+    // Attachment upload/delete permissions.
+    // The backend must independently enforce these permissions.
+    const canManageAttachments = Boolean(
+        task &&
+            perm?.can_manage &&
+            !task.is_archived &&
+            !task.project.archived &&
+            !task.project.read_only,
+    );
+
     // Change priority.
     const changePriority = (priority) =>
         save({ priority }).catch((err) => {
@@ -502,8 +526,7 @@ export default function TaskDrawer({
                         className="
                             inline-flex h-8 w-8 shrink-0 items-center
                             justify-center rounded-lg
-                            text-slate-400
-                            transition-colors
+                            text-slate-400 transition-colors
                             hover:bg-slate-100 hover:text-slate-700
                             focus:outline-none focus-visible:ring-2
                             focus-visible:ring-indigo-500
@@ -619,10 +642,16 @@ export default function TaskDrawer({
                                                     value={task.priority ?? 'NORMAL'}
                                                     disabled={busy}
                                                     onChange={(event) => {
-                                                        const priority = event.target.value;
+                                                        const priority =
+                                                            event.target.value;
 
-                                                        if (priority !== task.priority) {
-                                                            changePriority(priority);
+                                                        if (
+                                                            priority !==
+                                                            task.priority
+                                                        ) {
+                                                            changePriority(
+                                                                priority,
+                                                            );
                                                         }
                                                     }}
                                                     aria-label="Task priority"
@@ -632,23 +661,30 @@ export default function TaskDrawer({
                                                         outline-none transition-colors
                                                         focus:ring-2 focus:ring-indigo-100
                                                         disabled:cursor-not-allowed disabled:opacity-50
-                                                        ${PRIORITY_STYLES[task.priority] ??
-                                                        'border-slate-200 bg-white text-slate-700'}
+                                                        ${
+                                                            PRIORITY_STYLES[
+                                                                task.priority
+                                                            ] ??
+                                                            'border-slate-200 bg-white text-slate-700'
+                                                        }
                                                     `}
                                                 >
-                                                    {PRIORITIES.map((priority) => (
-                                                        <option
-                                                            key={priority.value}
-                                                            value={priority.value}
-                                                            className="bg-white text-slate-700"
-                                                        >
-                                                            {priority.label}
-                                                        </option>
-                                                    ))}
+                                                    {PRIORITIES.map(
+                                                        (priority) => (
+                                                            <option
+                                                                key={priority.value}
+                                                                value={priority.value}
+                                                                className="bg-white text-slate-700"
+                                                            >
+                                                                {priority.label}
+                                                            </option>
+                                                        ),
+                                                    )}
                                                 </select>
                                             </label>
                                         )}
 
+                                        {/* Move group */}
                                         {perm.can_move && options?.groups && (
                                             <select
                                                 value=""
@@ -656,25 +692,22 @@ export default function TaskDrawer({
                                                 onChange={(event) =>
                                                     event.target.value &&
                                                     changeGroup(
-                                                        Number(event.target.value),
+                                                        Number(
+                                                            event.target.value,
+                                                        ),
                                                     )
                                                 }
                                                 aria-label="Move to group"
                                                 className="
                                                     max-w-full cursor-pointer
-                                                    rounded-lg border
-                                                    border-slate-200
+                                                    rounded-lg border border-slate-200
                                                     !bg-white px-2.5 py-1.5
-                                                    text-xs font-medium
-                                                    !text-slate-700 shadow-sm
-                                                    outline-none
-                                                    transition-colors
+                                                    text-xs font-medium !text-slate-700
+                                                    shadow-sm outline-none transition-colors
                                                     hover:border-slate-300
                                                     focus:border-indigo-400
-                                                    focus:ring-2
-                                                    focus:ring-indigo-100
-                                                    disabled:cursor-not-allowed
-                                                    disabled:opacity-50
+                                                    focus:ring-2 focus:ring-indigo-100
+                                                    disabled:cursor-not-allowed disabled:opacity-50
                                                 "
                                             >
                                                 <option
@@ -716,8 +749,7 @@ export default function TaskDrawer({
                                         <span
                                             className="
                                                 mt-0.5 h-1.5 w-1.5
-                                                shrink-0 rounded-full
-                                                bg-amber-500
+                                                shrink-0 rounded-full bg-amber-500
                                             "
                                         />
 
@@ -732,9 +764,8 @@ export default function TaskDrawer({
                                     <div
                                         role="alert"
                                         className="
-                                            rounded-xl border
-                                            border-rose-200 bg-rose-50
-                                            px-3.5 py-3
+                                            rounded-xl border border-rose-200
+                                            bg-rose-50 px-3.5 py-3
                                             text-sm leading-5 text-rose-700
                                         "
                                     >
@@ -742,7 +773,7 @@ export default function TaskDrawer({
                                     </div>
                                 )}
 
-                                {/* Dates */}
+                                {/* Schedule */}
                                 <section className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-sm font-semibold text-slate-800">
@@ -817,6 +848,12 @@ export default function TaskDrawer({
                                     </div>
                                 </section>
 
+                                {/* Attachments: handled by its own component */}
+                                <AttachmentsField
+                                    taskId={taskId}
+                                    canManage={canManageAttachments}
+                                />
+
                                 {/* Details */}
                                 <Section title="Details">
                                     <dl className="divide-y divide-slate-100">
@@ -838,8 +875,7 @@ export default function TaskDrawer({
                                                             (
                                                             {PERSON_LABELS[
                                                                 task.creator.label
-                                                            ] ??
-                                                                task.creator.label}
+                                                            ] ?? task.creator.label}
                                                             )
                                                         </span>
                                                     )}
@@ -871,7 +907,9 @@ export default function TaskDrawer({
 
                                         {task.archived_at && (
                                             <DetailRow label="Archived">
-                                                {formatDateTime(task.archived_at)}
+                                                {formatDateTime(
+                                                    task.archived_at,
+                                                )}
                                             </DetailRow>
                                         )}
                                     </dl>
@@ -908,20 +946,15 @@ export default function TaskDrawer({
                                         onClick={restore}
                                         disabled={busy || !perm.can_restore}
                                         className="
-                                            inline-flex items-center
-                                            justify-center gap-2
-                                            rounded-lg border
-                                            border-slate-200 bg-white
-                                            px-3.5 py-2
+                                            inline-flex items-center justify-center gap-2
+                                            rounded-lg border border-slate-200
+                                            bg-white px-3.5 py-2
                                             text-sm font-medium text-slate-700
                                             shadow-sm transition-colors
-                                            hover:bg-slate-50
-                                            hover:text-slate-900
+                                            hover:bg-slate-50 hover:text-slate-900
                                             focus:outline-none
-                                            focus-visible:ring-2
-                                            focus-visible:ring-indigo-500
-                                            disabled:cursor-not-allowed
-                                            disabled:opacity-40
+                                            focus-visible:ring-2 focus-visible:ring-indigo-500
+                                            disabled:cursor-not-allowed disabled:opacity-40
                                         "
                                     >
                                         <RestoreIcon />
@@ -940,19 +973,14 @@ export default function TaskDrawer({
                                     onClick={archive}
                                     disabled={busy}
                                     className="
-                                        inline-flex items-center
-                                        justify-center gap-2
-                                        rounded-lg border
-                                        border-rose-200 bg-white
-                                        px-3.5 py-2
+                                        inline-flex items-center justify-center gap-2
+                                        rounded-lg border border-rose-200
+                                        bg-white px-3.5 py-2
                                         text-sm font-medium text-rose-600
-                                        transition-colors
-                                        hover:bg-rose-50
-                                        focus:outline-none
-                                        focus-visible:ring-2
+                                        transition-colors hover:bg-rose-50
+                                        focus:outline-none focus-visible:ring-2
                                         focus-visible:ring-rose-500
-                                        disabled:cursor-not-allowed
-                                        disabled:opacity-50
+                                        disabled:cursor-not-allowed disabled:opacity-50
                                     "
                                 >
                                     <ArchiveIcon />

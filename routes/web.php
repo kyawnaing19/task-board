@@ -10,6 +10,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectTeamController;
 use App\Http\Controllers\TagController;
+use App\Http\Controllers\TaskAttachmentController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskGroupController;
 use App\Http\Controllers\TeamController;
@@ -188,6 +189,33 @@ Route::middleware(['auth', 'active'])->group(function () {
             ->whereNumber('task')->name('tasks.show');
         Route::get('/tasks/{task}/history', [TaskBoardController::class, 'history'])
             ->whereNumber('task')->name('tasks.history');
+
+        //taskFileUpload
+        Route::get(
+            '/tasks/{task}/attachments',
+            [TaskAttachmentController::class, 'index']
+        )->name('tasks.attachments.index');
+
+        Route::post(
+            '/tasks/{task}/attachments',
+            [TaskAttachmentController::class, 'store']
+        )->name('tasks.attachments.store');
+
+        Route::get(
+            '/tasks/{task}/attachments/{attachment}/download',
+            [TaskAttachmentController::class, 'download']
+        )->name('tasks.attachments.download');
+
+        Route::get(
+            '/tasks/{task}/attachments/{attachment}/preview',
+            [TaskAttachmentController::class, 'preview']
+        )->name('tasks.attachments.preview');
+
+        Route::delete(
+            '/tasks/{task}/attachments/{attachment}',
+            [TaskAttachmentController::class, 'destroy']
+        )->name('tasks.attachments.destroy');
+        
 
 
         //MyTasks

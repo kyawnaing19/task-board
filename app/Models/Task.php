@@ -85,4 +85,9 @@ class Task extends Model
     {
         return $query->whereNotNull('archived_at');
     }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TaskAttachment::class);
+    }
 }
