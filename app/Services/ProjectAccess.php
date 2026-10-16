@@ -251,4 +251,42 @@ class ProjectAccess
             ->values()
             ->all();
     }
+
+    /**
+ * Project များစွာရဲ့ effective member id ကို query ၂ ခုနဲ့ တွက်မယ်။
+ *
+ * @param  int[]  $projectIds
+ * @return array<int, int[]> project id => user ids
+ */
+    public function memberIdsByProject(array $projectIds): array
+    {
+        if (! $projectIds) {
+            return [];
+        }
+
+        $viaTeams = DB::table('team_members as tm')
+            ->join('project_teams as pt', 'pt.team_id', '=', 'tm.team_id')
+            ->join('teams as t', 't.id', '=', 'tm.team_id')
+            ->join('users as u', 'u.id', '=', 'tm.user_id')
+            ->whereIn('pt.project_id', $projectIds)
+            ->whereNull('pt.removed_at')
+            ->whereNull('tm.removed_at')
+            ->whereNull('t.archived_at')
+            ->where('u.role', UserRole::EMPLOYEE->value)
+            ->where('u.status', UserStatus::ACTIVE->value)
+            ->get(['pt.project_id', 'tm.user_id']);
+
+        $individual = DB::table('project_members as pm')
+            ->join('users as u', 'u.id', '=', 'pm.user_id')
+            ->whereIn('pm.project_id', $projectIds)
+            ->whereNull('pm.removed_at')
+            ->where('u.role', UserRole::EMPLOYEE->value)
+            ->where('u.status', UserStatus::ACTIVE->value)
+            ->get(['pm.project_id', 'pm.user_id']);
+
+        return $viaTeams->concat($individual)
+            ->groupBy('project_id')
+            ->map(fn ($rows) => $rows->pluck('user_id')->map(fn ($id) => (int) $id)->unique()->values()->all())
+            ->all();
+    }
 }

@@ -17,6 +17,7 @@ final class TaskFilters
         public readonly array $groupIds = [],
         public readonly ?string $dateFrom = null,
         public readonly ?string $dateTo = null,
+        public readonly bool $mine=false
     ) {}
 
     public static function none(): self
@@ -43,6 +44,7 @@ final class TaskFilters
             groupIds: array_values(array_unique(array_map('intval', $data['group_ids'] ?? []))),
             dateFrom: ($data['date_from'] ?? null) ?: null,
             dateTo: ($data['date_to'] ?? null) ?: null,
+            mine: filter_var($data['mine'] ?? false, FILTER_VALIDATE_BOOLEAN),
         );
     }
 
@@ -54,7 +56,8 @@ final class TaskFilters
             || $this->tagIds !== []
             || $this->groupIds !== []
             || $this->dateFrom !== null
-            || $this->dateTo !== null;
+            || $this->dateTo !== null
+            || $this->mine;
     }
 
     /** Response ထဲမှာ ပြန်ပြဖို့ */
@@ -68,6 +71,7 @@ final class TaskFilters
             'group_ids' => $this->groupIds,
             'date_from' => $this->dateFrom,
             'date_to'   => $this->dateTo,
+            'mine' => $this->mine,
         ];
     }
 }

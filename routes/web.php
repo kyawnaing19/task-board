@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MyProjectController;
+use App\Http\Controllers\MyTaskController;
 use App\Http\Controllers\MyTeamController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
@@ -187,6 +188,14 @@ Route::middleware(['auth', 'active'])->group(function () {
             ->whereNumber('task')->name('tasks.show');
         Route::get('/tasks/{task}/history', [TaskBoardController::class, 'history'])
             ->whereNumber('task')->name('tasks.history');
+
+
+        //MyTasks
+        Route::prefix('my-tasks')->name('my-tasks.')->group(function () {
+            Route::get('/', [MyTaskController::class, 'index'])->name('index');
+            Route::get('/data', [MyTaskController::class, 'list'])->name('list');
+            Route::get('/options', [MyTaskController::class, 'options'])->name('options');
+        });
 
 
         // Domain Specific Routes (Projects, Task Groups, Tasks...)

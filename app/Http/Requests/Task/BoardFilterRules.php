@@ -21,6 +21,8 @@ trait BoardFilterRules
             'group_ids.*' => ['integer', 'distinct'],
             'date_from'   => ['nullable', 'date_format:Y-m-d'],
             'date_to'     => ['nullable', 'date_format:Y-m-d'],
+            'mine' => ['nullable', 'boolean'],
+
         ];
 
         if ($this->filled($prefix.'date_from')) {

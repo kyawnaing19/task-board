@@ -12,6 +12,17 @@ const CALENDAR_PATH =
 const TAG_ICON_PATH =
     'M7 7h.01M7 3h5a1 1 0 01.707.293l7 7a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-7-7A1 1 0 016 8V4a1 1 0 011-1z';
 
+export const TAG_COLORS = {
+    slate: 'bg-slate-100 text-slate-700 border-slate-200',
+    blue: 'bg-blue-100 text-blue-700 border-blue-200',
+    amber: 'bg-amber-100 text-amber-800 border-amber-200',
+    green: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    violet: 'bg-violet-100 text-violet-700 border-violet-200',
+    rose: 'bg-rose-100 text-rose-700 border-rose-200',
+    teal: 'bg-teal-100 text-teal-700 border-teal-200',
+    orange: 'bg-orange-100 text-orange-700 border-orange-200',
+};
+
 // Updated to match PHP App\Enums\TaskPriority
 const PRIORITIES = {
     LOW: {
@@ -258,7 +269,7 @@ export default function TaskCard({
                 </div>
             )}
 
-            {/* Bottom Row: Tag Container */}
+            {/* Bottom Row: Tag Container utilizing TAG_COLORS */}
             {task.tags.length > 0 && (
                 <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-slate-50/50 px-2 py-1">
                     <svg
@@ -277,18 +288,23 @@ export default function TaskCard({
                     </svg>
 
                     <div className="flex flex-wrap items-center gap-1">
-                        {task.tags.map((t) => (
-                            <span
-                                key={t.id}
-                                className={`inline-flex items-center rounded-xl px-2 py-0.5 text-xs font-medium ${
-                                    t.inactive
-                                        ? 'bg-slate-200/60 text-slate-500'
-                                        : 'bg-blue-100/70 text-blue-600'
-                                }`}
-                            >
-                                {t.name}
-                            </span>
-                        ))}
+                        {task.tags.map((t) => {
+                            // Match the tag's color configuration, falling back to slate if not found
+                            const colorClass = TAG_COLORS[t.color] || TAG_COLORS.slate;
+
+                            return (
+                                <span
+                                    key={t.id}
+                                    className={`inline-flex items-center rounded-xl border px-2 py-0.5 text-xs font-medium ${
+                                        t.inactive
+                                            ? 'bg-slate-200/60 text-slate-500 border-slate-300'
+                                            : colorClass
+                                    }`}
+                                >
+                                    {t.name}
+                                </span>
+                            );
+                        })}
                     </div>
                 </div>
             )}

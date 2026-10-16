@@ -95,7 +95,6 @@ class TaskService
     }
 
     /**
-     * Assignee စစ်ဆေးချက်။ Edit (Step 7) မှာလည်း ပြန်သုံးမယ်။*
      * - အသစ်ထပ်ထည့်တာ (requested - current) က Project ရဲ့ active effective Employee member ဖြစ်ရမယ်။
      *   Super Admin၊ inactive၊ membership ဆုံးရှုံးသူကို အသစ်ထည့်လို့မရဘူး။
      * - $current ထဲက ရှိပြီးသား assignee ကို requested မှာ ဆက်ပါနေရင် inactive/non-member ဖြစ်နေလည်း ဆက်ထားမယ်။

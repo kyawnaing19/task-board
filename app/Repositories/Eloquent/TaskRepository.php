@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use App\Models\Project;
+use App\Support\MyTaskScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Carbon\CarbonInterface;
 use App\Support\TaskFilters;
@@ -331,6 +332,11 @@ class TaskRepository implements TaskRepositoryInterface
                 ->whereRaw('LOWER(title) LIKE ?', [$term])
                 ->orWhereRaw('LOWER(code) LIKE ?', [$term]));
         }
+        if ($filters->mine) {
+            $query->where(fn ($q) => $q
+            ->where('created_by', $viewerId)
+            ->orWhereHas('assignees', fn ($a) => $a->where('users.id', $viewerId)));
+        }
 
         if ($filters->assignee === 'unassigned') {
             $query->whereDoesntHave('assignees');
@@ -362,6 +368,52 @@ class TaskRepository implements TaskRepositoryInterface
         }
 
         return $query;
+    }
+
+    public function paginateMine(User $user, array $projectIds, MyTaskScope $scope, TaskFilters $filters, int $perPage): LengthAwarePaginator
+    {
+        // whereIn([]) က ဘာမှ မပြန်ဘူး (access မရှိရင် ဗလာ)
+        $query = Task::query()->whereIn('tasks.project_id', $projectIds);
+
+        if ($scope->projectId !== null) {
+            $query->where('tasks.project_id', $scope->projectId);
+        }
+
+        // Ownership mode
+        if ($scope->mode === 'created') {
+            $query->where('tasks.created_by', $user->id);
+        } elseif ($scope->mode === 'assigned') {
+            $query->whereHas('assignees', fn ($a) => $a->where('users.id', $user->id));
+        } else {
+            $query->where(fn ($w) => $w
+                ->where('tasks.created_by', $user->id)
+                ->orWhereHas('assignees', fn ($a) => $a->where('users.id', $user->id)));
+        }
+
+        // Archive 2×2
+        if ($scope->archivedTasks) {
+            $query->whereNotNull('tasks.archived_at');
+        } else {
+            $query->whereNull('tasks.archived_at');
+        }
+
+        $query->whereHas('project', fn ($p) => $scope->archivedProjects
+            ? $p->whereNotNull('archived_at')
+            : $p->whereNull('archived_at'));
+
+        $this->applyFilters($query, $filters, $user->id);
+
+        return $query
+            ->with([
+                'project:id,code,name,status,archived_at',
+                'group:id,name,color,is_completed',
+                'assignees:id,name,avatar_path,status',
+                'tags:id,name,color,archived_at',
+            ])
+            ->orderByDesc('tasks.updated_at')
+            ->orderByDesc('tasks.id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
 }

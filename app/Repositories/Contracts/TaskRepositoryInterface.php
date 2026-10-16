@@ -5,6 +5,8 @@ namespace App\Repositories\Contracts;
 use App\Models\Task;
 use App\Models\TaskActivity;
 use App\Models\Project;
+use App\Models\User;
+use App\Support\MyTaskScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Carbon\CarbonInterface;
 use App\Support\TaskFilters;
@@ -90,5 +92,11 @@ interface TaskRepositoryInterface
 
     /** History (newest first)။ $limit + 1 ခု ပြန်မယ် */
     public function activities(Task $task, ?int $before, int $limit): Collection;
+
+    /**
+    * My Tasks။ Project access ($projectIds)၊ ownership mode၊ archive 2×2၊ filter အားလုံး AND။
+    * Sort: updated_at desc၊ id desc (stable tie-break)
+    */
+    public function paginateMine(User $user, array $projectIds, MyTaskScope $scope, TaskFilters $filters, int $perPage): LengthAwarePaginator;
 
 }

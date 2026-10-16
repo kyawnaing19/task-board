@@ -6,7 +6,7 @@ import BoardFilters from './BoardFilters';
 import TaskDrawer from './TaskDrawer';
 import { readTaskParam, writeTaskParam } from '@/lib/taskParam';
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 const EMPTY_FILTERS = {
     q: '',
     assignee: '',

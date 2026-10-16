@@ -148,6 +148,7 @@ export default function BoardColumn({
         group.total - group.tasks.length,
         0,
     );
+    
 
     const filtered =
         filtersActive &&

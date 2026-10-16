@@ -6,6 +6,7 @@ use App\Enums\ProjectStatus;
 use App\Models\Project;
 use App\Repositories\Contracts\ProjectRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class ProjectRepository implements ProjectRepositoryInterface
 {
@@ -72,5 +73,14 @@ class ProjectRepository implements ProjectRepositoryInterface
         Project::query()->whereKey($locked->id)->update(['task_sequence' => $next]);
 
         return $next;
+    }
+
+    public function byIds(array $ids): Collection
+    {
+        return Project::query()
+            ->whereIn('id', $ids)
+            ->orderByRaw('LOWER(name)')
+            ->orderBy('id')
+            ->get(['id', 'code', 'name', 'status', 'archived_at']);
     }
 }

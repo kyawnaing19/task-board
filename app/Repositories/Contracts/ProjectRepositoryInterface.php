@@ -4,6 +4,7 @@ namespace App\Repositories\Contracts;
 
 use App\Models\Project;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 interface ProjectRepositoryInterface
 {
@@ -27,5 +28,8 @@ interface ProjectRepositoryInterface
 
     /** Project row ကို lock လုပ်ပြီးသားမှာ ခေါ်ရမယ်။ Task sequence ကို တိုးပြီး ပြန်ပေးမယ်။ */
     public function nextTaskSequence(Project $locked): int;
+
+    /** Normalized name ascending (LOWER(name)၊ id tie-break) */
+    public function byIds(array $ids): Collection;
 
 }
