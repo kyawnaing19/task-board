@@ -1,27 +1,52 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
+
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Avatar from '@/Components/Avatar';
-import { formatDate, isOverdue } from '@/lib/dates';
 
 import ProjectBoard from '@/Components/Board/ProjectBoard';
+import ArchivedTasks from '@/Components/Board/ArchivedTasks';
 import ProjectTabs from '@/Components/ProjectTabs';
-import useProjectTab from '@/lib/useProjectTab';
 
-const STATUS_STYLES = {
-    ACTIVE: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200',
-    COMPLETED: 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200',
-};
+import useProjectTab from '@/lib/useProjectTab';
+import { formatDate, isOverdue } from '@/lib/dates';
 
 export default function Show({
     project,
     teams = [],
     members = [],
 }) {
+    // --------------------------------------------------
+    // Project tabs
+    // --------------------------------------------------
+
     const [tab, setTab] = useProjectTab();
 
-    const archived = !!project.archived_at;
+    // Increment after restoring an archived task.
+    const [boardVersion, setBoardVersion] = useState(0);
+
+    // --------------------------------------------------
+    // Project status
+    // --------------------------------------------------
+
+    const archived = Boolean(project.archived_at);
     const completed = project.status === 'COMPLETED';
+    const readOnly = archived || completed;
+
+    // Change component identity only when project status changes.
+    const projectVersion = `${project.status}-${project.archived_at ?? 'live'}`;
+
+    // --------------------------------------------------
+    // Archived task actions
+    // --------------------------------------------------
+
+    const handleArchivedTasksChanged = () => {
+        setBoardVersion((version) => version + 1);
+    };
+
+    // --------------------------------------------------
+    // Render
+    // --------------------------------------------------
 
     return (
         <AuthenticatedLayout
@@ -89,6 +114,7 @@ export default function Show({
                                       : 'bg-emerald-500'
                             }`}
                         />
+
                         {archived
                             ? 'Archived'
                             : completed
@@ -101,9 +127,11 @@ export default function Show({
             <Head title={`${project.code} ${project.name}`} />
 
             <div className="w-full min-w-0 space-y-2">
+                {/* =========================================
+                    READ-ONLY NOTICE
+                ========================================= */}
 
-                {/* Read-only Notice */}
-                {(archived || completed) && (
+                {readOnly && (
                     <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
                         <svg
                             className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
@@ -134,7 +162,10 @@ export default function Show({
                     </div>
                 )}
 
-                {/* Project Tabs */}
+                {/* =========================================
+                    PROJECT TABS
+                ========================================= */}
+
                 <div className="min-w-0">
                     <ProjectTabs
                         tab={tab}
@@ -142,18 +173,54 @@ export default function Show({
                     />
                 </div>
 
-                {/* Board Tab */}
+                {/* =========================================
+                    PROJECT BOARD
+
+                    Keep mounted while changing tabs.
+                    Pass active and refreshToken as in the
+                    reference Projects Show component.
+                ========================================= */}
+
                 <section
                     aria-label="Project board"
-                    className={tab === 'board' ? 'block w-full min-w-0' : 'hidden'}
+                    className={
+                        tab === 'board'
+                            ? 'block w-full min-w-0'
+                            : 'hidden'
+                    }
                 >
                     <ProjectBoard
-                        key={`${project.status}-${project.archived_at ?? 'live'}`}
+                        key={projectVersion}
                         projectId={project.id}
+                        active={tab === 'board'}
+                        refreshToken={boardVersion}
                     />
                 </section>
 
-                {/* Overview Tab */}
+                {/* =========================================
+                    ARCHIVED TASKS
+
+                    Mount only when the archived tab opens.
+                    Notify the board when a task is restored.
+                ========================================= */}
+
+                {tab === 'archived' && (
+                    <section
+                        aria-label="Archived tasks"
+                        className="w-full min-w-0"
+                    >
+                        <ArchivedTasks
+                            key={projectVersion}
+                            projectId={project.id}
+                            onChanged={handleArchivedTasksChanged}
+                        />
+                    </section>
+                )}
+
+                {/* =========================================
+                    PROJECT OVERVIEW
+                ========================================= */}
+
                 <div
                     className={
                         tab === 'overview'
@@ -162,6 +229,7 @@ export default function Show({
                     }
                 >
                     {/* Project Details */}
+
                     <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                         <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
                             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50">
@@ -243,7 +311,10 @@ export default function Show({
                         </dl>
                     </section>
 
-                    {/* Teams */}
+                    {/* =========================================
+                        TEAMS
+                    ========================================= */}
+
                     {teams.length > 0 && (
                         <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                             <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
@@ -350,7 +421,10 @@ export default function Show({
                         </section>
                     )}
 
-                    {/* Members */}
+                    {/* =========================================
+                        MEMBERS
+                    ========================================= */}
+
                     <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                         <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
                             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
@@ -430,7 +504,7 @@ export default function Show({
                                         <path
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
-                                            d="M15 19.128a9.38 9.38 0 0 0 3.75.772 9.38 9.38 0 0 0 3.75-.772M15 19.128v-.772a4.5 4.5 0 0 0-9 0v.772m9 0a12.08 12.08 0 0 1-4.5.872 12.08 12.08 0 0 1-4.5-.872m9 0a5.25 5.25 0 0 0 3.75-5.003 5.25 5.25 0 0 0-10.5 0 5.25 5.25 0 0 0 3.75 5.003"
+                                            d="M15 19.128a9.38 9.38 0 0 0 3.75.772 9.38 9.38 0 0 0 3.75-.772M15 19.128v-.772a4.5 4.5 0 0 0-9 0v.772m9 0a12.08 12.08 0 0 1-4.5.872 12.08 12.08 0 0 1-4.5-.872"
                                         />
                                     </svg>
                                 </div>

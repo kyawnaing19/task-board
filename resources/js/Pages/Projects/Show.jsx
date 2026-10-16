@@ -13,6 +13,7 @@ import Avatar from '@/Components/Avatar';
 import ConfirmationModal from '@/Components/ConfirmationModal';
 
 import ProjectBoard from '@/Components/Board/ProjectBoard';
+import ArchivedTasks from '@/Components/Board/ArchivedTasks';
 import ProjectTabs from '@/Components/ProjectTabs';
 
 import useProjectTab from '@/lib/useProjectTab';
@@ -32,20 +33,36 @@ export default function Show({
 }) {
     const { flash, errors } = usePage().props;
 
-    // Project tab
+    // --------------------------------------------------
+    // Project tabs
+    // --------------------------------------------------
+
     const [tab, setTab] = useProjectTab();
 
+    // Increment this value to request a board refresh.
+    const [boardVersion, setBoardVersion] = useState(0);
+
+    // --------------------------------------------------
     // Modal states
+    // --------------------------------------------------
+
     const [editing, setEditing] = useState(false);
     const [linking, setLinking] = useState(false);
     const [unlinking, setUnlinking] = useState(null);
     const [addingMembers, setAddingMembers] = useState(false);
     const [removingMember, setRemovingMember] = useState(null);
 
+    // --------------------------------------------------
     // Action states
+    // --------------------------------------------------
+
     const [busy, setBusy] = useState(false);
     const [confirmation, setConfirmation] = useState(null);
     const [processing, setProcessing] = useState(false);
+
+    // --------------------------------------------------
+    // Project status
+    // --------------------------------------------------
 
     const archived = Boolean(project.archived_at);
     const completed = project.status === 'COMPLETED';
@@ -58,6 +75,10 @@ export default function Show({
         Boolean(unlinking) ||
         addingMembers ||
         Boolean(removingMember);
+
+    // Use the same key for Board and Archived Tasks.
+    // Change it when the project status/archive state changes.
+    const projectVersion = `${project.status}-${project.archived_at ?? 'live'}`;
 
     // --------------------------------------------------
     // Confirmation actions
@@ -151,7 +172,7 @@ export default function Show({
     // --------------------------------------------------
 
     const resolveArchivedLinkage = () => {
-        if (busy) return;
+        if (busy || archivedTeams.length === 0) return;
 
         const teamNames = archivedTeams
             .map((team) => `"${team.name}"`)
@@ -182,6 +203,14 @@ export default function Show({
     };
 
     // --------------------------------------------------
+    // Archived Tasks changed
+    // --------------------------------------------------
+
+    const handleArchivedTasksChanged = () => {
+        setBoardVersion((version) => version + 1);
+    };
+
+    // --------------------------------------------------
     // Status action
     // --------------------------------------------------
 
@@ -199,14 +228,18 @@ export default function Show({
                 style: 'border-sky-200 bg-white text-sky-700 hover:bg-sky-50',
             };
 
+    // --------------------------------------------------
+    // Render
+    // --------------------------------------------------
+
     return (
         <AuthenticatedLayout
-    header={
-        <div className="flex min-w-0 items-center gap-2 overflow-hidden text-sm">
-            {/* Breadcrumb */}
-            <Link
-                
-                href={route(
+            header={
+                <div className="flex min-w-0 items-center gap-2 overflow-hidden text-sm">
+                    {/* Breadcrumb */}
+
+                    <Link
+                        href={route(
                             'projects.index',
                             archived
                                 ? { status: 'archived' }
@@ -214,164 +247,173 @@ export default function Show({
                                   ? { status: 'completed' }
                                   : {},
                         )}
-                className="shrink-0 text-blue-800 transition hover:text-indigo-600"
-            >
-                Projects
-            </Link>
+                        className="shrink-0 text-blue-800 transition hover:text-indigo-600"
+                    >
+                        Projects
+                    </Link>
 
-            <svg
-                className="h-3.5 w-3.5 shrink-0 text-slate-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden="true"
-            >
-                <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m9 18 6-6-6-6"
-                />
-            </svg>
+                    <svg
+                        className="h-3.5 w-3.5 shrink-0 text-slate-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden="true"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="m9 18 6-6-6-6"
+                        />
+                    </svg>
 
-            {/* Project name */}
-            <span
-                className="shrink-0 font-semibold text-slate-900"
-                title={project.name}
-            >
-                {project.name}
-            </span>
+                    {/* Project name */}
 
-            <span className="shrink-0 text-slate-300">|</span>
+                    <span
+                        className="shrink-0 font-semibold text-slate-900"
+                        title={project.name}
+                    >
+                        {project.name}
+                    </span>
 
-            {/* Project code */}
-            <span className="shrink-0 font-mono text-xs font-semibold text-slate-600">
-                {project.code}
-            </span>
+                    <span className="shrink-0 text-slate-300">|</span>
 
-            <span className="shrink-0 text-slate-300">·</span>
+                    {/* Project code */}
 
-            {/* Status */}
-            <span
-                className={`inline-flex shrink-0 items-center gap-1 text-xs font-medium ${
-                    archived
-                        ? 'text-amber-700'
-                        : completed
-                          ? 'text-sky-700'
-                          : 'text-emerald-700'
-                }`}
-            >
-                <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                        archived
-                            ? 'bg-amber-500'
+                    <span className="shrink-0 font-mono text-xs font-semibold text-slate-600">
+                        {project.code}
+                    </span>
+
+                    <span className="shrink-0 text-slate-300">·</span>
+
+                    {/* Status */}
+
+                    <span
+                        className={`inline-flex shrink-0 items-center gap-1 text-xs font-medium ${
+                            archived
+                                ? 'text-amber-700'
+                                : completed
+                                  ? 'text-sky-700'
+                                  : 'text-emerald-700'
+                        }`}
+                    >
+                        <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                                archived
+                                    ? 'bg-amber-500'
+                                    : completed
+                                      ? 'bg-sky-500'
+                                      : 'bg-emerald-500'
+                            }`}
+                        />
+
+                        {archived
+                            ? 'Archived'
                             : completed
-                              ? 'bg-sky-500'
-                              : 'bg-emerald-500'
-                    }`}
-                />
-                {archived
-                    ? 'Archived'
-                    : completed
-                      ? 'Completed'
-                      : 'Active'}
-            </span>
+                              ? 'Completed'
+                              : 'Active'}
+                    </span>
 
-            <span className="shrink-0 text-slate-300">·</span>
+                    <span className="shrink-0 text-slate-300">·</span>
 
-            {/* Creator and date */}
-            <span className="truncate text-xs text-slate-500">
-                Created by{' '}
-                <span className="font-semibold text-slate-700">
-                    {project.creator?.name ?? 'Super Admin'}
-                </span>
-               {' '}on{' '}
-{project.created_at && !Number.isNaN(Date.parse(project.created_at))
-    ? formatDate(project.created_at)
-    : '—'}
-            </span>
-        </div>
-    }
->
+                    {/* Creator and date */}
+
+                    <span className="truncate text-xs text-slate-500">
+                        Created by{' '}
+                        <span className="font-semibold text-slate-700">
+                            {project.creator?.name ?? 'Super Admin'}
+                        </span>{' '}
+                        on{' '}
+                        {project.created_at &&
+                        !Number.isNaN(Date.parse(project.created_at))
+                            ? formatDate(project.created_at)
+                            : '—'}
+                    </span>
+                </div>
+            }
+        >
             <Head title={`${project.name} | Projects`} />
 
             <div className="w-full min-w-0 space-y-2">
-                
-
                 {/* =========================================
-                        PROJECT TABS + ACTION BUTTONS
-                    ========================================= */}
+                    PROJECT TABS + ACTION BUTTONS
+                ========================================= */}
 
-                    <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                        {/* LEFT: Board and Overview tabs */}
-                        <div className="min-w-0 flex-1">
-                            <ProjectTabs
-                                tab={tab}
-                                onChange={setTab}
-                            />
-                        </div>
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    {/* LEFT: Project tabs */}
 
-                        {/* RIGHT: Project action buttons */}
-                        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-                            {!read_only && (
-                                <button
-                                    type="button"
-                                    onClick={() => setEditing(true)}
-                                    disabled={busy}
-                                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    <svg
-                                        className="h-3.5 w-3.5"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                        strokeWidth={1.8}
-                                        aria-hidden="true"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="m16.862 4.487 1.687-1.687a2.121 2.121 0 0 1 3 3l-9.5 9.5a4 4 0 0 1-1.692 1.006l-3.1.9.9-3.1a4 4 0 0 1 1.006-1.692l7.699-7.927ZM19 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"
-                                        />
-                                    </svg>
-                                    Edit
-                                </button>
-                            )}
-
-                            {statusAction && (
-                                <button
-                                    type="button"
-                                    onClick={() => changeStatus(statusAction.target)}
-                                    disabled={busy}
-                                    className={`inline-flex h-8 items-center rounded-lg border px-3 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${statusAction.style}`}
-                                >
-                                    {busy ? 'Working...' : statusAction.label}
-                                </button>
-                            )}
-
-                            {completed && !archived && (
-                                <button
-                                    type="button"
-                                    onClick={archive}
-                                    disabled={busy}
-                                    className="inline-flex h-8 items-center rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    Archive
-                                </button>
-                            )}
-
-                            {archived && (
-                                <button
-                                    type="button"
-                                    onClick={restore}
-                                    disabled={busy}
-                                    className="inline-flex h-8 items-center rounded-lg border border-indigo-200 bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    Restore
-                                </button>
-                            )}
-                        </div>
+                    <div className="min-w-0 flex-1">
+                        <ProjectTabs
+                            tab={tab}
+                            onChange={setTab}
+                        />
                     </div>
+
+                    {/* RIGHT: Project action buttons */}
+
+                    <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                        {!read_only && (
+                            <button
+                                type="button"
+                                onClick={() => setEditing(true)}
+                                disabled={busy}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <svg
+                                    className="h-3.5 w-3.5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={1.8}
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="m16.862 4.487 1.687-1.687a2.121 2.121 0 0 1 3 3l-9.5 9.5a4 4 0 0 1-1.692 1.006l-3.1.9.9-3.1a4 4 0 0 1 1.006-1.692l7.699-7.927ZM19 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"
+                                    />
+                                </svg>
+
+                                Edit
+                            </button>
+                        )}
+
+                        {statusAction && (
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    changeStatus(statusAction.target)
+                                }
+                                disabled={busy}
+                                className={`inline-flex h-8 items-center rounded-lg border px-3 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${statusAction.style}`}
+                            >
+                                {busy ? 'Working...' : statusAction.label}
+                            </button>
+                        )}
+
+                        {completed && !archived && (
+                            <button
+                                type="button"
+                                onClick={archive}
+                                disabled={busy}
+                                className="inline-flex h-8 items-center rounded-lg border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Archive
+                            </button>
+                        )}
+
+                        {archived && (
+                            <button
+                                type="button"
+                                onClick={restore}
+                                disabled={busy}
+                                className="inline-flex h-8 items-center rounded-lg border border-indigo-200 bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Restore
+                            </button>
+                        )}
+                    </div>
+                </div>
 
                 {/* =========================================
                     READ-ONLY NOTICES
@@ -481,18 +523,10 @@ export default function Show({
                 )}
 
                 {/* =========================================
-                    PROJECT TABS
-                ========================================= */}
-
-                {/* <div className="min-w-0">
-                    <ProjectTabs
-                        tab={tab}
-                        onChange={setTab}
-                    />
-                </div> */}
-
-                {/* =========================================
                     PROJECT BOARD
+
+                    Keep mounted when switching tabs.
+                    This preserves the board component state.
                 ========================================= */}
 
                 <section
@@ -504,10 +538,32 @@ export default function Show({
                     }
                 >
                     <ProjectBoard
-                        key={`${project.status}-${project.archived_at ?? 'live'}`}
+                        key={projectVersion}
                         projectId={project.id}
+                        active={tab === 'board'}
+                        refreshToken={boardVersion}
                     />
                 </section>
+
+                {/* =========================================
+                    ARCHIVED TASKS
+
+                    Render only when the archived tab is open.
+                    Notify the board when tasks change.
+                ========================================= */}
+
+                {tab === 'archived' && (
+                    <section
+                        aria-label="Archived tasks"
+                        className="w-full min-w-0"
+                    >
+                        <ArchivedTasks
+                            key={projectVersion}
+                            projectId={project.id}
+                            onChanged={handleArchivedTasksChanged}
+                        />
+                    </section>
+                )}
 
                 {/* =========================================
                     PROJECT OVERVIEW
@@ -641,7 +697,9 @@ export default function Show({
                     {/* Teams and members */}
 
                     <div className="grid min-w-0 gap-4 lg:grid-cols-2">
-                        {/* Teams */}
+                        {/* =========================================
+                            TEAMS
+                        ========================================= */}
 
                         <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                             <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
@@ -769,7 +827,9 @@ export default function Show({
                             )}
                         </div>
 
-                        {/* Individual members */}
+                        {/* =========================================
+                            INDIVIDUAL MEMBERS
+                        ========================================= */}
 
                         <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                             <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
@@ -808,9 +868,7 @@ export default function Show({
                                 {!read_only && (
                                     <button
                                         type="button"
-                                        onClick={() =>
-                                            setAddingMembers(true)
-                                        }
+                                        onClick={() => setAddingMembers(true)}
                                         className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-indigo-600 px-2.5 text-xs font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                                     >
                                         <svg
@@ -926,9 +984,7 @@ export default function Show({
                                                 <button
                                                     type="button"
                                                     onClick={() =>
-                                                        setRemovingMember(
-                                                            member,
-                                                        )
+                                                        setRemovingMember(member)
                                                     }
                                                     className="inline-flex h-7 shrink-0 items-center rounded-lg border border-rose-200 bg-white px-2.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                                                 >
@@ -986,6 +1042,8 @@ export default function Show({
                     onClose={() => setRemovingMember(null)}
                 />
             )}
+
+            {/* Confirmation modal */}
 
             <ConfirmationModal
                 show={Boolean(confirmation)}

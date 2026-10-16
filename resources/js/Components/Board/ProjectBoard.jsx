@@ -4,6 +4,7 @@ import { errorMessage, getJson, patchJson, postJson } from '@/lib/http';
 import BoardColumn from './BoardColumn';
 import BoardFilters from './BoardFilters';
 import TaskDrawer from './TaskDrawer';
+import { readTaskParam, writeTaskParam } from '@/lib/taskParam';
 
 const PAGE_SIZE = 25;
 const EMPTY_FILTERS = {
@@ -39,23 +40,23 @@ const mergePage = (group, page) => {
 };
 
 // Read ?task=ID without affecting other URL parameters.
-const readTaskParam = () => {
-    const raw = new URLSearchParams(window.location.search).get('task');
+// const readTaskParam = () => {
+//     const raw = new URLSearchParams(window.location.search).get('task');
 
-    return raw && /^\d+$/.test(raw) ? Number(raw) : null;
-};
+//     return raw && /^\d+$/.test(raw) ? Number(raw) : null;
+// };
 
-const writeTaskParam = (id) => {
-    const url = new URL(window.location.href);
+// const writeTaskParam = (id) => {
+//     const url = new URL(window.location.href);
 
-    if (id) {
-        url.searchParams.set('task', String(id));
-    } else {
-        url.searchParams.delete('task');
-    }
+//     if (id) {
+//         url.searchParams.set('task', String(id));
+//     } else {
+//         url.searchParams.delete('task');
+//     }
 
-    window.history.replaceState(window.history.state, '', url);
-};
+//     window.history.replaceState(window.history.state, '', url);
+// };
 
 const groupRef = (g) => ({
     id: g.id,
@@ -84,7 +85,7 @@ const place = (list, item, anchorId) => {
 const sameOrder = (a, b) =>
     a.length === b.length && a.every((t, i) => t.id === b[i].id);
 
-export default function ProjectBoard({ projectId }) {
+export default function ProjectBoard({ projectId, active = true, refreshToken = 0 }) {
     const isAdmin =
         usePage().props.auth?.user?.role === 'SUPER_ADMIN';
 
@@ -97,17 +98,23 @@ export default function ProjectBoard({ projectId }) {
     const [reloadKey, setReloadKey] = useState(0);
     const [loadingGroups, setLoadingGroups] = useState({});
     const [toast, setToast] = useState(null);
-    const [openTaskId, setOpenTaskId] = useState(readTaskParam);
+    //const [openTaskId, setOpenTaskId] = useState(readTaskParam);
+    const [openTaskId, setOpenTaskId] = useState(() => (active ? readTaskParam() : null));
     const [drag, setDrag] = useState(null);
     const [moving, setMoving] = useState(false);
 
     const scrollerRef = useRef(null);
     const movingRef = useRef(false);
-
+    // Board tab မဟုတ်တော့ရင် drawer ကို ပိတ်မယ် (Archived tab ကလည်း ?task= ကို သုံးလို့ နှစ်ခု တစ်ပြိုင်နက် မပွင့်ရအောင်)
+    useEffect(() => {
+        if (!active) setOpenTaskId(null);
+    }, [active]);
     const filterKey = JSON.stringify(filters);
     const filterKeyRef = useRef(filterKey);
 
     filterKeyRef.current = filterKey;
+
+    
 
     const notify = (type, message) =>
         setToast({
@@ -187,7 +194,7 @@ export default function ProjectBoard({ projectId }) {
             });
 
         return () => controller.abort();
-    }, [projectId, filterKey, reloadKey]);
+    }, [projectId, filterKey, reloadKey, refreshToken]);
 
     const changeFilters = (patch) => {
         setFilters((f) => ({ ...f, ...patch }));

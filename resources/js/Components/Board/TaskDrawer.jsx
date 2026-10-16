@@ -18,6 +18,20 @@ const PERSON_LABELS = {
     non_member: 'no longer a member',
 };
 
+const PRIORITIES = [
+    { value: 'LOW', label: 'Low' },
+    { value: 'NORMAL', label: 'Normal' },
+    { value: 'HIGH', label: 'High' },
+    { value: 'URGENT', label: 'Urgent' },
+];
+
+const PRIORITY_STYLES = {
+    LOW: 'border-slate-200 bg-slate-50 text-slate-600',
+    NORMAL: 'border-blue-200 bg-blue-50 text-blue-700',
+    HIGH: 'border-amber-200 bg-amber-50 text-amber-700',
+    URGENT: 'border-rose-200 bg-rose-50 text-rose-700',
+};
+
 // Preserve previously loaded history pages after refreshing task details.
 const mergeHistory = (prev, next) => {
     const byId = new Map();
@@ -592,6 +606,47 @@ export default function TaskDrawer({
                                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                                                 Completed
                                             </span>
+                                        )}
+
+                                        {/* Priority */}
+                                        {perm.can_edit && (
+                                            <label className="inline-flex items-center gap-1.5">
+                                                <span className="text-xs font-medium text-slate-500">
+                                                    Priority
+                                                </span>
+
+                                                <select
+                                                    value={task.priority ?? 'NORMAL'}
+                                                    disabled={busy}
+                                                    onChange={(event) => {
+                                                        const priority = event.target.value;
+
+                                                        if (priority !== task.priority) {
+                                                            changePriority(priority);
+                                                        }
+                                                    }}
+                                                    aria-label="Task priority"
+                                                    className={`
+                                                        cursor-pointer rounded-lg border px-2.5 py-1.5
+                                                        text-xs font-semibold shadow-sm
+                                                        outline-none transition-colors
+                                                        focus:ring-2 focus:ring-indigo-100
+                                                        disabled:cursor-not-allowed disabled:opacity-50
+                                                        ${PRIORITY_STYLES[task.priority] ??
+                                                        'border-slate-200 bg-white text-slate-700'}
+                                                    `}
+                                                >
+                                                    {PRIORITIES.map((priority) => (
+                                                        <option
+                                                            key={priority.value}
+                                                            value={priority.value}
+                                                            className="bg-white text-slate-700"
+                                                        >
+                                                            {priority.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </label>
                                         )}
 
                                         {perm.can_move && options?.groups && (

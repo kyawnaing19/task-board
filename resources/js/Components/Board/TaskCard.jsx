@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import Avatar from '@/Components/Avatar';
-import TagChip from '@/Components/TagChip';
 import MoveToMenu from './MoveToMenu';
 import { parseDate } from '@/lib/dates';
 
@@ -10,21 +9,29 @@ const FLAG_PATH =
 const CALENDAR_PATH =
     'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z';
 
-// Normal priority is intentionally hidden.
+const TAG_ICON_PATH =
+    'M7 7h.01M7 3h5a1 1 0 01.707.293l7 7a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-7-7A1 1 0 016 8V4a1 1 0 011-1z';
+
+// Updated to match PHP App\Enums\TaskPriority
 const PRIORITIES = {
     LOW: {
         label: 'Low',
-        icon: 'text-slate-500',
+        icon: 'text-slate-400',
         text: 'text-slate-600',
+    },
+    NORMAL: {
+        label: 'Normal',
+        icon: 'text-blue-500',
+        text: 'text-blue-700',
     },
     HIGH: {
         label: 'High',
-        icon: 'text-amber-600',
+        icon: 'text-amber-500',
         text: 'text-amber-700',
     },
     URGENT: {
         label: 'Urgent',
-        icon: 'text-rose-600',
+        icon: 'text-rose-500',
         text: 'text-rose-700',
     },
 };
@@ -35,7 +42,7 @@ const ASSIGNEE_LABELS = {
 };
 
 const chip =
-    'inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-xs';
+    'inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white px-2.5 py-1 text-xs font-medium shadow-2xs';
 
 const short = (d) =>
     d.toLocaleDateString(undefined, {
@@ -76,9 +83,9 @@ function dateInfo(task) {
     return {
         label,
         tone: overdue
-            ? 'text-rose-700'
+            ? 'text-rose-600'
             : completed
-              ? 'text-emerald-700'
+              ? 'text-emerald-600'
               : 'text-slate-600',
     };
 }
@@ -88,12 +95,6 @@ const EDGE_SHADOWS = {
     bottom: 'shadow-[0_4px_0_0_#6366f1]',
 };
 
-/**
- * draggable    = can the task be dragged?
- * dragging     = whether this card is currently being dragged
- * dropEdge     = drop indicator ('top' / 'bottom')
- * moveTargets  = available destination groups
- */
 export default function TaskCard({
     task,
     onOpen,
@@ -131,7 +132,6 @@ export default function TaskCard({
             onDragEnd={() => onDragEnd?.()}
             onClick={open}
             onKeyDown={(e) => {
-                // Ignore keyboard events originating from child controls.
                 if (e.target !== e.currentTarget) return;
 
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -139,28 +139,26 @@ export default function TaskCard({
                     open();
                 }
             }}
-            className={`group relative block w-full rounded-xl border bg-white p-3 text-left text-slate-800 shadow-sm outline-none transition duration-150 ${
+            className={`group relative block w-full rounded-2xl border bg-white p-3.5 text-left transition-all duration-150 ${
                 dragging
-                    ? 'border-indigo-300 opacity-40'
-                    : 'border-slate-200'
+                    ? 'border-indigo-300 opacity-40 shadow-none'
+                    : 'border-slate-200/90 shadow-2xs hover:border-slate-300 hover:shadow-md'
             } ${
                 EDGE_SHADOWS[dropEdge] ?? ''
             } ${
                 draggable ? 'cursor-grab active:cursor-grabbing' : ''
-            } ${
-                onOpen && !dragging
-                    ? 'hover:border-indigo-300 hover:shadow-md'
-                    : ''
             } focus-visible:ring-2 focus-visible:ring-indigo-500/60`}
         >
+            {/* Title */}
             <p
-                className={`break-words text-sm font-medium leading-snug text-slate-900 ${
+                className={`text-[15px] font-semibold leading-snug tracking-tight text-slate-800 ${
                     canMove ? 'pr-6' : ''
                 }`}
             >
                 {task.title}
             </p>
 
+            {/* Move Action Button */}
             {canMove && (
                 <button
                     ref={moveButton}
@@ -170,11 +168,9 @@ export default function TaskCard({
                     aria-expanded={!!menu}
                     onClick={(e) => {
                         e.stopPropagation();
-                        setMenu(
-                            moveButton.current.getBoundingClientRect(),
-                        );
+                        setMenu(moveButton.current.getBoundingClientRect());
                     }}
-                    className="absolute right-2 top-2 rounded-md p-1 text-slate-500 opacity-0 transition hover:bg-slate-100 hover:text-slate-900 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+                    className="absolute right-2.5 top-2.5 rounded-lg p-1 text-slate-400 opacity-0 transition hover:bg-slate-100 hover:text-slate-700 focus:opacity-100 focus:outline-hidden group-hover:opacity-100 [@media(hover:none)]:opacity-100"
                 >
                     <svg
                         className="h-4 w-4"
@@ -187,10 +183,11 @@ export default function TaskCard({
                 </button>
             )}
 
+            {/* Middle Row: Assignees, Date, Priority Flag with Label */}
             {(shown.length > 0 || date || priority) && (
-                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                     {shown.length > 0 && (
-                        <div className="mr-1 flex -space-x-1.5">
+                        <div className="flex -space-x-1.5 items-center">
                             {shown.map((a) => (
                                 <span
                                     key={a.id}
@@ -200,15 +197,13 @@ export default function TaskCard({
                                             : a.name
                                     }
                                     className={`rounded-full ring-2 ring-white ${
-                                        a.label
-                                            ? 'opacity-50 grayscale'
-                                            : ''
+                                        a.label ? 'opacity-50 grayscale' : ''
                                     }`}
                                 >
                                     <Avatar
                                         name={a.name}
                                         src={a.avatar_url}
-                                        className="h-6 w-6 text-[10px]"
+                                        className="h-6 w-6 text-[10px] font-semibold"
                                     />
                                 </span>
                             ))}
@@ -224,21 +219,20 @@ export default function TaskCard({
                     {date && (
                         <span className={`${chip} ${date.tone}`}>
                             <svg
-                                className="h-3.5 w-3.5"
+                                className="h-3.5 w-3.5 opacity-80"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
+                                strokeWidth={2}
                                 aria-hidden="true"
                             >
                                 <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
-                                    strokeWidth={2}
                                     d={CALENDAR_PATH}
                                 />
                             </svg>
-
-                            {date.label}
+                            <span>{date.label}</span>
                         </span>
                     )}
 
@@ -246,35 +240,56 @@ export default function TaskCard({
                         <span className={`${chip} ${priority.text}`}>
                             <svg
                                 className={`h-3.5 w-3.5 ${priority.icon}`}
-                                fill="currentColor"
+                                fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
+                                strokeWidth={2}
                                 aria-hidden="true"
                             >
                                 <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
-                                    strokeWidth={2}
                                     d={FLAG_PATH}
                                 />
                             </svg>
-
-                            {priority.label}
+                            <span>{priority.label}</span>
                         </span>
                     )}
                 </div>
             )}
 
+            {/* Bottom Row: Tag Container */}
             {task.tags.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                    {task.tags.map((t) => (
-                        <TagChip
-                            key={t.id}
-                            name={t.name}
-                            color={t.color}
-                            inactive={t.inactive}
+                <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-slate-50/50 px-2 py-1">
+                    <svg
+                        className="h-3.5 w-3.5 text-slate-400 ml-0.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden="true"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d={TAG_ICON_PATH}
                         />
-                    ))}
+                    </svg>
+
+                    <div className="flex flex-wrap items-center gap-1">
+                        {task.tags.map((t) => (
+                            <span
+                                key={t.id}
+                                className={`inline-flex items-center rounded-xl px-2 py-0.5 text-xs font-medium ${
+                                    t.inactive
+                                        ? 'bg-slate-200/60 text-slate-500'
+                                        : 'bg-blue-100/70 text-blue-600'
+                                }`}
+                            >
+                                {t.name}
+                            </span>
+                        ))}
+                    </div>
                 </div>
             )}
 
