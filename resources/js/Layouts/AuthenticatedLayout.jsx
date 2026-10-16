@@ -53,12 +53,20 @@ export default function AuthenticatedLayout({ header, children }) {
         ? [{ name: 'Tags', href: route('tags.index'), icon: TagIcon, active: route().current('tags.*') }]
         : []),
 
-        {
-            name: 'Tasks',
-            href: '#',
-            icon: TaskIcon,
-            active: route().current('tasks.*'),
-        },
+        // {
+        //     name: 'Tasks',
+        //     href: '#',
+        //     icon: TaskIcon,
+        //     active: route().current('tasks.*'),
+        // },
+        ...(user?.role !== 'SUPER_ADMIN'
+        ? [{
+            name: 'My Tasks',
+            href: route('my-tasks.index'),
+            icon:  TaskIcon,
+            active: route().current('my-tasks.*'),
+        }]
+        : []),
     ];
 
     return (

@@ -1,79 +1,81 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { usePage } from '@inertiajs/react';
+
 import { errorMessage, getJson, patchJson, postJson } from '@/lib/http';
+
 import BoardColumn from './BoardColumn';
 import BoardFilters from './BoardFilters';
 import TaskDrawer from './TaskDrawer';
+
 import { readTaskParam, writeTaskParam } from '@/lib/taskParam';
 
 const PAGE_SIZE = 20;
+
 const EMPTY_FILTERS = {
     q: '',
     assignee: '',
     priority: [],
     tag_ids: [],
+    mine: false,
 };
 
 // Build the server query without empty values.
 const buildQuery = (filters) => {
     const params = {};
 
-    if (filters.q) params.q = filters.q;
-    if (filters.assignee) params.assignee = filters.assignee;
-    if (filters.priority.length) params.priority = filters.priority;
-    if (filters.tag_ids.length) params.tag_ids = filters.tag_ids;
+    if (filters.q) {
+        params.q = filters.q;
+    }
+
+    if (filters.assignee) {
+        params.assignee = filters.assignee;
+    }
+
+    if (filters.priority.length) {
+        params.priority = filters.priority;
+    }
+
+    if (filters.tag_ids.length) {
+        params.tag_ids = filters.tag_ids;
+    }
+
+    // My Tasks quick filter.
+    if (filters.mine) {
+        params.mine = 1;
+    }
 
     return params;
 };
 
 // Merge cursor pagination results without duplicate tasks.
 const mergePage = (group, page) => {
-    const seen = new Set(group.tasks.map((t) => t.id));
+    const seen = new Set(group.tasks.map((task) => task.id));
 
     return {
         ...page,
         tasks: [
             ...group.tasks,
-            ...page.tasks.filter((t) => !seen.has(t.id)),
+            ...page.tasks.filter((task) => !seen.has(task.id)),
         ],
     };
 };
 
-// Read ?task=ID without affecting other URL parameters.
-// const readTaskParam = () => {
-//     const raw = new URLSearchParams(window.location.search).get('task');
-
-//     return raw && /^\d+$/.test(raw) ? Number(raw) : null;
-// };
-
-// const writeTaskParam = (id) => {
-//     const url = new URL(window.location.href);
-
-//     if (id) {
-//         url.searchParams.set('task', String(id));
-//     } else {
-//         url.searchParams.delete('task');
-//     }
-
-//     window.history.replaceState(window.history.state, '', url);
-// };
-
-const groupRef = (g) => ({
-    id: g.id,
-    name: g.name,
-    color: g.color,
-    is_completed: g.is_completed,
+const groupRef = (group) => ({
+    id: group.id,
+    name: group.name,
+    color: group.color,
+    is_completed: group.is_completed,
 });
 
 // Insert an item before anchorId.
 // If anchorId is null or isn't found, append to the end.
 const place = (list, item, anchorId) => {
-    const i =
+    const index =
         anchorId === null
             ? -1
-            : list.findIndex((t) => t.id === anchorId);
+            : list.findIndex((task) => task.id === anchorId);
 
-    const at = i === -1 ? list.length : i;
+    const at = index === -1 ? list.length : index;
 
     return [
         ...list.slice(0, at),
@@ -83,51 +85,71 @@ const place = (list, item, anchorId) => {
 };
 
 const sameOrder = (a, b) =>
-    a.length === b.length && a.every((t, i) => t.id === b[i].id);
+    a.length === b.length &&
+    a.every((task, index) => task.id === b[index].id);
 
-export default function ProjectBoard({ projectId, active = true, refreshToken = 0 }) {
-    const isAdmin =
-        usePage().props.auth?.user?.role === 'SUPER_ADMIN';
+export default function ProjectBoard({
+    projectId,
+    active = true,
+    refreshToken = 0,
+}) {
+    const { auth } = usePage().props;
+
+    const isAdmin = auth?.user?.role === 'SUPER_ADMIN';
 
     const [options, setOptions] = useState(null);
     const [searchInput, setSearchInput] = useState('');
-    const [filters, setFilters] = useState(EMPTY_FILTERS);
+    const [filters, setFilters] = useState({
+        ...EMPTY_FILTERS,
+        priority: [],
+        tag_ids: [],
+    });
     const [board, setBoard] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [reloadKey, setReloadKey] = useState(0);
     const [loadingGroups, setLoadingGroups] = useState({});
     const [toast, setToast] = useState(null);
-    //const [openTaskId, setOpenTaskId] = useState(readTaskParam);
-    const [openTaskId, setOpenTaskId] = useState(() => (active ? readTaskParam() : null));
+
+    const [openTaskId, setOpenTaskId] = useState(() =>
+        active ? readTaskParam() : null,
+    );
+
     const [drag, setDrag] = useState(null);
     const [moving, setMoving] = useState(false);
 
     const scrollerRef = useRef(null);
     const movingRef = useRef(false);
-    // Board tab မဟုတ်တော့ရင် drawer ကို ပိတ်မယ် (Archived tab ကလည်း ?task= ကို သုံးလို့ နှစ်ခု တစ်ပြိုင်နက် မပွင့်ရအောင်)
-    useEffect(() => {
-        if (!active) setOpenTaskId(null);
-    }, [active]);
+
     const filterKey = JSON.stringify(filters);
     const filterKeyRef = useRef(filterKey);
 
     filterKeyRef.current = filterKey;
 
-    
+    // Close the drawer when switching away from the board tab.
+    useEffect(() => {
+        if (!active) {
+            setOpenTaskId(null);
+        }
+    }, [active]);
 
-    const notify = (type, message) =>
+    const notify = (type, message) => {
         setToast({
             type,
             message,
             id: Date.now(),
         });
+    };
 
     // Automatically dismiss notifications.
     useEffect(() => {
-        if (!toast) return;
+        if (!toast) {
+            return undefined;
+        }
 
-        const timer = setTimeout(() => setToast(null), 4500);
+        const timer = setTimeout(() => {
+            setToast(null);
+        }, 4500);
 
         return () => clearTimeout(timer);
     }, [toast]);
@@ -136,12 +158,18 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
     useEffect(() => {
         const controller = new AbortController();
 
+        setOptions(null);
+
         getJson(
             route('projects.board.options', projectId),
             controller.signal,
         )
             .then(setOptions)
-            .catch(() => {});
+            .catch((err) => {
+                if (err.name !== 'AbortError') {
+                    setOptions(null);
+                }
+            });
 
         return () => controller.abort();
     }, [projectId]);
@@ -151,8 +179,13 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
         const timer = setTimeout(() => {
             const next = searchInput.trim();
 
-            setFilters((f) =>
-                f.q === next ? f : { ...f, q: next },
+            setFilters((current) =>
+                current.q === next
+                    ? current
+                    : {
+                          ...current,
+                          q: next,
+                      },
             );
         }, 300);
 
@@ -179,7 +212,9 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
                 setLoadingGroups({});
             })
             .catch((err) => {
-                if (err.name === 'AbortError') return;
+                if (err.name === 'AbortError') {
+                    return;
+                }
 
                 setError(
                     err.status === 404
@@ -197,12 +232,21 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
     }, [projectId, filterKey, reloadKey, refreshToken]);
 
     const changeFilters = (patch) => {
-        setFilters((f) => ({ ...f, ...patch }));
+        setFilters((current) => ({
+            ...current,
+            ...patch,
+        }));
     };
 
+    // Clear all filters, including My Tasks.
     const clearFilters = () => {
         setSearchInput('');
-        setFilters(EMPTY_FILTERS);
+
+        setFilters({
+            ...EMPTY_FILTERS,
+            priority: [],
+            tag_ids: [],
+        });
     };
 
     // Include pending debounced search input when checking active filters.
@@ -212,14 +256,15 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
         filters.q !== '' ||
         filters.assignee !== '' ||
         filters.priority.length > 0 ||
-        filters.tag_ids.length > 0;
+        filters.tag_ids.length > 0 ||
+        filters.mine;
 
     // Load another page of tasks for a group.
     const loadMore = async (group) => {
         const keyAtStart = filterKeyRef.current;
 
-        setLoadingGroups((s) => ({
-            ...s,
+        setLoadingGroups((current) => ({
+            ...current,
             [group.id]: true,
         }));
 
@@ -235,19 +280,31 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
             );
 
             // Discard stale results if filters changed during the request.
-            if (filterKeyRef.current !== keyAtStart) return;
+            if (filterKeyRef.current !== keyAtStart) {
+                return;
+            }
 
-            setBoard((b) => ({
-                ...b,
-                groups: b.groups.map((g) =>
-                    g.id === group.id ? mergePage(g, page) : g,
-                ),
-            }));
-        } catch {
-            notify('error', 'Could not load more tasks.');
+            setBoard((current) => {
+                if (!current) {
+                    return current;
+                }
+
+                return {
+                    ...current,
+                    groups: current.groups.map((item) =>
+                        item.id === group.id
+                            ? mergePage(item, page)
+                            : item,
+                    ),
+                };
+            });
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                notify('error', 'Could not load more tasks.');
+            }
         } finally {
-            setLoadingGroups((s) => ({
-                ...s,
+            setLoadingGroups((current) => ({
+                ...current,
                 [group.id]: false,
             }));
         }
@@ -255,49 +312,67 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
 
     // Create a task.
     const createTask = async (group, title) => {
-        const { task } = await postJson(
-            route('projects.tasks.store', projectId),
-            {
-                title,
-                group_id: group.id,
-            },
-        );
-
-        // Reload when filters may exclude the new task.
-        if (board.filters_active) {
-            notify(
-                'success',
-                `${task.code} created. It may not match the current filters.`,
+        try {
+            const { task } = await postJson(
+                route('projects.tasks.store', projectId),
+                {
+                    title,
+                    group_id: group.id,
+                },
             );
 
-            setReloadKey((k) => k + 1);
-            return;
-        }
+            // Reload when filters may exclude the new task.
+            if (board.filters_active || filters.mine) {
+                notify(
+                    'success',
+                    `${task.code} created. It may not match the current filters.`,
+                );
 
-        setBoard((b) => ({
-            ...b,
-            groups: b.groups.map((g) => {
-                if (g.id !== group.id) return g;
+                setReloadKey((current) => current + 1);
+                return;
+            }
 
-                const next = {
-                    ...g,
-                    total: g.total + 1,
-                    unfiltered_total: g.unfiltered_total + 1,
+            setBoard((current) => {
+                if (!current) {
+                    return current;
+                }
+
+                return {
+                    ...current,
+                    groups: current.groups.map((item) => {
+                        if (item.id !== group.id) {
+                            return item;
+                        }
+
+                        const next = {
+                            ...item,
+                            total: item.total + 1,
+                            unfiltered_total:
+                                item.unfiltered_total + 1,
+                        };
+
+                        return item.fully_loaded
+                            ? {
+                                  ...next,
+                                  tasks: [...item.tasks, task],
+                              }
+                            : next;
+                    }),
                 };
+            });
 
-                // Add directly only when the group is fully loaded.
-                return g.fully_loaded
-                    ? { ...next, tasks: [...g.tasks, task] }
-                    : next;
-            }),
-        }));
-
-        notify(
-            'success',
-            group.fully_loaded
-                ? `${task.code} created.`
-                : `${task.code} created at the end of the list.`,
-        );
+            notify(
+                'success',
+                group.fully_loaded
+                    ? `${task.code} created.`
+                    : `${task.code} created at the end of the list.`,
+            );
+        } catch (err) {
+            notify(
+                'error',
+                errorMessage(err, ['title', 'group_id', 'project']),
+            );
+        }
     };
 
     // ───────── Drawer ─────────
@@ -313,56 +388,69 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
     };
 
     // Replace a card with the latest server response.
-    const replaceCard = (card) =>
-        setBoard((b) => ({
-            ...b,
-            groups: b.groups.map((g) =>
-                g.tasks.some((t) => t.id === card.id)
-                    ? {
-                          ...g,
-                          tasks: g.tasks.map((t) =>
-                              t.id === card.id ? card : t,
-                          ),
-                      }
-                    : g,
-            ),
-        }));
+    const replaceCard = (card) => {
+        setBoard((current) => {
+            if (!current) {
+                return current;
+            }
+
+            return {
+                ...current,
+                groups: current.groups.map((group) =>
+                    group.tasks.some((task) => task.id === card.id)
+                        ? {
+                              ...group,
+                              tasks: group.tasks.map((task) =>
+                                  task.id === card.id ? card : task,
+                              ),
+                          }
+                        : group,
+                ),
+            };
+        });
+    };
 
     // Remove an archived task from the board.
     const handleArchived = (card) => {
         notify('success', `${card.code} archived.`);
 
-        if (board.filters_active) {
-            setReloadKey((k) => k + 1);
+        if (board.filters_active || filters.mine) {
+            setReloadKey((current) => current + 1);
             return;
         }
 
-        setBoard((b) => {
-            // Find the current group or use the group returned by the server.
+        setBoard((current) => {
+            if (!current) {
+                return current;
+            }
+
             const holder =
-                b.groups.find((g) =>
-                    g.tasks.some((t) => t.id === card.id),
+                current.groups.find((group) =>
+                    group.tasks.some((task) => task.id === card.id),
                 )?.id ?? card.group?.id;
 
             return {
-                ...b,
-                groups: b.groups.map((g) => {
-                    const tasks = g.tasks.filter(
-                        (t) => t.id !== card.id,
+                ...current,
+                groups: current.groups.map((group) => {
+                    const tasks = group.tasks.filter(
+                        (task) => task.id !== card.id,
                     );
 
-                    if (g.id !== holder) {
-                        return tasks.length === g.tasks.length
-                            ? g
-                            : { ...g, tasks };
+                    if (group.id !== holder) {
+                        return tasks.length === group.tasks.length
+                            ? group
+                            : {
+                                  ...group,
+                                  tasks,
+                              };
                     }
 
                     return {
-                        ...g,
+                        ...group,
                         tasks,
-                        total: Math.max(g.total - 1, 0),
+                        total: Math.max(group.total - 1, 0),
                         unfiltered_total: Math.max(
-                            g.unfiltered_total - 1,
+                            group.unfiltered_total - 1,
                             0,
                         ),
                     };
@@ -373,14 +461,14 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
 
     // Restore a task to its group.
     const handleRestored = (card) => {
-        if (board.filters_active) {
+        if (board.filters_active || filters.mine) {
             notify('success', `${card.code} restored.`);
-            setReloadKey((k) => k + 1);
+            setReloadKey((current) => current + 1);
             return;
         }
 
         const target = board.groups.find(
-            (g) => g.id === card.group?.id,
+            (group) => group.id === card.group?.id,
         );
 
         notify(
@@ -390,28 +478,37 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
                 : `${card.code} restored.`,
         );
 
-        setBoard((b) => ({
-            ...b,
-            groups: b.groups.map((g) => {
-                if (
-                    g.id !== card.group?.id ||
-                    g.tasks.some((t) => t.id === card.id)
-                ) {
-                    return g;
-                }
+        setBoard((current) => {
+            if (!current) {
+                return current;
+            }
 
-                const next = {
-                    ...g,
-                    total: g.total + 1,
-                    unfiltered_total: g.unfiltered_total + 1,
-                };
+            return {
+                ...current,
+                groups: current.groups.map((group) => {
+                    if (
+                        group.id !== card.group?.id ||
+                        group.tasks.some((task) => task.id === card.id)
+                    ) {
+                        return group;
+                    }
 
-                // Insert the restored task only if the group is fully loaded.
-                return g.fully_loaded
-                    ? { ...next, tasks: [...g.tasks, card] }
-                    : next;
-            }),
-        }));
+                    const next = {
+                        ...group,
+                        total: group.total + 1,
+                        unfiltered_total:
+                            group.unfiltered_total + 1,
+                    };
+
+                    return group.fully_loaded
+                        ? {
+                              ...next,
+                              tasks: [...group.tasks, card],
+                          }
+                        : next;
+                }),
+            };
+        });
     };
 
     // ───────── Move ─────────
@@ -419,12 +516,19 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
     // Reordering is allowed only when there are no filters
     // and both groups are fully loaded.
     const canPosition = (fromId, toId) => {
-        if (!board || hasFilters) return false;
+        if (!board || hasFilters) {
+            return false;
+        }
 
-        const from = board.groups.find((g) => g.id === fromId);
-        const to = board.groups.find((g) => g.id === toId);
+        const from = board.groups.find(
+            (group) => group.id === fromId,
+        );
 
-        return !!from?.fully_loaded && !!to?.fully_loaded;
+        const to = board.groups.find(
+            (group) => group.id === toId,
+        );
+
+        return Boolean(from?.fully_loaded && to?.fully_loaded);
     };
 
     /**
@@ -439,21 +543,27 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
         beforeTaskId = null,
         { announce = false } = {},
     ) => {
-        if (!board || movingRef.current) return false;
+        if (!board || movingRef.current) {
+            return false;
+        }
 
-        const dst = board.groups.find((g) => g.id === toGroupId);
+        const destination = board.groups.find(
+            (group) => group.id === toGroupId,
+        );
 
-        if (!dst) return false;
+        if (!destination) {
+            return false;
+        }
 
-        // The task may not be present in the currently loaded board.
-        const src =
-            board.groups.find((g) =>
-                g.tasks.some((t) => t.id === taskId),
+        const source =
+            board.groups.find((group) =>
+                group.tasks.some((task) => task.id === taskId),
             ) ?? null;
 
-        const sameGroup = !!src && src.id === dst.id;
+        const sameGroup =
+            Boolean(source) && source.id === destination.id;
 
-        if (sameGroup && !canPosition(src.id, dst.id)) {
+        if (sameGroup && !canPosition(source.id, destination.id)) {
             notify(
                 'error',
                 'Reordering inside a group is unavailable while a filter is active or the list is only partly loaded.',
@@ -463,12 +573,12 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
         }
 
         const anchor =
-            src && canPosition(src.id, dst.id)
+            source && canPosition(source.id, destination.id)
                 ? beforeTaskId
                 : null;
 
         const payload = {
-            group_id: dst.id,
+            group_id: destination.id,
         };
 
         if (anchor !== null) {
@@ -481,15 +591,18 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
 
         let snapshot = null;
 
-        if (src) {
-            const card = src.tasks.find((t) => t.id === taskId);
-            const without = src.tasks.filter(
-                (t) => t.id !== taskId,
+        if (source) {
+            const card = source.tasks.find(
+                (task) => task.id === taskId,
+            );
+
+            const without = source.tasks.filter(
+                (task) => task.id !== taskId,
             );
 
             const moved = {
                 ...card,
-                group: groupRef(dst),
+                group: groupRef(destination),
             };
 
             const reordered = sameGroup
@@ -497,56 +610,66 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
                 : null;
 
             // Skip requests when the order has not changed.
-            if (sameGroup && sameOrder(reordered, src.tasks)) {
+            if (sameGroup && sameOrder(reordered, source.tasks)) {
                 return true;
             }
 
             snapshot = {
-                [src.id]: src,
-                [dst.id]: dst,
+                [source.id]: source,
+                [destination.id]: destination,
             };
 
-            setBoard((b) => ({
-                ...b,
-                groups: b.groups.map((g) => {
-                    if (sameGroup && g.id === src.id) {
-                        return {
-                            ...g,
-                            tasks: reordered,
-                        };
-                    }
+            setBoard((current) => {
+                if (!current) {
+                    return current;
+                }
 
-                    if (g.id === src.id) {
-                        return {
-                            ...g,
-                            tasks: without,
-                            total: Math.max(g.total - 1, 0),
-                            unfiltered_total: Math.max(
-                                g.unfiltered_total - 1,
-                                0,
-                            ),
-                        };
-                    }
+                return {
+                    ...current,
+                    groups: current.groups.map((group) => {
+                        if (sameGroup && group.id === source.id) {
+                            return {
+                                ...group,
+                                tasks: reordered,
+                            };
+                        }
 
-                    if (g.id === dst.id) {
-                        const base = {
-                            ...g,
-                            total: g.total + 1,
-                            unfiltered_total: g.unfiltered_total + 1,
-                        };
+                        if (group.id === source.id) {
+                            return {
+                                ...group,
+                                tasks: without,
+                                total: Math.max(group.total - 1, 0),
+                                unfiltered_total: Math.max(
+                                    group.unfiltered_total - 1,
+                                    0,
+                                ),
+                            };
+                        }
 
-                        // Insert immediately only when fully loaded.
-                        return g.fully_loaded
-                            ? {
-                                  ...base,
-                                  tasks: place(g.tasks, moved, anchor),
-                              }
-                            : base;
-                    }
+                        if (group.id === destination.id) {
+                            const next = {
+                                ...group,
+                                total: group.total + 1,
+                                unfiltered_total:
+                                    group.unfiltered_total + 1,
+                            };
 
-                    return g;
-                }),
-            }));
+                            return group.fully_loaded
+                                ? {
+                                      ...next,
+                                      tasks: place(
+                                          group.tasks,
+                                          moved,
+                                          anchor,
+                                      ),
+                                  }
+                                : next;
+                        }
+
+                        return group;
+                    }),
+                };
+            });
         }
 
         const keyAtStart = filterKeyRef.current;
@@ -555,55 +678,64 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
         setMoving(true);
 
         try {
-            const res = await patchJson(
+            const response = await patchJson(
                 route('tasks.move', taskId),
                 payload,
             );
 
-            if (!src) {
+            if (!source) {
                 notify(
                     'success',
-                    `${res.task.code} moved to ${dst.name}.`,
+                    `${response.task.code} moved to ${destination.name}.`,
                 );
 
-                setReloadKey((k) => k + 1);
+                setReloadKey((current) => current + 1);
                 return true;
             }
 
-            if (res.matches_filters === false) {
+            if (response.matches_filters === false) {
                 // The moved task no longer matches the active filters.
-                setBoard((b) => ({
-                    ...b,
-                    groups: b.groups.map((g) =>
-                        g.id === dst.id
-                            ? {
-                                  ...g,
-                                  tasks: g.tasks.filter(
-                                      (t) => t.id !== taskId,
-                                  ),
-                                  total: Math.max(g.total - 1, 0),
-                              }
-                            : g,
-                    ),
-                }));
+                setBoard((current) => {
+                    if (!current) {
+                        return current;
+                    }
+
+                    return {
+                        ...current,
+                        groups: current.groups.map((group) =>
+                            group.id === destination.id
+                                ? {
+                                      ...group,
+                                      tasks: group.tasks.filter(
+                                          (task) => task.id !== taskId,
+                                      ),
+                                      total: Math.max(
+                                          group.total - 1,
+                                          0,
+                                      ),
+                                  }
+                                : group,
+                        ),
+                    };
+                });
 
                 notify(
                     'success',
-                    res.notice ??
+                    response.notice ??
                         'Task moved; it no longer matches current filters.',
                 );
             } else {
-                replaceCard(res.task);
+                replaceCard(response.task);
 
                 const hidden =
-                    !sameGroup && !dst.fully_loaded;
+                    !sameGroup && !destination.fully_loaded;
 
                 if (announce || hidden) {
                     notify(
                         'success',
                         hidden
-                            ? `${res.task.code} moved to the end of ${dst.name}.`
-                            : `${res.task.code} moved to ${dst.name}.`,
+                            ? `${response.task.code} moved to the end of ${destination.name}.`
+                            : `${response.task.code} moved to ${destination.name}.`,
                     );
                 }
             }
@@ -627,14 +759,20 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
                 !snapshot
             ) {
                 // The board may be stale; reload rather than rolling back.
-                setReloadKey((k) => k + 1);
+                setReloadKey((current) => current + 1);
             } else {
-                setBoard((b) => ({
-                    ...b,
-                    groups: b.groups.map(
-                        (g) => snapshot[g.id] ?? g,
-                    ),
-                }));
+                setBoard((current) => {
+                    if (!current) {
+                        return current;
+                    }
+
+                    return {
+                        ...current,
+                        groups: current.groups.map(
+                            (group) => snapshot[group.id] ?? group,
+                        ),
+                    };
+                });
             }
 
             return false;
@@ -651,7 +789,9 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
         });
     };
 
-    const endDrag = () => setDrag(null);
+    const endDrag = () => {
+        setDrag(null);
+    };
 
     const dropTask = (group, beforeTaskId) => {
         const current = drag;
@@ -664,18 +804,20 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
     };
 
     // Automatically scroll horizontally while dragging near the board edges.
-    const edgeScroll = (e) => {
-        const el = scrollerRef.current;
+    const edgeScroll = (event) => {
+        const element = scrollerRef.current;
 
-        if (!drag || !el) return;
+        if (!drag || !element) {
+            return;
+        }
 
-        const rect = el.getBoundingClientRect();
+        const rect = element.getBoundingClientRect();
         const zone = 80;
 
-        if (e.clientX < rect.left + zone) {
-            el.scrollLeft -= 24;
-        } else if (e.clientX > rect.right - zone) {
-            el.scrollLeft += 24;
+        if (event.clientX < rect.left + zone) {
+            element.scrollLeft -= 24;
+        } else if (event.clientX > rect.right - zone) {
+            element.scrollLeft += 24;
         }
     };
 
@@ -688,9 +830,9 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
                 aria-busy="true"
                 aria-label="Loading project board"
             >
-                {[0, 1, 2].map((i) => (
+                {[0, 1, 2].map((index) => (
                     <div
-                        key={i}
+                        key={index}
                         className="w-72 shrink-0 animate-pulse rounded-2xl border border-slate-200 bg-slate-50 p-3"
                     >
                         <div className="mb-3 h-6 w-24 rounded-md bg-slate-200" />
@@ -712,7 +854,7 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
 
                 <button
                     type="button"
-                    onClick={() => setReloadKey((k) => k + 1)}
+                    onClick={() => setReloadKey((current) => current + 1)}
                     className="mt-2 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                 >
                     Retry
@@ -725,7 +867,7 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
     const moveTargets = board.groups.map(groupRef);
 
     const reorderBlocked =
-        !!drag &&
+        Boolean(drag) &&
         !canPosition(drag.fromGroupId, drag.fromGroupId);
 
     return (
@@ -737,8 +879,9 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
                 filters={filters}
                 onChange={changeFilters}
                 active={
-                    board.filters_active ||
-                    searchInput.trim() !== ''
+                    Boolean(board.filters_active) ||
+                    searchInput.trim() !== '' ||
+                    filters.mine
                 }
                 onClear={clearFilters}
                 isAdmin={isAdmin}
@@ -750,7 +893,7 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
 
                     <button
                         type="button"
-                        onClick={() => setReloadKey((k) => k + 1)}
+                        onClick={() => setReloadKey((current) => current + 1)}
                         className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-rose-700 underline decoration-rose-300 underline-offset-2 transition hover:text-rose-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                     >
                         Retry
@@ -770,9 +913,9 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
                     <BoardColumn
                         key={group.id}
                         group={group}
-                        filtersActive={board.filters_active}
+                        filtersActive={board.filters_active || hasFilters}
                         canCreate={board.can_create}
-                        loadingMore={!!loadingGroups[group.id]}
+                        loadingMore={Boolean(loadingGroups[group.id])}
                         onLoadMore={loadMore}
                         onCreate={createTask}
                         onOpen={openTask}
@@ -806,7 +949,7 @@ export default function ProjectBoard({ projectId, active = true, refreshToken = 
                 </div>
             )}
 
-            {openTaskId && (
+            {openTaskId && active && (
                 <TaskDrawer
                     key={openTaskId}
                     taskId={openTaskId}

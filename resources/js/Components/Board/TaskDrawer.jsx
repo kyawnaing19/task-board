@@ -848,7 +848,7 @@ export default function TaskDrawer({
                                     </div>
                                 </section>
 
-                                {/* Attachments: handled by its own component */}
+                                {/* Attachments:*/}
                                 <AttachmentsField
                                     taskId={taskId}
                                     canManage={canManageAttachments}

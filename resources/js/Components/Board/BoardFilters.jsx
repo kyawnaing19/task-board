@@ -32,6 +32,7 @@ export default function BoardFilters({
 
     return (
         <div className="mb-4 flex flex-wrap items-center gap-2">
+            {/* Search */}
             <input
                 type="search"
                 value={search}
@@ -42,6 +43,7 @@ export default function BoardFilters({
                 aria-label="Search tasks"
             />
 
+            {/* Assignee */}
             <select
                 value={filters.assignee}
                 onChange={(e) =>
@@ -53,7 +55,6 @@ export default function BoardFilters({
             >
                 <option value="">All assignees</option>
 
-                {/* Super Admin cannot be an assignee, so hide this option. */}
                 {!isAdmin && (
                     <option value="me">Assigned to me</option>
                 )}
@@ -70,6 +71,7 @@ export default function BoardFilters({
                 ))}
             </select>
 
+            {/* Tag */}
             <select
                 value={filters.tag_ids[0] ?? ''}
                 onChange={(e) =>
@@ -92,6 +94,7 @@ export default function BoardFilters({
                 ))}
             </select>
 
+            {/* Priority */}
             <div
                 className="inline-flex flex-wrap rounded-xl border border-slate-200 bg-slate-100 p-0.5"
                 role="group"
@@ -99,19 +102,19 @@ export default function BoardFilters({
             >
                 {Object.entries(PRIORITY_LABELS).map(
                     ([value, label]) => {
-                        const on =
+                        const selected =
                             filters.priority.includes(value);
 
                         return (
                             <button
                                 key={value}
                                 type="button"
-                                aria-pressed={on}
+                                aria-pressed={selected}
                                 onClick={() =>
                                     togglePriority(value)
                                 }
                                 className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
-                                    on
+                                    selected
                                         ? 'bg-indigo-600 text-white shadow-sm'
                                         : 'text-slate-600 hover:bg-white hover:text-slate-900'
                                 }`}
@@ -123,6 +126,23 @@ export default function BoardFilters({
                 )}
             </div>
 
+            {/* My Tasks quick filter */}
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm transition hover:bg-slate-50">
+                <input
+                    type="checkbox"
+                    checked={Boolean(filters.mine)}
+                    onChange={(event) =>
+                        onChange({
+                            mine: event.target.checked,
+                        })
+                    }
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+
+                <span>My Tasks</span>
+            </label>
+
+            {/* Clear filters */}
             {active && (
                 <button
                     type="button"
