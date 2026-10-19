@@ -125,6 +125,8 @@ export default function ProjectBoard({
     const filterKey = JSON.stringify(filters);
     const filterKeyRef = useRef(filterKey);
 
+    const [activeAddTaskGroupId, setActiveAddTaskGroupId] = useState(null);
+
     filterKeyRef.current = filterKey;
 
     // Close the drawer when switching away from the board tab.
@@ -984,6 +986,11 @@ useEffect(() => {
             }
             members={options?.members ?? []}
             tags={options?.tags ?? []}
+
+            /* Add these three props */
+            addingTask={activeAddTaskGroupId === group.id}
+            onAddTaskOpen={() => setActiveAddTaskGroupId(group.id)}
+            onAddTaskClose={() => setActiveAddTaskGroupId(null)}
         />
     ))}
 </div>

@@ -3,119 +3,6 @@ import GroupPill from '@/Components/GroupPill';
 import TaskCard from './TaskCard';
 import AddTaskForm from './AddTaskForm';
 
-function AddTask({ onCreate }) {
-    const [open, setOpen] = useState(false);
-    const [title, setTitle] = useState('');
-    const [error, setError] = useState(null);
-    const [busy, setBusy] = useState(false);
-    const inputRef = useRef(null);
-    
-
-    useEffect(() => {
-        if (open) inputRef.current?.focus();
-    }, [open]);
-
-    const submit = async () => {
-        const value = title.trim();
-
-        if (!value || busy) return;
-
-        setBusy(true);
-        setError(null);
-
-        try {
-            await onCreate(value);
-            setTitle('');
-        } catch (err) {
-            setError(
-                err.errors?.title?.[0] ||
-                    err.errors?.group_id?.[0] ||
-                    err.errors?.project?.[0] ||
-                    err.message ||
-                    'Unable to create task.',
-            );
-        } finally {
-            setBusy(false);
-            inputRef.current?.focus();
-        }
-    };
-
-    if (!open) {
-        return (
-            <button
-                type="button"
-                onClick={() => setOpen(true)}
-                className="mt-2 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            >
-                <span className="text-base leading-none">+</span>
-                Add Task
-            </button>
-        );
-    }
-
-    return (
-        <div className="mt-2 rounded-xl border border-indigo-200 bg-white p-2 shadow-sm">
-            <input
-                ref={inputRef}
-                type="text"
-                value={title}
-                maxLength={200}
-                disabled={busy}
-                placeholder="Task title…"
-                onChange={(e) => setTitle(e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        submit();
-                    }
-
-                    if (e.key === 'Escape') {
-                        setOpen(false);
-                        setTitle('');
-                        setError(null);
-                    }
-                }}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-60"
-            />
-
-            {error && (
-                <p className="mt-1.5 text-xs font-medium text-rose-600">
-                    {error}
-                </p>
-            )}
-
-            <div className="mt-2 flex items-center justify-between gap-2">
-                <span className="text-[10px] text-slate-400">
-                    Enter to add · Esc to close
-                </span>
-
-                <div className="flex gap-2">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setOpen(false);
-                            setTitle('');
-                            setError(null);
-                        }}
-                        className="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    >
-                        Cancel
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={submit}
-                        disabled={busy || !title.trim()}
-                        className="rounded-lg bg-indigo-600 px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        {busy ? 'Adding…' : 'Add'}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
 /**
  * movable      = Whether tasks can be moved.
  * drag         = { taskId, fromGroupId } | null
@@ -123,6 +10,9 @@ function AddTask({ onCreate }) {
  */
 export default function BoardColumn({
     group,
+    addingTask,
+    onAddTaskOpen,
+    onAddTaskClose,
     filtersActive,
     canCreate,
     loadingMore,
@@ -142,7 +32,7 @@ export default function BoardColumn({
 }) {
     const listRef = useRef(null);
     const [dropIndex, setDropIndex] = useState(null);
-    const [addingTask, setAddingTask] = useState(false);
+   // const [addingTask, setAddingTask] = useState(false);
 
 
     // Clear the drop indicator when dragging ends.
@@ -243,6 +133,27 @@ export default function BoardColumn({
 
     const hovering = accepts && dropIndex !== null;
 
+    const addTaskFormRef = useRef(null);
+
+useEffect(() => {
+    if (!addingTask) return;
+
+    const handleOutsideClick = (event) => {
+        if (
+            addTaskFormRef.current &&
+            !addTaskFormRef.current.contains(event.target)
+        ) {
+            onAddTaskClose?.();
+        }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+
+    return () => {
+        document.removeEventListener('mousedown', handleOutsideClick);
+    };
+}, [addingTask, onAddTaskClose]);
+
     return (
         <section
             onDragOver={onDragOver}
@@ -330,30 +241,28 @@ export default function BoardColumn({
         {!addingTask ? (
             <button
                 type="button"
-                onClick={() => setAddingTask(true)}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-white hover:text-indigo-600"
+                onClick={onAddTaskOpen}
+                className="..."
             >
-                <span className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-lg leading-none">
-                    +
-                </span>
-
-                <span>Add Task</span>
+                + Add Task
             </button>
         ) : (
-            <AddTaskForm
-    group={group}
-    members={members}
-    tags={tags}
-    onCreate={async (payload) => {
-        await onCreate(group, payload);
-        setAddingTask(false);
-    }}
-    onOpenChange={(open) => {
-        if (!open) {
-            setAddingTask(false);
-        }
-    }}
-/>
+            <div ref={addTaskFormRef}>
+                <AddTaskForm
+                    group={group}
+                    members={members}
+                    tags={tags}
+                    onCreate={async (payload) => {
+                        await onCreate(group, payload);
+                        onAddTaskClose();
+                    }}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            onAddTaskClose();
+                        }
+                    }}
+                />
+            </div>
         )}
     </div>
 )}
