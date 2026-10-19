@@ -142,6 +142,8 @@ export default function BoardColumn({
 }) {
     const listRef = useRef(null);
     const [dropIndex, setDropIndex] = useState(null);
+    const [addingTask, setAddingTask] = useState(false);
+
 
     // Clear the drop indicator when dragging ends.
     useEffect(() => {
@@ -324,12 +326,36 @@ export default function BoardColumn({
             )}
 
             {canCreate && (
-    <AddTaskForm
-        group={group}
-        members={members}
-        tags={tags}
-        onCreate={(payload) => onCreate(group, payload)}
-    />
+    <div className="mt-3">
+        {!addingTask ? (
+            <button
+                type="button"
+                onClick={() => setAddingTask(true)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-white hover:text-indigo-600"
+            >
+                <span className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-lg leading-none">
+                    +
+                </span>
+
+                <span>Add Task</span>
+            </button>
+        ) : (
+            <AddTaskForm
+    group={group}
+    members={members}
+    tags={tags}
+    onCreate={async (payload) => {
+        await onCreate(group, payload);
+        setAddingTask(false);
+    }}
+    onOpenChange={(open) => {
+        if (!open) {
+            setAddingTask(false);
+        }
+    }}
+/>
+        )}
+    </div>
 )}
         </section>
     );
