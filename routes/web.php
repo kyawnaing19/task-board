@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MyProjectController;
 use App\Http\Controllers\MyTaskController;
@@ -224,6 +225,12 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/data', [MyTaskController::class, 'list'])->name('list');
             Route::get('/options', [MyTaskController::class, 'options'])->name('options');
         });
+
+
+        //Dashboard
+        Route::get('/dashboard/data', [DashboardController::class, 'data'])->name('dashboard.data');
+        Route::post('/dashboard/assignments/seen', [DashboardController::class, 'acknowledgeAssignments'])
+            ->name('dashboard.assignments.seen');
 
 
         // Domain Specific Routes (Projects, Task Groups, Tasks...)

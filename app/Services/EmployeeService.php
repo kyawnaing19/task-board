@@ -41,6 +41,8 @@ class EmployeeService
             'password_expires_at'  => now()->addHours(self::TEMP_PASSWORD_HOURS),
             'email_verified_at'    => now(),
             'avatar_path'          => $avatar?->store('avatars', 'public'),
+            'dashboard_assignments_seen_at' => now(),   // checkpoint = account ဖန်တီးချိန်
+
         ]);
 
         return [$user, $tempPassword];

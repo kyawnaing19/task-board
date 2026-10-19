@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import GroupPill from '@/Components/GroupPill';
 import TaskCard from './TaskCard';
+import AddTaskForm from './AddTaskForm';
 
 function AddTask({ onCreate }) {
     const [open, setOpen] = useState(false);
@@ -8,6 +9,7 @@ function AddTask({ onCreate }) {
     const [error, setError] = useState(null);
     const [busy, setBusy] = useState(false);
     const inputRef = useRef(null);
+    
 
     useEffect(() => {
         if (open) inputRef.current?.focus();
@@ -135,6 +137,8 @@ export default function BoardColumn({
     onDropTask,
     moveTargets,
     onMoveTo,
+    members = [],
+    tags = [],
 }) {
     const listRef = useRef(null);
     const [dropIndex, setDropIndex] = useState(null);
@@ -320,10 +324,13 @@ export default function BoardColumn({
             )}
 
             {canCreate && (
-                <AddTask
-                    onCreate={(title) => onCreate(group, title)}
-                />
-            )}
+    <AddTaskForm
+        group={group}
+        members={members}
+        tags={tags}
+        onCreate={(payload) => onCreate(group, payload)}
+    />
+)}
         </section>
     );
 }

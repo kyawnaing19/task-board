@@ -311,69 +311,106 @@ export default function ProjectBoard({
     };
 
     // Create a task.
-    const createTask = async (group, title) => {
-        try {
-            const { task } = await postJson(
-                route('projects.tasks.store', projectId),
-                {
-                    title,
-                    group_id: group.id,
-                },
-            );
+    // const createTask = async (group, title) => {
+    //     try {
+    //         const { task } = await postJson(
+    //             route('projects.tasks.store', projectId),
+    //             {
+    //                 title,
+    //                 group_id: group.id,
+    //             },
+    //         );
+   const createTask = async (group, payload) => {
+    try {
+        const response = await postJson(
+            route('projects.tasks.store', projectId),
+            {
+                ...payload,
+                group_id: group.id,
+            },
+        );
 
-            // Reload when filters may exclude the new task.
-            if (board.filters_active || filters.mine) {
-                notify(
-                    'success',
-                    `${task.code} created. It may not match the current filters.`,
-                );
+        // Support either a direct task response or a wrapped response.
+        const task =
+            response?.task ??
+            response?.data?.task ??
+            response?.data ??
+            response;
 
-                setReloadKey((current) => current + 1);
-                return;
-            }
-
-            setBoard((current) => {
-                if (!current) {
-                    return current;
-                }
-
-                return {
-                    ...current,
-                    groups: current.groups.map((item) => {
-                        if (item.id !== group.id) {
-                            return item;
-                        }
-
-                        const next = {
-                            ...item,
-                            total: item.total + 1,
-                            unfiltered_total:
-                                item.unfiltered_total + 1,
-                        };
-
-                        return item.fully_loaded
-                            ? {
-                                  ...next,
-                                  tasks: [...item.tasks, task],
-                              }
-                            : next;
-                    }),
-                };
-            });
-
-            notify(
-                'success',
-                group.fully_loaded
-                    ? `${task.code} created.`
-                    : `${task.code} created at the end of the list.`,
-            );
-        } catch (err) {
-            notify(
-                'error',
-                errorMessage(err, ['title', 'group_id', 'project']),
+        if (!task?.id) {
+            throw new Error(
+                'The task was created, but the server response did not contain a valid task.',
             );
         }
-    };
+
+        // Keep the rest of your existing createTask success logic here.
+
+        // Reload when filters may exclude the new task.
+        if (board.filters_active || filters.mine) {
+            notify(
+                'success',
+                `${task.code} created. It may not match the current filters.`,
+            );
+
+            setReloadKey((current) => current + 1);
+            return task;
+        }
+
+        // Update the board without a full reload.
+        setBoard((current) => {
+            if (!current) {
+                return current;
+            }
+
+            return {
+                ...current,
+                groups: current.groups.map((item) => {
+                    if (item.id !== group.id) {
+                        return item;
+                    }
+
+                    const next = {
+                        ...item,
+                        total: item.total + 1,
+                        unfiltered_total: item.unfiltered_total + 1,
+                    };
+
+                    return item.fully_loaded
+                        ? {
+                              ...next,
+                              tasks: [...item.tasks, task],
+                          }
+                        : next;
+                }),
+            };
+        });
+
+        notify(
+            'success',
+            group.fully_loaded
+                ? `${task.code} created.`
+                : `${task.code} created at the end of the list.`,
+        );
+
+        return task;
+    } catch (err) {
+        notify(
+            'error',
+            errorMessage(err, [
+                'title',
+                'group_id',
+                'assignee_ids',
+                'tag_ids',
+                'start_date',
+                'end_date',
+                'priority',
+                'project',
+            ]),
+        );
+
+        throw err;
+    }
+};
 
     // ───────── Drawer ─────────
 
@@ -902,38 +939,40 @@ export default function ProjectBoard({
             )}
 
             <div
-                ref={scrollerRef}
-                onDragOver={edgeScroll}
-                aria-busy={moving}
-                className={`flex items-start gap-4 overflow-x-auto pb-4 transition-opacity ${
-                    loading ? 'opacity-60' : ''
-                }`}
-            >
-                {board.groups.map((group) => (
-                    <BoardColumn
-                        key={group.id}
-                        group={group}
-                        filtersActive={board.filters_active || hasFilters}
-                        canCreate={board.can_create}
-                        loadingMore={Boolean(loadingGroups[group.id])}
-                        onLoadMore={loadMore}
-                        onCreate={createTask}
-                        onOpen={openTask}
-                        movable={movable}
-                        drag={drag}
-                        canPosition={canPosition}
-                        onDragStart={startDrag}
-                        onDragEnd={endDrag}
-                        onDropTask={dropTask}
-                        moveTargets={moveTargets}
-                        onMoveTo={(task, groupId) =>
-                            moveTask(task.id, groupId, null, {
-                                announce: true,
-                            })
-                        }
-                    />
-                ))}
-            </div>
+    ref={scrollerRef}
+    onDragOver={edgeScroll}
+    aria-busy={moving}
+    className={`flex items-start gap-4 overflow-x-auto pb-4 transition-opacity ${
+        loading ? 'opacity-60' : ''
+    }`}
+>
+    {board.groups.map((group) => (
+        <BoardColumn
+            key={group.id}
+            group={group}
+            filtersActive={board.filters_active || hasFilters}
+            canCreate={board.can_create}
+            loadingMore={Boolean(loadingGroups[group.id])}
+            onLoadMore={loadMore}
+            onCreate={createTask}
+            onOpen={openTask}
+            movable={movable}
+            drag={drag}
+            canPosition={canPosition}
+            onDragStart={startDrag}
+            onDragEnd={endDrag}
+            onDropTask={dropTask}
+            moveTargets={moveTargets}
+            onMoveTo={(task, groupId) =>
+                moveTask(task.id, groupId, null, {
+                    announce: true,
+                })
+            }
+            members={options?.members ?? []}
+            tags={options?.tags ?? []}
+        />
+    ))}
+</div>
 
             {/* Fixed position prevents the board layout shifting during drag. */}
             {reorderBlocked && (
