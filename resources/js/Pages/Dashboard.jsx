@@ -1,18 +1,28 @@
 import React from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
+
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
-export default function Dashboard() {
-    return (
-        <AuthenticatedLayout header="Dashboard Overview">
-            <Head title="Dashboard" />
+import EmployeeDashboard from '@/Components/Dashboard/EmployeeDashboard';
+import AdminDashboard from '@/Components/Dashboard/AdminDashboard';
 
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-                <h3 className="text-xl font-bold text-white mb-2">Welcome Back!</h3>
-                <p className="text-slate-400">
-                    Your authenticated session and active middleware status are fully operational.
-                </p>
-            </div>
+export default function Dashboard() {
+    const { auth } = usePage().props;
+    const user = auth?.user;
+
+    const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+
+    return (
+        <AuthenticatedLayout
+            header={isSuperAdmin ? 'Admin Dashboard' : 'Dashboard Overview'}
+        >
+            <Head title={isSuperAdmin ? 'Admin Dashboard' : 'Dashboard'} />
+
+            {isSuperAdmin ? (
+                <AdminDashboard />
+            ) : (
+                <EmployeeDashboard />
+            )}
         </AuthenticatedLayout>
     );
 }

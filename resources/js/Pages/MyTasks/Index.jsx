@@ -6,7 +6,7 @@ import React, {
     useState,
 } from 'react';
 
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Avatar from '@/Components/Avatar';
@@ -15,24 +15,35 @@ import TaskDrawer from '@/Components/Board/TaskDrawer';
 import {
     errorMessage,
     getJson,
+    patchJson,
     postJson,
 } from '@/lib/http';
+
+import { colorOf } from '@/lib/groupColors';
 
 const DEFAULT_PER_PAGE = 25;
 
 const PRIORITY_STYLES = {
     LOW: 'bg-slate-100 text-slate-600 ring-slate-200',
-    MEDIUM: 'bg-blue-50 text-blue-700 ring-blue-200',
+    NORMAL: 'bg-blue-50 text-blue-700 ring-blue-200',
     HIGH: 'bg-amber-50 text-amber-700 ring-amber-200',
     URGENT: 'bg-rose-50 text-rose-700 ring-rose-200',
 };
 
 const PRIORITY_LABELS = {
     LOW: 'Low',
-    MEDIUM: 'Medium',
+    NORMAL: 'Normal',
     HIGH: 'High',
     URGENT: 'Urgent',
 };
+
+const PRIORITY_VALUES = Object.keys(PRIORITY_LABELS);
+
+const MODES = ['assigned', 'created', 'both'];
+
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
 
 function cn(...classes) {
     return classes.filter(Boolean).join(' ');
@@ -100,21 +111,17 @@ function getAssignees(task) {
     return [];
 }
 
-function getCreator(task) {
-    return (
-        task?.creator ||
-        task?.created_by_user ||
-        task?.createdBy ||
-        null
-    );
-}
-
 function isTaskArchived(task) {
     return Boolean(task?.archived_at);
 }
 
 function isProjectArchived(task) {
-    return Boolean(getProject(task)?.archived);
+    const project = getProject(task);
+
+    return Boolean(
+        project.archived ||
+        project.archived_at
+    );
 }
 
 function isProjectCompleted(task) {
@@ -142,7 +149,9 @@ function getReadOnlyReason(task) {
 }
 
 function getPriority(task) {
-    const priority = String(task?.priority || 'MEDIUM').toUpperCase();
+    const priority = String(
+        task?.priority || 'NORMAL',
+    ).toUpperCase();
 
     return {
         value: priority,
@@ -152,6 +161,10 @@ function getPriority(task) {
             'bg-slate-100 text-slate-600 ring-slate-200',
     };
 }
+
+/* -------------------------------------------------------------------------- */
+/* Form controls                                                              */
+/* -------------------------------------------------------------------------- */
 
 function SelectField({
     label,
@@ -179,7 +192,13 @@ function SelectField({
     );
 }
 
-function DateField({ label, value, onChange }) {
+function DateField({
+    label,
+    value,
+    onChange,
+    min,
+    max,
+}) {
     return (
         <label className="block min-w-0">
             <span className="mb-1.5 block text-xs font-semibold text-slate-600">
@@ -189,6 +208,8 @@ function DateField({ label, value, onChange }) {
             <input
                 type="date"
                 value={value}
+                min={min}
+                max={max}
                 onChange={(event) => onChange(event.target.value)}
                 className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
             />
@@ -196,7 +217,11 @@ function DateField({ label, value, onChange }) {
     );
 }
 
-function CheckboxFilter({ checked, onChange, children }) {
+function CheckboxFilter({
+    checked,
+    onChange,
+    children,
+}) {
     return (
         <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600">
             <input
@@ -210,6 +235,10 @@ function CheckboxFilter({ checked, onChange, children }) {
         </label>
     );
 }
+
+/* -------------------------------------------------------------------------- */
+/* Badges                                                                     */
+/* -------------------------------------------------------------------------- */
 
 function PriorityBadge({ priority }) {
     const item = getPriority({ priority });
@@ -228,63 +257,87 @@ function PriorityBadge({ priority }) {
 
 function GroupBadge({ group }) {
     if (!group?.name) {
-        return <span className="text-sm text-slate-400">No group</span>;
+        return (
+            <span className="text-sm text-slate-400">
+                No group
+            </span>
+        );
     }
+
+    const groupColor = colorOf(group.color);
 
     return (
         <span className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">
-            {group.color && (
-                <span
-                    className="h-2 w-2 shrink-0 rounded-full bg-slate-400"
-                    aria-hidden="true"
-                />
-            )}
+            <span
+                className={cn(
+                    'h-2 w-2 shrink-0 rounded-full',
+                    groupColor.swatch,
+                )}
+                aria-hidden="true"
+            />
 
-            <span className="truncate">{group.name}</span>
+            <span className="truncate">
+                {group.name}
+            </span>
         </span>
     );
 }
 
 function OwnershipBadges({ task, mode }) {
-    if (mode !== 'both') return null;
-
-    const creator = getCreator(task);
-    const assignees = getAssignees(task);
+    if (
+        mode !== 'both' ||
+        (!task.is_creator && !task.is_assignee)
+    ) {
+        return null;
+    }
 
     return (
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            {creator && (
-                <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600">
-                    <span className="text-slate-400">Creator:</span>
-                    {creator.name || 'Unknown'}
+            {task.is_creator && (
+                <span className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600">
+                    Created by you
                 </span>
             )}
 
-            {assignees.map((assignee) => (
-                <span
-                    key={assignee.id ?? assignee.name}
-                    className="inline-flex items-center gap-1 rounded-md border border-blue-100 bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700"
-                >
-                    <span className="text-blue-500">Assignee:</span>
-                    {assignee.name || 'Unknown'}
+            {task.is_assignee && (
+                <span className="inline-flex items-center rounded-md border border-blue-100 bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700">
+                    Assigned to you
                 </span>
-            ))}
+            )}
         </div>
     );
 }
 
-function EmptyState({ archivedTasks, archivedProjects, hasFilters, onReset }) {
+/* -------------------------------------------------------------------------- */
+/* Empty state                                                                */
+/* -------------------------------------------------------------------------- */
+
+function EmptyState({
+    archivedTasks,
+    archivedProjects,
+    hasFilters,
+    onReset,
+}) {
     let title = 'No tasks found';
-    let description = 'Tasks matching your selection will appear here.';
+
+    let description =
+        'Tasks matching your selection will appear here.';
 
     if (archivedTasks && archivedProjects) {
         title = 'No archived tasks in archived projects';
+
+        description =
+            'There are no matching archived tasks in archived projects.';
     } else if (archivedTasks) {
         title = 'No archived tasks';
-        description = 'Archived tasks matching your selection will appear here.';
+
+        description =
+            'Archived tasks matching your selection will appear here.';
     } else if (archivedProjects) {
         title = 'No tasks in archived projects';
-        description = 'There are no matching tasks in archived projects.';
+
+        description =
+            'There are no matching tasks in archived projects.';
     }
 
     return (
@@ -327,6 +380,10 @@ function EmptyState({ archivedTasks, archivedProjects, hasFilters, onReset }) {
     );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Task row                                                                   */
+/* -------------------------------------------------------------------------- */
+
 function TaskRow({
     task,
     mode,
@@ -337,28 +394,34 @@ function TaskRow({
     const project = getProject(task);
     const group = getGroup(task);
     const assignees = getAssignees(task);
+
     const archived = isTaskArchived(task);
     const readOnlyReason = getReadOnlyReason(task);
 
     const restoreBlockedReason =
         task?.restore_blocked_reason ||
-        (readOnlyReason && !archived ? readOnlyReason : null);
+        (readOnlyReason && !archived
+            ? readOnlyReason
+            : null);
 
     const canRestore =
         archived &&
         Boolean(task?.can_restore) &&
         !restoreBlockedReason;
 
-    const tags = Array.isArray(task?.tags) ? task.tags : [];
+    const tags = Array.isArray(task?.tags)
+        ? task.tags
+        : [];
 
     return (
         <div
             className={cn(
-                'group grid grid-cols-1 gap-3 px-4 py-4 transition-colors hover:bg-slate-50/80 sm:px-5 lg:grid-cols-[minmax(0,2fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(130px,0.8fr)_minmax(120px,0.7fr)] lg:items-center',
+                'group grid grid-cols-1 gap-3 px-4 py-4 transition-colors hover:bg-slate-50/80 sm:px-5 lg:grid-cols-[minmax(0,2fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(130px,0.8fr)_minmax(120px,0.7fr)_auto] lg:items-center',
                 archived && 'bg-slate-50/50',
             )}
         >
             {/* Task title and project */}
+
             <div className="min-w-0">
                 <div className="flex min-w-0 items-start gap-3">
                     <button
@@ -394,7 +457,9 @@ function TaskRow({
                                     onClick={() => onRestore(task)}
                                     className="rounded-lg border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    {restoring ? 'Restoring…' : 'Restore'}
+                                    {restoring
+                                        ? 'Restoring…'
+                                        : 'Restore'}
                                 </button>
                             ) : (
                                 <span
@@ -422,39 +487,54 @@ function TaskRow({
                         {project.name || 'Unknown project'}
                     </span>
 
-                    {project.archived && (
+                    {isProjectArchived(task) && (
                         <span className="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700">
                             Archived project
                         </span>
                     )}
 
-                    {project.status === 'COMPLETED' && (
+                    {isProjectCompleted(task) && (
                         <span className="rounded bg-emerald-50 px-1.5 py-0.5 font-medium text-emerald-700">
                             Completed project
                         </span>
                     )}
                 </div>
 
-                <OwnershipBadges task={task} mode={mode} />
+                <OwnershipBadges
+                    task={task}
+                    mode={mode}
+                />
+
+                {/* Task tags */}
 
                 {tags.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                        {tags.map((tag) => (
-                            <span
-                                key={tag.id}
-                                className={cn(
-                                    'rounded-md border px-2 py-0.5 text-[11px] font-medium',
-                                    tag.inactive || tag.archived_at
-                                        ? 'border-dashed border-slate-300 bg-slate-50 text-slate-400'
-                                        : 'border-slate-200 bg-white text-slate-600',
-                                )}
-                            >
-                                {tag.name}
-                                {(tag.inactive || tag.archived_at) && ' · Inactive'}
-                            </span>
-                        ))}
+                        {tags.map((tag) => {
+                            const inactive = Boolean(
+                                tag.inactive ||
+                                tag.archived_at,
+                            );
+
+                            return (
+                                <span
+                                    key={tag.id}
+                                    className={cn(
+                                        'rounded-md border px-2 py-0.5 text-[11px] font-medium',
+                                        inactive
+                                            ? 'border-dashed border-slate-300 bg-slate-50 text-slate-400'
+                                            : 'border-slate-200 bg-white text-slate-600',
+                                    )}
+                                >
+                                    {tag.name}
+
+                                    {inactive && ' · Inactive'}
+                                </span>
+                            );
+                        })}
                     </div>
                 )}
+
+                {/* Read-only explanation */}
 
                 {readOnlyReason && (
                     <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-700">
@@ -466,7 +546,7 @@ function TaskRow({
                         >
                             <path
                                 fillRule="evenodd"
-                                d="M8.485 2.495a1.75 1.75 0 0 1 3.03 0l6.42 11.12A1.75 1.75 0 0 1 16.42 16.25H3.58a1.75 1.75 0 0 1-1.515-2.635l6.42-11.12ZM10 6a.75.75 0 0 0-.75.75v3.5a.75.75 0 0 0 1.5 0v-3.5A.75.75 0 0 0 10 6Zm0 7.5a.875.875 0 1 0 0 1.75  .875.875 0 0 0 0-1.75Z"
+                                d="M8.485 2.495a1.75 1.75 0 0 1 3.03 0l6.42 11.12A1.75 1.75 0 0 1 16.42 16.25H3.58a1.75 1.75 0 0 1-1.515-2.635l6.42-11.12ZM10 6a.75.75 0 0 0-.75.75v3.5a.75.75 0 0 0 1.5 0v-3.5A.75.75 0 0 0 10 6Zm0 7.5a.875.875 0 1 0 0 1.75.875.875 0 0 0 0-1.75Z"
                                 clipRule="evenodd"
                             />
                         </svg>
@@ -475,14 +555,18 @@ function TaskRow({
                     </p>
                 )}
 
-                {archived && !canRestore && restoreBlockedReason && (
-                    <p className="mt-1 text-xs text-slate-400">
-                        Restore unavailable: {restoreBlockedReason}
-                    </p>
-                )}
+                {archived &&
+                    !canRestore &&
+                    restoreBlockedReason && (
+                        <p className="mt-1 text-xs text-slate-400">
+                            Restore unavailable:{' '}
+                            {restoreBlockedReason}
+                        </p>
+                    )}
             </div>
 
-            {/* Group */}
+            {/* Task group */}
+
             <div className="min-w-0">
                 <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400 lg:hidden">
                     Task group
@@ -492,6 +576,7 @@ function TaskRow({
             </div>
 
             {/* Priority */}
+
             <div>
                 <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400 lg:hidden">
                     Priority
@@ -501,6 +586,7 @@ function TaskRow({
             </div>
 
             {/* Dates */}
+
             <div className="grid grid-cols-2 gap-3 lg:block">
                 <div>
                     <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400 lg:hidden">
@@ -523,9 +609,10 @@ function TaskRow({
                 </div>
             </div>
 
-            {/* Updated */}
+            {/* Last updated and assignees */}
+
             <div className="flex items-center justify-between gap-3 lg:block">
-                <div>
+                <div className="min-w-0">
                     <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400 lg:hidden">
                         Updated
                     </span>
@@ -534,29 +621,62 @@ function TaskRow({
                         {formatDateTime(task.updated_at)}
                     </span>
 
-                    {assignees.length > 0 && mode !== 'both' && (
-                        <div className="mt-2 flex flex-wrap items-center gap-1">
-                            {assignees.slice(0, 3).map((assignee) => (
-                                <span
-                                    key={assignee.id ?? assignee.name}
-                                    title={assignee.name}
-                                    className="inline-flex max-w-full items-center gap-1 rounded-full border border-slate-200 bg-white py-0.5 pl-0.5 pr-2 text-[11px] text-slate-600"
-                                >
-                                    <Avatar user={assignee} size="xs" />
+                    {assignees.length > 0 &&
+                        mode !== 'both' && (
+                            <div className="mt-2 flex flex-wrap items-center gap-1">
+                                {assignees
+                                    .slice(0, 3)
+                                    .map((assignee) => {
+                                        const inactive =
+                                            Boolean(assignee.label);
 
-                                    <span className="max-w-24 truncate">
-                                        {assignee.name}
+                                        const label =
+                                            assignee.label === 'inactive'
+                                                ? 'inactive'
+                                                : 'no longer a member';
+
+                                        return (
+                                            <span
+                                                key={
+                                                    assignee.id ??
+                                                    assignee.name
+                                                }
+                                                title={
+                                                    inactive
+                                                        ? `${assignee.name} (${label})`
+                                                        : assignee.name
+                                                }
+                                                className={cn(
+                                                    'inline-flex max-w-full items-center gap-1 rounded-full border border-slate-200 bg-white py-0.5 pl-0.5 pr-2 text-[11px] text-slate-600',
+                                                    inactive && 'opacity-60',
+                                                )}
+                                            >
+                                                <Avatar
+                                                    name={assignee.name}
+                                                    src={assignee.avatar_url}
+                                                    className="h-5 w-5 text-[10px]"
+                                                />
+
+                                                <span className="max-w-24 truncate">
+                                                    {assignee.name}
+                                                </span>
+
+                                                {inactive && (
+                                                    <span className="text-[10px] text-slate-400">
+                                                        {label}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        );
+                                    })}
+
+                                {assignees.length > 3 && (
+                                    <span className="text-[11px] text-slate-400">
+                                        +{assignees.length - 3}
                                     </span>
-                                </span>
-                            ))}
-
-                            {assignees.length > 3 && (
-                                <span className="text-[11px] text-slate-400">
-                                    +{assignees.length - 3}
-                                </span>
-                            )}
-                        </div>
-                    )}
+                                )}
+                            </div>
+                        )}
                 </div>
 
                 <button
@@ -567,6 +687,8 @@ function TaskRow({
                     Details
                 </button>
             </div>
+
+            {/* Actions */}
 
             <button
                 type="button"
@@ -579,37 +701,81 @@ function TaskRow({
     );
 }
 
-function Pagination({ pagination, onPageChange, loading }) {
-    const currentPage = Number(pagination?.current_page || 1);
-    const lastPage = Number(pagination?.last_page || 1);
-    const total = Number(pagination?.total || 0);
-    const perPage = Number(pagination?.per_page || DEFAULT_PER_PAGE);
+/* -------------------------------------------------------------------------- */
+/* Pagination                                                                 */
+/* -------------------------------------------------------------------------- */
+
+function Pagination({
+    pagination,
+    onPageChange,
+    loading,
+}) {
+    const currentPage = Number(
+        pagination?.current_page || 1,
+    );
+
+    const lastPage = Number(
+        pagination?.last_page || 1,
+    );
+
+    const total = Number(
+        pagination?.total || 0,
+    );
+
+    const perPage = Number(
+        pagination?.per_page || DEFAULT_PER_PAGE,
+    );
 
     if (lastPage <= 1 && total <= perPage) {
         return null;
     }
 
-    const from = total === 0 ? 0 : (currentPage - 1) * perPage + 1;
-    const to = Math.min(currentPage * perPage, total);
+    const from =
+        total === 0
+            ? 0
+            : (currentPage - 1) * perPage + 1;
+
+    const to = Math.min(
+        currentPage * perPage,
+        total,
+    );
 
     const pages = [];
-    const start = Math.max(1, currentPage - 2);
-    const end = Math.min(lastPage, currentPage + 2);
 
-    for (let page = start; page <= end; page += 1) {
-        pages.push(page);
+    const start = Math.max(
+        1,
+        currentPage - 2,
+    );
+
+    const end = Math.min(
+        lastPage,
+        currentPage + 2,
+    );
+
+    for (
+        let pageNumber = start;
+        pageNumber <= end;
+        pageNumber += 1
+    ) {
+        pages.push(pageNumber);
     }
 
     return (
         <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <p className="text-sm text-slate-500">
                 Showing{' '}
-                <span className="font-semibold text-slate-700">{from}</span>
-                {' '}to{' '}
-                <span className="font-semibold text-slate-700">{to}</span>
-                {' '}of{' '}
-                <span className="font-semibold text-slate-700">{total}</span>
-                {' '}tasks
+                <span className="font-semibold text-slate-700">
+                    {from}
+                </span>{' '}
+                to{' '}
+                <span className="font-semibold text-slate-700">
+                    {to}
+                </span>{' '}
+                of{' '}
+                <span className="font-semibold text-slate-700">
+                    {total}
+                </span>{' '}
+                tasks
             </p>
 
             <nav
@@ -629,46 +795,56 @@ function Pagination({ pagination, onPageChange, loading }) {
                     <>
                         <button
                             type="button"
+                            disabled={loading}
                             onClick={() => onPageChange(1)}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                         >
                             1
                         </button>
 
                         {start > 2 && (
-                            <span className="px-1 text-slate-400">…</span>
+                            <span className="px-1 text-slate-400">
+                                …
+                            </span>
                         )}
                     </>
                 )}
 
-                {pages.map((page) => (
+                {pages.map((pageNumber) => (
                     <button
-                        key={page}
+                        key={pageNumber}
                         type="button"
                         disabled={loading}
-                        onClick={() => onPageChange(page)}
-                        aria-current={page === currentPage ? 'page' : undefined}
+                        onClick={() => onPageChange(pageNumber)}
+                        aria-current={
+                            pageNumber === currentPage
+                                ? 'page'
+                                : undefined
+                        }
                         className={cn(
                             'min-w-9 rounded-lg border px-3 py-2 text-sm font-medium transition disabled:opacity-50',
-                            page === currentPage
+                            pageNumber === currentPage
                                 ? 'border-blue-600 bg-blue-600 text-white'
                                 : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
                         )}
                     >
-                        {page}
+                        {pageNumber}
                     </button>
                 ))}
 
                 {end < lastPage && (
                     <>
                         {end < lastPage - 1 && (
-                            <span className="px-1 text-slate-400">…</span>
+                            <span className="px-1 text-slate-400">
+                                …
+                            </span>
                         )}
 
                         <button
                             type="button"
+                            disabled={loading}
                             onClick={() => onPageChange(lastPage)}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                         >
                             {lastPage}
                         </button>
@@ -688,86 +864,169 @@ function Pagination({ pagination, onPageChange, loading }) {
     );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Main page                                                                  */
+/* -------------------------------------------------------------------------- */
+
 export default function Index() {
     const { auth } = usePage().props;
+
+    /* ---------------------------------------------------------------------- */
+    /* URL initialization                                                     */
+    /* ---------------------------------------------------------------------- */
 
     const initialUrl = useMemo(
         () => new URL(window.location.href),
         [],
     );
 
-    const initialTaskId = initialUrl.searchParams.get('task');
+    const urlParam = (key) =>
+        initialUrl.searchParams.get(key) || '';
 
-    const [mode, setMode] = useState(
-        initialUrl.searchParams.get('mode') || 'assigned',
+    const numeric = (value) =>
+        /^\d+$/.test(value) ? value : '';
+
+    const initialTaskId = numeric(
+        urlParam('task'),
+    );
+
+    /* ---------------------------------------------------------------------- */
+    /* Filter state                                                           */
+    /* ---------------------------------------------------------------------- */
+
+    const [mode, setMode] = useState(() =>
+        MODES.includes(urlParam('mode'))
+            ? urlParam('mode')
+            : 'assigned',
     );
 
     const [archivedTasks, setArchivedTasks] = useState(
-        initialUrl.searchParams.get('archived_tasks') === '1',
+        () => urlParam('archived_tasks') === '1',
     );
 
     const [archivedProjects, setArchivedProjects] = useState(
-        initialUrl.searchParams.get('archived_projects') === '1',
+        () => urlParam('archived_projects') === '1',
     );
 
     const [projectId, setProjectId] = useState(
-        initialUrl.searchParams.get('project_id') || '',
+        () => numeric(urlParam('project_id')),
     );
 
     const [searchInput, setSearchInput] = useState(
-        initialUrl.searchParams.get('q') || '',
+        () => urlParam('q'),
     );
 
+    // q is the debounced value sent to the server.
+    const [q, setQ] = useState(
+        () => urlParam('q').trim(),
+    );
+
+    // URL uses scalar "group"; API receives "group_ids[]".
     const [groupId, setGroupId] = useState(
-        initialUrl.searchParams.get('group_ids') || '',
+        () => numeric(urlParam('group')),
     );
 
-    const [priority, setPriority] = useState(
-        initialUrl.searchParams.get('priority') || '',
-    );
+    const [priority, setPriority] = useState(() => {
+        const value = urlParam('priority');
 
+        return PRIORITY_VALUES.includes(value)
+            ? value
+            : '';
+    });
+
+    // URL uses scalar "tag"; API receives "tag_ids[]".
     const [tagId, setTagId] = useState(
-        initialUrl.searchParams.get('tag_ids') || '',
+        () => numeric(urlParam('tag')),
     );
 
     const [dateFrom, setDateFrom] = useState(
-        initialUrl.searchParams.get('date_from') || '',
+        () => urlParam('date_from'),
     );
 
     const [dateTo, setDateTo] = useState(
-        initialUrl.searchParams.get('date_to') || '',
+        () => urlParam('date_to'),
     );
 
-    const [page, setPage] = useState(
-        Math.max(1, Number(initialUrl.searchParams.get('page') || 1)),
+    const [page, setPage] = useState(() =>
+        Math.max(
+            1,
+            Number(urlParam('page')) || 1,
+        ),
     );
+
+    /* ---------------------------------------------------------------------- */
+    /* Data state                                                             */
+    /* ---------------------------------------------------------------------- */
 
     const [tasks, setTasks] = useState([]);
+
     const [pagination, setPagination] = useState(null);
+
     const [options, setOptions] = useState({
         projects: [],
         groups: [],
         tags: [],
-        priorities: ['LOW', 'MEDIUM', 'HIGH', 'URGENT'],
-        page_size: { default: DEFAULT_PER_PAGE, max: 100 },
+        priorities: PRIORITY_VALUES,
+        page_size: {
+            default: DEFAULT_PER_PAGE,
+            max: 100,
+        },
     });
 
     const [loading, setLoading] = useState(true);
+
     const [optionsLoading, setOptionsLoading] = useState(true);
+
     const [error, setError] = useState('');
+
     const [notice, setNotice] = useState(null);
+
     const [restoringId, setRestoringId] = useState(null);
+
     const [selectedTask, setSelectedTask] = useState(
-        initialTaskId ? { id: Number(initialTaskId) } : null,
+        () =>
+            initialTaskId
+                ? { id: Number(initialTaskId) }
+                : null,
     );
 
+    /* ---------------------------------------------------------------------- */
+    /* Drawer state                                                           */
+    /* ---------------------------------------------------------------------- */
+
+    const [resolvedProjectId, setResolvedProjectId] =
+        useState(null);
+
+    const [drawerOptions, setDrawerOptions] =
+        useState(null);
+
+    const knownProjectId =
+        selectedTask?.project_id ||
+        selectedTask?.project?.id ||
+        null;
+
+    const drawerProjectId =
+        knownProjectId || resolvedProjectId;
+
+    /* ---------------------------------------------------------------------- */
+    /* Refs                                                                    */
+    /* ---------------------------------------------------------------------- */
+
     const requestVersion = useRef(0);
-    const searchTimer = useRef(null);
+
     const noticeTimer = useRef(null);
+
     const filtersRef = useRef(null);
 
+    /* ---------------------------------------------------------------------- */
+    /* Notifications                                                          */
+    /* ---------------------------------------------------------------------- */
+
     const showNotice = useCallback((type, message) => {
-        setNotice({ type, message });
+        setNotice({
+            type,
+            message,
+        });
 
         if (noticeTimer.current) {
             window.clearTimeout(noticeTimer.current);
@@ -778,19 +1037,40 @@ export default function Index() {
         }, 4500);
     }, []);
 
+    /* ---------------------------------------------------------------------- */
+    /* Current filters                                                        */
+    /* ---------------------------------------------------------------------- */
+
     const currentFilters = useMemo(
         () => ({
             mode,
+
             archived_tasks: archivedTasks ? 1 : 0,
+
             archived_projects: archivedProjects ? 1 : 0,
+
             project_id: projectId || undefined,
-            q: searchInput.trim() || undefined,
-            group_ids: groupId ? [Number(groupId)] : undefined,
-            priority: priority ? [priority] : undefined,
-            tag_ids: tagId ? [Number(tagId)] : undefined,
+
+            q: q || undefined,
+
+            group_ids: groupId
+                ? [Number(groupId)]
+                : undefined,
+
+            priority: priority
+                ? [priority]
+                : undefined,
+
+            tag_ids: tagId
+                ? [Number(tagId)]
+                : undefined,
+
             date_from: dateFrom || undefined,
+
             date_to: dateTo || undefined,
+
             page,
+
             per_page: DEFAULT_PER_PAGE,
         }),
         [
@@ -798,7 +1078,7 @@ export default function Index() {
             archivedTasks,
             archivedProjects,
             projectId,
-            searchInput,
+            q,
             groupId,
             priority,
             tagId,
@@ -809,6 +1089,10 @@ export default function Index() {
     );
 
     filtersRef.current = currentFilters;
+
+    /* ---------------------------------------------------------------------- */
+    /* API URL builder                                                        */
+    /* ---------------------------------------------------------------------- */
 
     const buildListUrl = useCallback((filters) => {
         const params = new URLSearchParams();
@@ -823,7 +1107,10 @@ export default function Index() {
             }
 
             if (Array.isArray(value)) {
-                value.forEach((item) => params.append(`${key}[]`, item));
+                value.forEach((item) => {
+                    params.append(`${key}[]`, String(item));
+                });
+
                 return;
             }
 
@@ -833,32 +1120,65 @@ export default function Index() {
         return `${route('my-tasks.list')}?${params.toString()}`;
     }, []);
 
+    /* ---------------------------------------------------------------------- */
+    /* Browser URL synchronization                                            */
+    /* ---------------------------------------------------------------------- */
+
     const syncUrl = useCallback((filters, taskId = null) => {
         const params = new URLSearchParams();
 
-        Object.entries(filters).forEach(([key, value]) => {
+        const set = (key, value) => {
             if (
-                value === undefined ||
-                value === null ||
-                value === ''
+                value !== undefined &&
+                value !== null &&
+                value !== ''
             ) {
-                return;
+                params.set(key, String(value));
             }
+        };
 
-            if (Array.isArray(value)) {
-                value.forEach((item) => params.append(`${key}[]`, item));
-                return;
-            }
+        // Omit defaults to keep the URL clean.
 
-            params.set(key, String(value));
-        });
+        if (filters.mode !== 'assigned') {
+            set('mode', filters.mode);
+        }
+
+        if (filters.archived_tasks) {
+            set('archived_tasks', 1);
+        }
+
+        if (filters.archived_projects) {
+            set('archived_projects', 1);
+        }
+
+        set('project_id', filters.project_id);
+
+        set('q', filters.q);
+
+        // Browser URL uses scalar values.
+        set('group', filters.group_ids?.[0]);
+
+        set('priority', filters.priority?.[0]);
+
+        set('tag', filters.tag_ids?.[0]);
+
+        set('date_from', filters.date_from);
+
+        set('date_to', filters.date_to);
+
+        if (filters.page > 1) {
+            set('page', filters.page);
+        }
 
         if (taskId) {
-            params.set('task', String(taskId));
+            set('task', taskId);
         }
 
         const query = params.toString();
-        const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}`;
+
+        const nextUrl =
+            `${window.location.pathname}` +
+            `${query ? `?${query}` : ''}`;
 
         window.history.replaceState(
             window.history.state,
@@ -867,19 +1187,28 @@ export default function Index() {
         );
     }, []);
 
+    /* ---------------------------------------------------------------------- */
+    /* Load filter options                                                    */
+    /* ---------------------------------------------------------------------- */
+
     const loadOptions = useCallback(async () => {
         setOptionsLoading(true);
 
         try {
-            const result = await getJson(route('my-tasks.options'));
+            const result = await getJson(
+                route('my-tasks.options'),
+            );
 
             setOptions({
                 projects: result?.projects || [],
+
                 groups: result?.groups || [],
+
                 tags: result?.tags || [],
+
                 priorities:
-                    result?.priorities ||
-                    ['LOW', 'MEDIUM', 'HIGH', 'URGENT'],
+                    result?.priorities || PRIORITY_VALUES,
+
                 page_size: result?.page_size || {
                     default: DEFAULT_PER_PAGE,
                     max: 100,
@@ -888,12 +1217,19 @@ export default function Index() {
         } catch (exception) {
             showNotice(
                 'error',
-                getErrorMessage(exception, 'Could not load filter options.'),
+                getErrorMessage(
+                    exception,
+                    'Could not load filter options.',
+                ),
             );
         } finally {
             setOptionsLoading(false);
         }
     }, [showNotice]);
+
+    /* ---------------------------------------------------------------------- */
+    /* Load tasks                                                             */
+    /* ---------------------------------------------------------------------- */
 
     const loadTasks = useCallback(
         async (filters = filtersRef.current) => {
@@ -903,19 +1239,52 @@ export default function Index() {
             setError('');
 
             try {
-                const result = await getJson(buildListUrl(filters));
+                const result = await getJson(
+                    buildListUrl(filters),
+                );
 
+                // Ignore responses from older requests.
                 if (version !== requestVersion.current) {
                     return;
                 }
 
-                // Laravel LengthAwarePaginator JSON response.
-                setTasks(Array.isArray(result?.data) ? result.data : []);
+                const rows = Array.isArray(result?.data)
+                    ? result.data
+                    : [];
+
+                const lastPage = Math.max(
+                    1,
+                    Number(result?.last_page || 1),
+                );
+
+                const currentPage = Number(
+                    result?.current_page || 1,
+                );
+
+                /*
+                 * If archiving or restoring empties the current
+                 * page, move back to the last available page.
+                 *
+                 * Changing page triggers the loading effect again.
+                 */
+
+                if (
+                    rows.length === 0 &&
+                    currentPage > lastPage
+                ) {
+                    setPage(lastPage);
+
+                    return;
+                }
+
+                setTasks(rows);
+
                 setPagination({
-                    current_page: result?.current_page || 1,
-                    last_page: result?.last_page || 1,
-                    per_page: result?.per_page || DEFAULT_PER_PAGE,
-                    total: result?.total || 0,
+                    current_page: currentPage,
+                    last_page: lastPage,
+                    per_page:
+                        result?.per_page || DEFAULT_PER_PAGE,
+                    total: Number(result?.total || 0),
                 });
             } catch (exception) {
                 if (version !== requestVersion.current) {
@@ -923,7 +1292,10 @@ export default function Index() {
                 }
 
                 setError(
-                    getErrorMessage(exception, 'Could not load your tasks.'),
+                    getErrorMessage(
+                        exception,
+                        'Could not load your tasks.',
+                    ),
                 );
             } finally {
                 if (version === requestVersion.current) {
@@ -934,21 +1306,55 @@ export default function Index() {
         [buildListUrl],
     );
 
+    /* ---------------------------------------------------------------------- */
+    /* Search debounce                                                        */
+    /* ---------------------------------------------------------------------- */
+
+    useEffect(() => {
+        const next = searchInput.trim();
+
+        if (next === q) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setQ(next);
+            setPage(1);
+        }, 300);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    }, [searchInput, q]);
+
+    /* ---------------------------------------------------------------------- */
+    /* Initial loading and filter changes                                     */
+    /* ---------------------------------------------------------------------- */
+
     useEffect(() => {
         loadOptions();
     }, [loadOptions]);
 
     useEffect(() => {
-        syncUrl(currentFilters, selectedTask?.id ?? null);
+        syncUrl(
+            currentFilters,
+            selectedTask?.id ?? null,
+        );
+
         loadTasks(currentFilters);
-    }, [currentFilters, loadTasks, syncUrl]);
+    }, [
+        currentFilters,
+        loadTasks,
+        syncUrl,
+        selectedTask?.id,
+    ]);
+
+    /* ---------------------------------------------------------------------- */
+    /* Cleanup                                                                */
+    /* ---------------------------------------------------------------------- */
 
     useEffect(() => {
         return () => {
-            if (searchTimer.current) {
-                window.clearTimeout(searchTimer.current);
-            }
-
             if (noticeTimer.current) {
                 window.clearTimeout(noticeTimer.current);
             }
@@ -957,43 +1363,45 @@ export default function Index() {
         };
     }, []);
 
+    /* ---------------------------------------------------------------------- */
+    /* Filter handlers                                                        */
+    /* ---------------------------------------------------------------------- */
+
     const changeFilter = useCallback((setter, value) => {
         setter(value);
+
         setPage(1);
     }, []);
 
-    const changeSearch = useCallback((value) => {
-        setSearchInput(value);
-
-        if (searchTimer.current) {
-            window.clearTimeout(searchTimer.current);
-        }
-
-        searchTimer.current = window.setTimeout(() => {
-            setPage(1);
-        }, 300);
-    }, []);
-
     const resetFilters = useCallback(() => {
-        if (searchTimer.current) {
-            window.clearTimeout(searchTimer.current);
-        }
-
         setMode('assigned');
+
         setArchivedTasks(false);
+
         setArchivedProjects(false);
+
         setProjectId('');
+
         setSearchInput('');
+
+        setQ('');
+
         setGroupId('');
+
         setPriority('');
+
         setTagId('');
+
         setDateFrom('');
+
         setDateTo('');
+
         setPage(1);
     }, []);
 
     const hasFilters = Boolean(
         searchInput ||
+        q ||
         projectId ||
         groupId ||
         priority ||
@@ -1005,12 +1413,20 @@ export default function Index() {
         mode !== 'assigned',
     );
 
+    /* ---------------------------------------------------------------------- */
+    /* Open and close task drawer                                             */
+    /* ---------------------------------------------------------------------- */
+
     const openTask = useCallback(
         (task) => {
             const taskId = getTaskId(task);
 
             if (!taskId) {
-                showNotice('error', 'Could not identify this task.');
+                showNotice(
+                    'error',
+                    'Could not identify this task.',
+                );
+
                 return;
             }
 
@@ -1019,6 +1435,7 @@ export default function Index() {
                 id: taskId,
             });
 
+            // Project resolution runs in the effects below.
             syncUrl(filtersRef.current, taskId);
         },
         [showNotice, syncUrl],
@@ -1026,30 +1443,195 @@ export default function Index() {
 
     const closeTask = useCallback(() => {
         setSelectedTask(null);
+
+        setResolvedProjectId(null);
+
+        setDrawerOptions(null);
+
         syncUrl(filtersRef.current, null);
 
-        // The list remains on its current page and keeps its filters.
+        // Keep the current list page and filters.
     }, [syncUrl]);
+
+    /* ---------------------------------------------------------------------- */
+    /* Resolve project for deep-linked tasks                                  */
+    /* ---------------------------------------------------------------------- */
+
+    useEffect(() => {
+        setResolvedProjectId(null);
+
+        if (!selectedTask?.id || knownProjectId) {
+            return;
+        }
+
+        const controller = new AbortController();
+
+        getJson(
+            route('tasks.show', selectedTask.id),
+            controller.signal,
+        )
+            .then((payload) => {
+                const projectId =
+                    payload?.task?.project?.id ??
+                    payload?.project?.id ??
+                    payload?.task?.project_id ??
+                    null;
+
+                if (!projectId) {
+                    throw new Error(
+                        'Could not identify the task project.',
+                    );
+                }
+
+                setResolvedProjectId(projectId);
+            })
+            .catch((exception) => {
+                if (
+                    exception?.name === 'AbortError' ||
+                    controller.signal.aborted
+                ) {
+                    return;
+                }
+
+                showNotice(
+                    'error',
+                    exception?.status === 404
+                        ? 'This task is not available.'
+                        : getErrorMessage(
+                              exception,
+                              'Could not load this task.',
+                          ),
+                );
+
+                setSelectedTask(null);
+
+                setResolvedProjectId(null);
+
+                syncUrl(filtersRef.current, null);
+            });
+
+        return () => {
+            controller.abort();
+        };
+    }, [
+        selectedTask?.id,
+        knownProjectId,
+        showNotice,
+        syncUrl,
+    ]);
+
+    /* ---------------------------------------------------------------------- */
+    /* Load project-specific drawer options                                  */
+    /* ---------------------------------------------------------------------- */
+
+    useEffect(() => {
+        setDrawerOptions(null);
+
+        if (!drawerProjectId) {
+            return;
+        }
+
+        const controller = new AbortController();
+
+        getJson(
+            route(
+                'projects.board.options',
+                drawerProjectId,
+            ),
+            controller.signal,
+        )
+            .then((result) => {
+                if (!controller.signal.aborted) {
+                    setDrawerOptions(result);
+                }
+            })
+            .catch((exception) => {
+                if (
+                    exception?.name === 'AbortError' ||
+                    controller.signal.aborted
+                ) {
+                    return;
+                }
+
+                // The drawer can still display task details.
+                // Keep the options unavailable if loading fails.
+                setDrawerOptions(null);
+            });
+
+        return () => {
+            controller.abort();
+        };
+    }, [drawerProjectId]);
+
+    /* ---------------------------------------------------------------------- */
+    /* Refresh and task mutation handlers                                    */
+    /* ---------------------------------------------------------------------- */
 
     const refreshCurrentPage = useCallback(async () => {
         await loadTasks(filtersRef.current);
     }, [loadTasks]);
 
     const handleCardChange = useCallback(
-        (updatedTask) => {
+        async (updatedTask) => {
             const updatedId = getTaskId(updatedTask);
 
             if (!updatedId) {
-                refreshCurrentPage();
+                await refreshCurrentPage();
+
                 return;
             }
 
-            // Reload the current server page so sorting and filter membership
-            // remain consistent with the backend.
-            refreshCurrentPage();
+            /*
+             * Reload from the server instead of updating the row
+             * optimistically. This keeps sorting, ownership filters,
+             * archived filters, and pagination consistent.
+             */
+
+            await refreshCurrentPage();
         },
         [refreshCurrentPage],
     );
+
+    /* ---------------------------------------------------------------------- */
+    /* Move task from drawer                                                 */
+    /* ---------------------------------------------------------------------- */
+
+    const moveFromDrawer = useCallback(
+        async (taskId, groupId) => {
+            try {
+                await patchJson(
+                    route('tasks.move', taskId),
+                    {
+                        group_id: groupId,
+                    },
+                );
+
+                showNotice(
+                    'success',
+                    'Task moved.',
+                );
+
+                await loadTasks(filtersRef.current);
+
+                return true;
+            } catch (exception) {
+                showNotice(
+                    'error',
+                    getErrorMessage(
+                        exception,
+                        'Could not move this task.',
+                    ),
+                );
+
+                return false;
+            }
+        },
+        [loadTasks, showNotice],
+    );
+
+    /* ---------------------------------------------------------------------- */
+    /* Restore task                                                           */
+    /* ---------------------------------------------------------------------- */
 
     const handleRestore = useCallback(
         async (task) => {
@@ -1065,40 +1647,73 @@ export default function Index() {
                     task.restore_blocked_reason ||
                         'This task cannot be restored.',
                 );
+
                 return;
             }
 
             setRestoringId(taskId);
 
             try {
-                await postJson(route('tasks.restore', taskId));
+                await postJson(
+                    route('tasks.restore', taskId),
+                );
 
-                showNotice('success', 'Task restored successfully.');
+                showNotice(
+                    'success',
+                    'Task restored successfully.',
+                );
 
-                // Keep the same filters/page, even when restoring removes
-                // the task from the archived list.
                 await loadTasks(filtersRef.current);
             } catch (exception) {
                 showNotice(
                     'error',
-                    getErrorMessage(exception, 'Could not restore this task.'),
+                    getErrorMessage(
+                        exception,
+                        'Could not restore this task.',
+                    ),
                 );
             } finally {
                 setRestoringId(null);
             }
         },
-        [loadTasks, restoringId, showNotice],
+        [
+            loadTasks,
+            restoringId,
+            showNotice,
+        ],
     );
+
+    /* ---------------------------------------------------------------------- */
+    /* Pagination handler                                                     */
+    /* ---------------------------------------------------------------------- */
 
     const handlePageChange = useCallback((nextPage) => {
         setPage(Math.max(1, nextPage));
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth',
+        });
     }, []);
 
-    const activeCount = tasks.length;
+    /* ---------------------------------------------------------------------- */
+    /* Dropdown options                                                       */
+    /* ---------------------------------------------------------------------- */
+
     const projectOptions = options.projects || [];
+
     const groupOptions = options.groups || [];
+
     const tagOptions = options.tags || [];
+
+    const priorityOptions =
+        options.priorities || PRIORITY_VALUES;
+
+    const activeCount = tasks.length;
+
+    /* ---------------------------------------------------------------------- */
+    /* Render                                                                 */
+    /* ---------------------------------------------------------------------- */
 
     return (
         <AuthenticatedLayout>
@@ -1106,7 +1721,9 @@ export default function Index() {
 
             <div className="min-h-screen bg-slate-50">
                 <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-6 lg:px-8">
+
                     {/* Page heading */}
+
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -1167,7 +1784,8 @@ export default function Index() {
                         </button>
                     </div>
 
-                    {/* Mode selector */}
+                    {/* Task ownership */}
+
                     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                             <div>
@@ -1184,17 +1802,17 @@ export default function Index() {
                                 {[
                                     {
                                         value: 'assigned',
-                                        label: 'Assigned to Me',
+                                        label: 'Assigned to me',
                                         description: 'Tasks assigned to you',
                                     },
                                     {
                                         value: 'created',
-                                        label: 'Created by Me',
+                                        label: 'Created by me',
                                         description: 'Tasks you created',
                                     },
                                     {
                                         value: 'both',
-                                        label: 'All My Tasks',
+                                        label: 'Assigned or created by me',
                                         description: 'Assigned or created',
                                     },
                                 ].map((item) => (
@@ -1202,9 +1820,14 @@ export default function Index() {
                                         key={item.value}
                                         type="button"
                                         onClick={() =>
-                                            changeFilter(setMode, item.value)
+                                            changeFilter(
+                                                setMode,
+                                                item.value,
+                                            )
                                         }
-                                        aria-pressed={mode === item.value}
+                                        aria-pressed={
+                                            mode === item.value
+                                        }
                                         className={cn(
                                             'rounded-lg px-4 py-2.5 text-left transition sm:min-w-40 sm:text-center',
                                             mode === item.value
@@ -1228,7 +1851,10 @@ export default function Index() {
                             <CheckboxFilter
                                 checked={archivedTasks}
                                 onChange={(value) =>
-                                    changeFilter(setArchivedTasks, value)
+                                    changeFilter(
+                                        setArchivedTasks,
+                                        value,
+                                    )
                                 }
                             >
                                 Archived Tasks
@@ -1237,7 +1863,10 @@ export default function Index() {
                             <CheckboxFilter
                                 checked={archivedProjects}
                                 onChange={(value) =>
-                                    changeFilter(setArchivedProjects, value)
+                                    changeFilter(
+                                        setArchivedProjects,
+                                        value,
+                                    )
                                 }
                             >
                                 Archived Projects
@@ -1245,6 +1874,7 @@ export default function Index() {
 
                             <div className="ml-auto flex items-center gap-2 text-xs text-slate-400">
                                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
+
                                 {loading
                                     ? 'Loading tasks…'
                                     : `${pagination?.total ?? activeCount} tasks`}
@@ -1253,6 +1883,7 @@ export default function Index() {
                     </section>
 
                     {/* Filters */}
+
                     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                             <div>
@@ -1277,7 +1908,9 @@ export default function Index() {
                         </div>
 
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+
                             {/* Search */}
+
                             <label className="block min-w-0 sm:col-span-2 xl:col-span-1">
                                 <span className="mb-1.5 block text-xs font-semibold text-slate-600">
                                     Search
@@ -1292,7 +1925,12 @@ export default function Index() {
                                         className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
                                         aria-hidden="true"
                                     >
-                                        <circle cx="11" cy="11" r="7" />
+                                        <circle
+                                            cx="11"
+                                            cy="11"
+                                            r="7"
+                                        />
+
                                         <path
                                             strokeLinecap="round"
                                             d="m16 16 4 4"
@@ -1303,7 +1941,9 @@ export default function Index() {
                                         type="search"
                                         value={searchInput}
                                         onChange={(event) =>
-                                            changeSearch(event.target.value)
+                                            setSearchInput(
+                                                event.target.value,
+                                            )
                                         }
                                         placeholder="Search title or task code…"
                                         className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
@@ -1311,14 +1951,21 @@ export default function Index() {
                                 </div>
                             </label>
 
+                            {/* Project */}
+
                             <SelectField
                                 label="Project"
                                 value={projectId}
                                 onChange={(value) =>
-                                    changeFilter(setProjectId, value)
+                                    changeFilter(
+                                        setProjectId,
+                                        value,
+                                    )
                                 }
                             >
-                                <option value="">All accessible projects</option>
+                                <option value="">
+                                    All accessible projects
+                                </option>
 
                                 {projectOptions.map((project) => (
                                     <option
@@ -1335,14 +1982,21 @@ export default function Index() {
                                 ))}
                             </SelectField>
 
+                            {/* Task group */}
+
                             <SelectField
                                 label="Task Group"
                                 value={groupId}
                                 onChange={(value) =>
-                                    changeFilter(setGroupId, value)
+                                    changeFilter(
+                                        setGroupId,
+                                        value,
+                                    )
                                 }
                             >
-                                <option value="">All task groups</option>
+                                <option value="">
+                                    All task groups
+                                </option>
 
                                 {groupOptions.map((group) => (
                                     <option
@@ -1354,52 +2008,86 @@ export default function Index() {
                                 ))}
                             </SelectField>
 
+                            {/* Priority */}
+
                             <SelectField
                                 label="Priority"
                                 value={priority}
                                 onChange={(value) =>
-                                    changeFilter(setPriority, value)
+                                    changeFilter(
+                                        setPriority,
+                                        value,
+                                    )
                                 }
                             >
-                                <option value="">All priorities</option>
+                                <option value="">
+                                    All priorities
+                                </option>
 
-                                {options.priorities.map((item) => (
-                                    <option key={item} value={item}>
+                                {priorityOptions.map((item) => (
+                                    <option
+                                        key={item}
+                                        value={item}
+                                    >
                                         {PRIORITY_LABELS[item] || item}
                                     </option>
                                 ))}
                             </SelectField>
 
+                            {/* Tag */}
+
                             <SelectField
                                 label="Tag"
                                 value={tagId}
                                 onChange={(value) =>
-                                    changeFilter(setTagId, value)
+                                    changeFilter(
+                                        setTagId,
+                                        value,
+                                    )
                                 }
                             >
-                                <option value="">All tags</option>
+                                <option value="">
+                                    All tags
+                                </option>
 
                                 {tagOptions.map((tag) => (
-                                    <option key={tag.id} value={tag.id}>
+                                    <option
+                                        key={tag.id}
+                                        value={tag.id}
+                                    >
                                         {tag.name}
-                                        {tag.inactive ? ' (Inactive)' : ''}
+                                        {tag.inactive
+                                            ? ' (Inactive)'
+                                            : ''}
                                     </option>
                                 ))}
                             </SelectField>
 
+                            {/* Date from */}
+
                             <DateField
                                 label="Date From"
                                 value={dateFrom}
+                                max={dateTo || undefined}
                                 onChange={(value) =>
-                                    changeFilter(setDateFrom, value)
+                                    changeFilter(
+                                        setDateFrom,
+                                        value,
+                                    )
                                 }
                             />
+
+                            {/* Date to */}
 
                             <DateField
                                 label="Date To"
                                 value={dateTo}
+                                min={dateFrom || undefined}
                                 onChange={(value) =>
-                                    changeFilter(setDateTo, value)
+                                    changeFilter(
+                                        setDateTo,
+                                        value,
+                                    )
                                 }
                             />
                         </div>
@@ -1411,7 +2099,8 @@ export default function Index() {
                         )}
                     </section>
 
-                    {/* Notification */}
+                    {/* Notifications */}
+
                     {notice && (
                         <div
                             role="status"
@@ -1436,6 +2125,7 @@ export default function Index() {
                     )}
 
                     {/* Task list */}
+
                     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-5">
                             <div>
@@ -1464,13 +2154,22 @@ export default function Index() {
                         </div>
 
                         {/* Desktop column headers */}
-                        <div className="hidden grid-cols-[minmax(0,2fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(130px,0.8fr)_minmax(120px,0.7fr)] gap-3 border-b border-slate-200 bg-slate-50 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 lg:grid">
+
+                        <div className="hidden grid-cols-[minmax(0,2fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(130px,0.8fr)_minmax(120px,0.7fr)_auto] gap-3 border-b border-slate-200 bg-slate-50 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 lg:grid">
                             <span>Task / Project</span>
+
                             <span>Task Group</span>
+
                             <span>Priority</span>
+
                             <span>Dates</span>
+
                             <span>Last Updated</span>
+
+                            <span aria-hidden="true" />
                         </div>
+
+                        {/* Loading state */}
 
                         {loading && tasks.length === 0 ? (
                             <div className="space-y-4 px-5 py-8">
@@ -1480,12 +2179,16 @@ export default function Index() {
                                         className="animate-pulse space-y-2"
                                     >
                                         <div className="h-4 w-1/3 rounded bg-slate-100" />
+
                                         <div className="h-3 w-1/4 rounded bg-slate-100" />
+
                                         <div className="h-px w-full bg-slate-100" />
                                     </div>
                                 ))}
                             </div>
                         ) : error ? (
+                            /* Error state */
+
                             <div className="px-5 py-14 text-center">
                                 <p className="text-sm font-semibold text-rose-700">
                                     Could not load tasks
@@ -1504,6 +2207,8 @@ export default function Index() {
                                 </button>
                             </div>
                         ) : tasks.length === 0 ? (
+                            /* Empty state */
+
                             <EmptyState
                                 archivedTasks={archivedTasks}
                                 archivedProjects={archivedProjects}
@@ -1511,6 +2216,8 @@ export default function Index() {
                                 onReset={resetFilters}
                             />
                         ) : (
+                            /* Task rows */
+
                             <div
                                 className={cn(
                                     'divide-y divide-slate-100',
@@ -1525,12 +2232,15 @@ export default function Index() {
                                         onOpen={openTask}
                                         onRestore={handleRestore}
                                         restoring={
-                                            restoringId === getTaskId(task)
+                                            restoringId ===
+                                            getTaskId(task)
                                         }
                                     />
                                 ))}
                             </div>
                         )}
+
+                        {/* Pagination */}
 
                         {!error && (
                             <Pagination
@@ -1542,25 +2252,26 @@ export default function Index() {
                     </section>
 
                     <p className="pb-2 text-xs text-slate-400">
-                        Showing your accessible projects only. Archived and completed projects may contain read-only tasks.
+                        Showing your accessible projects only.
+                        Archived and completed projects may contain
+                        read-only tasks.
                     </p>
                 </div>
             </div>
 
-            {/* Existing shared task drawer */}
-            {selectedTask && (
+            {/* Shared task drawer */}
+
+            {selectedTask && drawerProjectId && (
                 <TaskDrawer
                     key={selectedTask.id}
                     taskId={selectedTask.id}
-                    projectId={
-                        selectedTask.project_id ||
-                        selectedTask.project?.id
-                    }
-                    options={options}
+                    projectId={drawerProjectId}
+                    options={drawerOptions}
                     onClose={closeTask}
                     onCardChange={handleCardChange}
                     onArchived={refreshCurrentPage}
                     onRestored={refreshCurrentPage}
+                    onMove={moveFromDrawer}
                 />
             )}
         </AuthenticatedLayout>

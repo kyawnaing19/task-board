@@ -111,9 +111,10 @@ export default function ProjectBoard({
     const [loadingGroups, setLoadingGroups] = useState({});
     const [toast, setToast] = useState(null);
 
-    const [openTaskId, setOpenTaskId] = useState(() =>
-        active ? readTaskParam() : null,
-    );
+    // const [openTaskId, setOpenTaskId] = useState(() =>
+    //     active ? readTaskParam() : null,
+    // );
+    const [openTaskId, setOpenTaskId] = useState(() => readTaskParam());
 
     const [drag, setDrag] = useState(null);
     const [moving, setMoving] = useState(false);
@@ -127,11 +128,24 @@ export default function ProjectBoard({
     filterKeyRef.current = filterKey;
 
     // Close the drawer when switching away from the board tab.
-    useEffect(() => {
-        if (!active) {
-            setOpenTaskId(null);
-        }
-    }, [active]);
+    // useEffect(() => {
+    //     if (!active) {
+    //         setOpenTaskId(null);
+    //     }
+    // }, [active]);
+    // Sync the drawer with the URL when the Board tab becomes active.
+useEffect(() => {
+    if (!active) {
+        setOpenTaskId(null);
+        return;
+    }
+
+    const taskId = readTaskParam();
+
+    if (taskId) {
+        setOpenTaskId(taskId);
+    }
+}, [active, projectId]);
 
     const notify = (type, message) => {
         setToast({

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+//import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -11,6 +11,8 @@ import ProjectTabs from '@/Components/ProjectTabs';
 import useProjectTab from '@/lib/useProjectTab';
 import { formatDate, isOverdue } from '@/lib/dates';
 
+import React, { useEffect, useState } from 'react';
+
 export default function Show({
     project,
     teams = [],
@@ -20,7 +22,16 @@ export default function Show({
     // Project tabs
     // --------------------------------------------------
 
+    //const [tab, setTab] = useProjectTab();
     const [tab, setTab] = useProjectTab();
+
+useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.has('task') && params.get('task')) {
+        setTab('board');
+    }
+}, [setTab]);
 
     // Increment after restoring an archived task.
     const [boardVersion, setBoardVersion] = useState(0);

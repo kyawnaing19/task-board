@@ -11,13 +11,22 @@ export default function AuthenticatedLayout({ header, children }) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
     const navigation = [
-        {
-            name: 'Dashboard',
-            href: route('dashboard'),
-            icon: DashboardIcon,
-            active: route().current('dashboard'),
-        },
-
+        // {
+        //     name: 'Dashboard',
+        //     href: route('dashboard'),
+        //     icon: DashboardIcon,
+        //     active: route().current('dashboard'),
+        // },
+...(user?.role !== 'SUPER_ADMIN'
+        ? [
+              {
+                  name: 'Dashboard',
+                  href: route('dashboard'),
+                  icon: DashboardIcon,
+                  active: route().current('dashboard'),
+              },
+          ]
+        : []),
         ...(user?.role === 'SUPER_ADMIN'
     ? [
         { name: 'Employees', href: route('employees.index'), icon: UsersIcon, active: route().current('employees.*') },

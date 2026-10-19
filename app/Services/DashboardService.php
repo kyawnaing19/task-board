@@ -91,7 +91,7 @@ class DashboardService
         $assignedRows = $assigned()
             ->orderByDesc('ta.assigned_at')->orderByDesc('t.id')->limit($limit)
             ->get(['t.id as task_id', 'ta.assigned_at']);
-$assignedTasks = Task::query()
+        $assignedTasks = Task::query()
             ->whereIn('id', $assignedRows->pluck('task_id')->all())
             ->with($with)
             ->get()
@@ -140,20 +140,24 @@ $assignedTasks = Task::query()
 
             'open_tasks' => [
                 'count' => (int) ($totals->open_total ?? 0),
-                'items' => $openItems->map($row)->values()->all(),
+                //'items' => $openItems->map($row)->values()->all(),
+                'items' => $openItems->map(fn (Task $task) => $row($task))->values()->all(),
             ],
             'due_soon' => [
                 'count' => (int) ($totals->due_soon ?? 0),
                 'from'  => $todayStr,
                 'to'    => $soonEndStr,
-                'items' => $dueItems->map($row)->values()->all(),
+               // 'items' => $dueItems->map($row)->values()->all(),
+                'items' => $dueItems->map(fn (Task $task) => $row($task))->values()->all(),
             ],
             'overdue' => [
                 'count' => (int) ($totals->overdue ?? 0),
-                'items' => $overdueItems->map($row)->values()->all(),
+               // 'items' => $overdueItems->map($row)->values()->all(),
+                'items' => $overdueItems->map(fn (Task $task) => $row($task))->values()->all(),
             ],
             'recently_updated' => [
-                'items' => $updatedItems->map($row)->values()->all(),
+               // 'items' => $updatedItems->map($row)->values()->all(),
+                'items' => $updatedItems->map(fn (Task $task) => $row($task))->values()->all(),
             ],
             'recently_assigned' => [
                 'newly_assigned' => $newlyAssigned,
