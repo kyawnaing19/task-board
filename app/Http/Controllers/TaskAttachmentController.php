@@ -7,15 +7,18 @@ use App\Models\Task;
 use App\Models\TaskAttachment;
 use App\Services\TaskAttachmentService;
 use App\Services\TaskAuthorization;
+use App\Services\FileUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TaskAttachmentController extends Controller
 {
     public function __construct(
         protected TaskAttachmentService $service,
         protected TaskAuthorization $authorization,
+        protected FileUploadService $fileUploadService,
     ) {}
 
     /**
@@ -50,16 +53,7 @@ class TaskAttachmentController extends Controller
                     [$task, $attachment],
                 ),
 
-                'preview_url' => in_array(
-                    strtolower($attachment->mime_type),
-                    [
-                        'image/jpeg',
-                        'image/png',
-                        'image/webp',
-                        'image/gif',
-                    ],
-                    true,
-                )
+                'preview_url' => $this->isPreviewableImage($attachment)
                     ? route(
                         'tasks.attachments.preview',
                         [$task, $attachment],
@@ -115,16 +109,7 @@ class TaskAttachmentController extends Controller
                     [$task, $attachment],
                 ),
 
-                'preview_url' => in_array(
-                    strtolower($attachment->mime_type),
-                    [
-                        'image/jpeg',
-                        'image/png',
-                        'image/webp',
-                        'image/gif',
-                    ],
-                    true,
-                )
+                'preview_url' => $this->isPreviewableImage($attachment)
                     ? route(
                         'tasks.attachments.preview',
                         [$task, $attachment],
@@ -155,21 +140,35 @@ class TaskAttachmentController extends Controller
             $attachment,
         );
 
-        $disk = Storage::disk($attachment->disk);
+        $diskName = $attachment->disk;
+        $disk = Storage::disk($diskName);
 
-        abort_unless($disk->exists($attachment->path), 404);
+        abort_unless(
+            $disk->exists($attachment->path),
+            404,
+        );
 
-        $filePath = $disk->path($attachment->path);
+        /*
+         * S3:
+         * Generate a short-lived URL only after authorization.
+         *
+         * Local:
+         * Stream the private file through Laravel.
+         */
+        if ($disk->providesTemporaryUrls()) {
+            $url = $this->fileUploadService->temporaryUrl(
+                $attachment->path,
+                now()->addMinutes(5),
+                $diskName,
+            );
 
-        abort_unless(is_file($filePath), 404);
+            return redirect()->away($url);
+        }
 
-        return response()->download(
-            $filePath,
-            $attachment->original_name,
-            [
-                'X-Content-Type-Options' => 'nosniff',
-                'Cache-Control' => 'private, no-store',
-            ],
+        return $this->streamPrivateFile(
+            $diskName,
+            $attachment,
+            false,
         );
     }
 
@@ -189,35 +188,75 @@ class TaskAttachmentController extends Controller
             $attachment,
         );
 
-        $allowedTypes = [
-            'image/jpeg',
-            'image/png',
-            'image/webp',
-            'image/gif',
-        ];
-
         abort_unless(
-            in_array(
-                strtolower($attachment->mime_type),
-                $allowedTypes,
-                true,
-            ),
+            $this->isPreviewableImage($attachment),
             404,
         );
 
-        $disk = Storage::disk($attachment->disk);
+        $diskName = $attachment->disk;
+        $disk = Storage::disk($diskName);
 
-        abort_unless($disk->exists($attachment->path), 404);
+        abort_unless(
+            $disk->exists($attachment->path),
+            404,
+        );
 
-        $filePath = $disk->path($attachment->path);
+        if ($disk->providesTemporaryUrls()) {
+            $url = $this->fileUploadService->temporaryUrl(
+                $attachment->path,
+                now()->addMinutes(5),
+                $diskName,
+            );
 
-        abort_unless(is_file($filePath), 404);
+            return redirect()->away($url);
+        }
 
-        return response()->file(
-            $filePath,
+        return $this->streamPrivateFile(
+            $diskName,
+            $attachment,
+            true,
+        );
+    }
+
+    /**
+     * Stream a private file from a local or compatible filesystem.
+     *
+     * Uses readStream() rather than path(), so the code does not
+     * assume that the file has a local filesystem path.
+     */
+    protected function streamPrivateFile(
+        string $diskName,
+        TaskAttachment $attachment,
+        bool $inline,
+    ): StreamedResponse {
+        $disk = Storage::disk($diskName);
+
+        $stream = $disk->readStream($attachment->path);
+
+        abort_unless(is_resource($stream), 404);
+
+        $disposition = $inline ? 'inline' : 'attachment';
+
+        return response()->stream(
+            function () use ($stream): void {
+                try {
+                    fpassthru($stream);
+                } finally {
+                    if (is_resource($stream)) {
+                        fclose($stream);
+                    }
+                }
+            },
+            200,
             [
-                'Content-Type' => strtolower($attachment->mime_type),
-                'Content-Disposition' => 'inline',
+                'Content-Type' => $attachment->mime_type
+                    ?: 'application/octet-stream',
+
+                'Content-Disposition' => $disposition
+                    . '; filename="' . $this->safeDownloadName(
+                        $attachment->original_name
+                    ) . '"',
+
                 'X-Content-Type-Options' => 'nosniff',
                 'Cache-Control' => 'private, no-store',
             ],
@@ -277,5 +316,33 @@ class TaskAttachmentController extends Controller
             (int) $attachment->task_id === (int) $task->id,
             404,
         );
+    }
+
+    /**
+     * Check whether the attachment can be previewed inline.
+     */
+    protected function isPreviewableImage(
+        TaskAttachment $attachment,
+    ): bool {
+        return in_array(
+            strtolower($attachment->mime_type ?? ''),
+            [
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+                'image/gif',
+            ],
+            true,
+        );
+    }
+
+    /**
+     * Keep the filename safe for the Content-Disposition header.
+     */
+    protected function safeDownloadName(string $name): string
+    {
+        $name = str_replace(['\\', '/', '"', "\r", "\n"], '_', $name);
+
+        return trim($name) !== '' ? $name : 'attachment';
     }
 }

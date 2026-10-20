@@ -7,8 +7,8 @@ use App\Models\TaskAttachment;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use Throwable;
 
 class TaskAttachmentService
@@ -16,6 +16,7 @@ class TaskAttachmentService
     public function __construct(
         protected TaskAuthorization $authorization,
         protected ProjectService $projectService,
+        protected FileUploadService $fileUploadService,
     ) {}
 
     /**
@@ -34,17 +35,15 @@ class TaskAttachmentService
     ): array {
         $this->assertCanManageAttachments($actor, $task);
 
-        $disk = Storage::disk('private');
-        $storedPaths = [];
+        $storedFiles = [];
 
         try {
             return DB::transaction(function () use (
                 $actor,
                 $task,
                 $files,
-                $disk,
-                &$storedPaths,
-            ) {
+                &$storedFiles,
+            ): array {
                 $attachments = [];
 
                 foreach ($files as $file) {
@@ -57,19 +56,29 @@ class TaskAttachmentService
                         ]);
                     }
 
-                    $path = $file->store(
+                    /*
+                     * Upload through FileUploadService.
+                     *
+                     * Local:
+                     *     private
+                     *
+                     * Production:
+                     *     s3_private
+                     *
+                     * Prefix:
+                     *     task-attachments/{task_id}
+                     */
+                    $stored = $this->fileUploadService->upload(
+                        $file,
                         "task-attachments/{$task->id}",
-                        'private',
+                        config('uploads.attachment_disk', 'private'),
                     );
 
-                    if (! $path) {
-                        throw new \RuntimeException(
-                            'The attachment could not be stored.'
-                        );
-                    }
+                    $storedFiles[] = $stored;
 
-                    $storedPaths[] = $path;
-
+                    /*
+                     * Create the task-specific database record.
+                     */
                     $attachments[] = $task->attachments()->create([
                         'uploaded_by' => $actor->id,
 
@@ -77,8 +86,8 @@ class TaskAttachmentService
                             $file->getClientOriginalName()
                         ),
 
-                        'disk' => 'private',
-                        'path' => $path,
+                        'disk' => $stored['disk'],
+                        'path' => $stored['path'],
 
                         'mime_type' => $file->getMimeType()
                             ?: 'application/octet-stream',
@@ -90,10 +99,16 @@ class TaskAttachmentService
                 return $attachments;
             });
         } catch (Throwable $exception) {
-            // Clean up stored files if the database operation fails.
-            foreach ($storedPaths as $path) {
+            /*
+             * Database operation failed.
+             * Best-effort cleanup for uploaded files.
+             */
+            foreach ($storedFiles as $stored) {
                 try {
-                    $disk->delete($path);
+                    $this->fileUploadService->delete(
+                        $stored['path'],
+                        $stored['disk'],
+                    );
                 } catch (Throwable $cleanupException) {
                     report($cleanupException);
                 }
@@ -114,28 +129,40 @@ class TaskAttachmentService
         Task $task,
         TaskAttachment $attachment,
     ): void {
-        $this->assertAttachmentBelongsToTask($task, $attachment);
+        $this->assertAttachmentBelongsToTask(
+            $task,
+            $attachment,
+        );
 
-        $this->assertCanManageAttachments($actor, $task);
+        $this->assertCanManageAttachments(
+            $actor,
+            $task,
+        );
 
-        DB::transaction(function () use ($task, $attachment) {
+        DB::transaction(function () use (
+            $task,
+            $attachment,
+        ): void {
             $lockedAttachment = $task->attachments()
                 ->whereKey($attachment->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $disk = Storage::disk($lockedAttachment->disk);
+            /*
+             * Delete using the disk saved in the database.
+             *
+             * This is important when old files are on local storage
+             * and new files are on S3, or vice versa.
+             */
+            $deleted = $this->fileUploadService->delete(
+                $lockedAttachment->path,
+                $lockedAttachment->disk,
+            );
 
-            if ($disk->exists($lockedAttachment->path)) {
-                $deleted = $disk->delete(
-                    $lockedAttachment->path
+            if (! $deleted) {
+                throw new RuntimeException(
+                    'The attachment file could not be deleted.'
                 );
-
-                if (! $deleted) {
-                    throw new \RuntimeException(
-                        'The attachment file could not be deleted.'
-                    );
-                }
             }
 
             $lockedAttachment->delete();
@@ -156,7 +183,7 @@ class TaskAttachmentService
     }
 
     /**
-     * Check existing task permissions and project/task editability.
+     * Check task permissions and project/task editability.
      */
     protected function assertCanManageAttachments(
         User $actor,
@@ -164,7 +191,6 @@ class TaskAttachmentService
     ): void {
         $task->loadMissing('project');
 
-        // Creator, current assignee or Super Admin.
         $this->authorization->assertCanManage(
             $actor,
             $task,
