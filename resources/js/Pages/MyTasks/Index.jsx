@@ -11,6 +11,7 @@ import { Head, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Avatar from '@/Components/Avatar';
 import TaskDrawer from '@/Components/Board/TaskDrawer';
+import GroupedTaskList from './Partials/GroupedTaskList';
 
 import {
     errorMessage,
@@ -2153,22 +2154,6 @@ export default function Index() {
                             </div>
                         </div>
 
-                        {/* Desktop column headers */}
-
-                        <div className="hidden grid-cols-[minmax(0,2fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(130px,0.8fr)_minmax(120px,0.7fr)_auto] gap-3 border-b border-slate-200 bg-slate-50 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 lg:grid">
-                            <span>Task / Project</span>
-
-                            <span>Task Group</span>
-
-                            <span>Priority</span>
-
-                            <span>Dates</span>
-
-                            <span>Last Updated</span>
-
-                            <span aria-hidden="true" />
-                        </div>
-
                         {/* Loading state */}
 
                         {loading && tasks.length === 0 ? (
@@ -2216,27 +2201,21 @@ export default function Index() {
                                 onReset={resetFilters}
                             />
                         ) : (
-                            /* Task rows */
+                            /* Grouped task rows */
 
                             <div
                                 className={cn(
-                                    'divide-y divide-slate-100',
+                                    'px-3 pb-4 sm:px-4',
                                     loading && 'opacity-60',
                                 )}
                             >
-                                {tasks.map((task) => (
-                                    <TaskRow
-                                        key={getTaskId(task)}
-                                        task={task}
-                                        mode={mode}
-                                        onOpen={openTask}
-                                        onRestore={handleRestore}
-                                        restoring={
-                                            restoringId ===
-                                            getTaskId(task)
-                                        }
-                                    />
-                                ))}
+                                <GroupedTaskList
+                                    tasks={tasks}
+                                    groups={groupOptions}
+                                    onOpen={openTask}
+                                    onRestore={handleRestore}
+                                    restoringId={restoringId}
+                                />
                             </div>
                         )}
 
