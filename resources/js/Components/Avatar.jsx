@@ -1,15 +1,67 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
-export default function Avatar({ name, src, className = 'h-9 w-9 text-sm' }) {
-    if (src) {
-        return <img src={src} alt="" className={`${className}shrink-0 rounded-full object-cover`} />;
+const AVATAR_SIZES = {
+    xs: 'h-5 w-5 text-[10px]',
+    sm: 'h-8 w-8 text-xs',
+    md: 'h-9 w-9 text-sm',
+    lg: 'h-12 w-12 text-base',
+    xl: 'h-16 w-16 text-xl',
+};
+
+export default function Avatar({
+    user = null,
+    name,
+    src,
+    size = 'md',
+    className = '',
+}) {
+    // Support both old and new usage.
+    const displayName = name ?? user?.name ?? '';
+
+    const imageSrc =
+        src ??
+        user?.avatar_url ??
+        user?.avatar ??
+        null;
+
+    const [imageError, setImageError] = useState(false);
+
+    useEffect(() => {
+        setImageError(false);
+    }, [imageSrc]);
+
+    const avatarClass = [
+        AVATAR_SIZES[size] ?? AVATAR_SIZES.md,
+        className,
+        'shrink-0 rounded-full',
+    ]
+        .filter(Boolean)
+        .join(' ');
+
+    if (imageSrc && !imageError) {
+        return (
+            <img
+                src={imageSrc}
+                alt={displayName}
+                title={displayName}
+                className={`${avatarClass} object-cover`}
+                onError={() => setImageError(true)}
+            />
+        );
     }
 
     return (
         <div
-            className={`${className} flex shrink-0 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/20 font-bold text-indigo-400`}
+            title={displayName}
+            aria-label={displayName || 'Unknown user'}
+            className={[
+                avatarClass,
+                'flex items-center justify-center',
+                'border border-indigo-200 bg-indigo-50',
+                'font-semibold text-indigo-600',
+            ].join(' ')}
         >
-            {name?.charAt(0)?.toUpperCase() || '?'}
+            {displayName.charAt(0).toUpperCase() || '?'}
         </div>
     );
 }

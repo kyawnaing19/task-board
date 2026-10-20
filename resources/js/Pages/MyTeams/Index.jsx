@@ -7,16 +7,16 @@ export default function Index({ teams = [] }) {
         <AuthenticatedLayout header="My Teams">
             <Head title="My Teams" />
 
-            <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div className="space-y-6">
                 {/* Page Header */}
-                <div>
+                {/* <div>
                     <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                         My Teams
                     </h1>
                     <p className="mt-1 text-sm text-slate-500">
                         View and manage the teams you belong to.
                     </p>
-                </div>
+                </div> */}
 
                 {/* Empty State */}
                 {teams.length === 0 ? (
@@ -51,9 +51,9 @@ export default function Index({ teams = [] }) {
                     <>
                         {/* Team Count */}
                         <div className="flex items-center justify-between">
-                            <p className="text-sm text-slate-500">
+                            {/* <p className="text-sm text-slate-500">
                                 Your teams
-                            </p>
+                            </p> */}
 
                             <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-100">
                                 {teams.length}{' '}
