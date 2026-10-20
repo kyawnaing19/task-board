@@ -7,7 +7,7 @@ import TaskPreview from './TaskPreview';
 function formatAssignedAt(value) {
     const date = parseDate(value);
 
-    if (!date) return 'Assignment time unavailable';
+    if (!date) return '';
 
     return new Intl.DateTimeFormat(undefined, {
         month: 'short',
@@ -24,19 +24,20 @@ export default function RecentlyAssigned({
 }) {
     return (
         <DashboardSection
-            title="Recently Assigned"
-            description="Tasks recently assigned to you"
+            title="Recently assigned"
+            description="New tasks for you"
             count={count}
             href={href}
+            accent="emerald"
             empty={items.length === 0}
             emptyMessage="No recently assigned tasks."
         >
             {items.map((task) => (
-                <div key={task.id}>
+                <div key={task.id} className="relative">
                     <TaskPreview task={task} />
 
-                    <p className="px-5 pb-3 text-xs text-slate-400">
-                        Assigned {formatAssignedAt(task.assigned_at)}
+                    <p className="pointer-events-none absolute right-4 top-2 text-[10.5px] tabular-nums text-slate-300">
+                        {formatAssignedAt(task.assigned_at)}
                     </p>
                 </div>
             ))}

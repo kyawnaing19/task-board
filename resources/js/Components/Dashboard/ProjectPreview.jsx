@@ -1,23 +1,11 @@
 import React from 'react';
 import { formatDate } from '@/lib/dates';
 
-function StatusBadge({ status }) {
-    const styles = {
-        ACTIVE: 'bg-emerald-50 text-emerald-700',
-        COMPLETED: 'bg-blue-50 text-blue-700',
-        ARCHIVED: 'bg-slate-100 text-slate-600',
-    };
-
-    return (
-        <span
-            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                styles[status] || 'bg-slate-100 text-slate-600'
-            }`}
-        >
-            {(status || 'UNKNOWN').replaceAll('_', ' ')}
-        </span>
-    );
-}
+const STATUS = {
+    ACTIVE: 'bg-emerald-500',
+    COMPLETED: 'bg-blue-500',
+    ARCHIVED: 'bg-slate-400',
+};
 
 export default function ProjectPreview({ project }) {
     const href =
@@ -25,39 +13,42 @@ export default function ProjectPreview({ project }) {
             ? route('my-projects.show', project.id)
             : `/my-projects/${project.id}`;
 
+    const dot = STATUS[project.status] || 'bg-slate-400';
+
     return (
-        <div className="flex flex-col gap-3 px-5 py-4 transition hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between">
+        <a
+            href={href}
+            className="group flex items-center gap-3 px-4 py-3 transition hover:bg-slate-50/80"
+        >
+            <span
+                className={`h-2 w-2 shrink-0 rounded-full ${dot}`}
+                aria-hidden="true"
+            />
+
             <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2">
                     {project.code && (
-                        <span className="font-mono text-xs text-slate-400">
+                        <span className="font-mono text-[11px] font-medium text-slate-400">
                             {project.code}
                         </span>
                     )}
-
-                    <StatusBadge status={project.status} />
+                    <span className="truncate text-sm font-medium text-slate-800 group-hover:text-indigo-700">
+                        {project.name}
+                    </span>
                 </div>
+            </div>
 
-                <a
-                    href={href}
-                    className="mt-1 inline-block break-words font-semibold text-slate-900 hover:text-indigo-600"
-                >
-                    {project.name}
-                </a>
+            <div className="flex shrink-0 items-center gap-2 text-xs">
+                <span className="rounded bg-slate-100 px-1.5 py-0.5 font-semibold tabular-nums text-slate-600">
+                    {project.open_tasks ?? 0} open
+                </span>
 
                 {project.due_date && (
-                    <p className="mt-1 text-sm text-slate-500">
-                        Due {formatDate(project.due_date)}
-                    </p>
+                    <span className="hidden text-slate-400 sm:inline">
+                        {formatDate(project.due_date)}
+                    </span>
                 )}
             </div>
-
-            <div className="shrink-0 text-sm text-slate-500">
-                <span className="font-semibold text-slate-800">
-                    {project.open_tasks ?? 0}
-                </span>{' '}
-                open tasks
-            </div>
-        </div>
+        </a>
     );
 }
