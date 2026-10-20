@@ -232,6 +232,14 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/dashboard/assignments/seen', [DashboardController::class, 'acknowledgeAssignments'])
             ->name('dashboard.assignments.seen');
 
+        Route::middleware('super_admin')
+        ->prefix('dashboard/admin')
+        ->name('dashboard.admin.')
+        ->group(function () {
+            Route::get('/projects', [DashboardController::class, 'adminProjects'])->name('projects');
+            Route::get('/workload', [DashboardController::class, 'adminWorkload'])->name('workload');
+        });
+
 
         // Domain Specific Routes (Projects, Task Groups, Tasks...)
         // Route::resource('projects', ProjectController::class);
