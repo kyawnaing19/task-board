@@ -17,7 +17,7 @@ const PRIORITY_STYLES = {
 
 /*
 |--------------------------------------------------------------------------
-| Group Colors
+| Group Palettes
 |--------------------------------------------------------------------------
 */
 
@@ -25,66 +25,93 @@ const GROUP_PALETTES = [
     {
         match: ['todo', 'to do', 'backlog'],
         dot: 'bg-slate-400',
-        badge: 'bg-slate-100 text-slate-700 ring-slate-200',
+        badge: 'bg-slate-100 text-slate-700',
         soft: 'bg-slate-50',
-        line: 'bg-slate-300',
+        border: 'border-slate-200',
+        accent: 'bg-slate-400',
+        count: 'bg-slate-100 text-slate-600',
+        headerText: 'text-slate-700',
     },
     {
         match: ['progress', 'doing', 'development'],
         dot: 'bg-blue-500',
-        badge: 'bg-blue-50 text-blue-700 ring-blue-200',
+        badge: 'bg-blue-50 text-blue-700',
         soft: 'bg-blue-50/60',
-        line: 'bg-blue-400',
+        border: 'border-blue-200',
+        accent: 'bg-blue-500',
+        count: 'bg-blue-100 text-blue-700',
+        headerText: 'text-blue-800',
     },
     {
         match: ['review', 'qa', 'testing'],
         dot: 'bg-violet-500',
-        badge: 'bg-violet-50 text-violet-700 ring-violet-200',
+        badge: 'bg-violet-50 text-violet-700',
         soft: 'bg-violet-50/60',
-        line: 'bg-violet-400',
+        border: 'border-violet-200',
+        accent: 'bg-violet-500',
+        count: 'bg-violet-100 text-violet-700',
+        headerText: 'text-violet-800',
     },
     {
         match: ['done', 'complete', 'completed'],
         dot: 'bg-emerald-500',
-        badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+        badge: 'bg-emerald-50 text-emerald-700',
         soft: 'bg-emerald-50/60',
-        line: 'bg-emerald-400',
+        border: 'border-emerald-200',
+        accent: 'bg-emerald-500',
+        count: 'bg-emerald-100 text-emerald-700',
+        headerText: 'text-emerald-800',
+    },
+];
+
+const EXTRA_GROUP_PALETTES = [
+    {
+        dot: 'bg-rose-500',
+        badge: 'bg-rose-50 text-rose-700',
+        soft: 'bg-rose-50/50',
+        border: 'border-rose-200',
+        accent: 'bg-rose-500',
+        count: 'bg-rose-100 text-rose-700',
+        headerText: 'text-rose-800',
+    },
+    {
+        dot: 'bg-amber-500',
+        badge: 'bg-amber-50 text-amber-700',
+        soft: 'bg-amber-50/50',
+        border: 'border-amber-200',
+        accent: 'bg-amber-500',
+        count: 'bg-amber-100 text-amber-700',
+        headerText: 'text-amber-800',
+    },
+    {
+        dot: 'bg-teal-500',
+        badge: 'bg-teal-50 text-teal-700',
+        soft: 'bg-teal-50/50',
+        border: 'border-teal-200',
+        accent: 'bg-teal-500',
+        count: 'bg-teal-100 text-teal-700',
+        headerText: 'text-teal-800',
+    },
+    {
+        dot: 'bg-fuchsia-500',
+        badge: 'bg-fuchsia-50 text-fuchsia-700',
+        soft: 'bg-fuchsia-50/50',
+        border: 'border-fuchsia-200',
+        accent: 'bg-fuchsia-500',
+        count: 'bg-fuchsia-100 text-fuchsia-700',
+        headerText: 'text-fuchsia-800',
     },
 ];
 
 const DEFAULT_GROUP_PALETTE = {
     dot: 'bg-indigo-500',
-    badge: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
+    badge: 'bg-indigo-50 text-indigo-700',
     soft: 'bg-indigo-50/40',
-    line: 'bg-indigo-400',
+    border: 'border-indigo-200',
+    accent: 'bg-indigo-500',
+    count: 'bg-indigo-100 text-indigo-700',
+    headerText: 'text-indigo-800',
 };
-
-const EXTRA_GROUP_PALETTES = [
-    {
-        dot: 'bg-rose-500',
-        badge: 'bg-rose-50 text-rose-700 ring-rose-200',
-        soft: 'bg-rose-50/50',
-        line: 'bg-rose-400',
-    },
-    {
-        dot: 'bg-amber-500',
-        badge: 'bg-amber-50 text-amber-700 ring-amber-200',
-        soft: 'bg-amber-50/50',
-        line: 'bg-amber-400',
-    },
-    {
-        dot: 'bg-teal-500',
-        badge: 'bg-teal-50 text-teal-700 ring-teal-200',
-        soft: 'bg-teal-50/50',
-        line: 'bg-teal-400',
-    },
-    {
-        dot: 'bg-fuchsia-500',
-        badge: 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200',
-        soft: 'bg-fuchsia-50/50',
-        line: 'bg-fuchsia-400',
-    },
-];
 
 /*
 |--------------------------------------------------------------------------
@@ -130,7 +157,7 @@ function getDueDate(task) {
 
 /*
 |--------------------------------------------------------------------------
-| Dynamic Group Palette
+| Group Palette
 |--------------------------------------------------------------------------
 */
 
@@ -171,12 +198,12 @@ function getGroupPalette(group, index = 0) {
         indigo: DEFAULT_GROUP_PALETTE,
     };
 
-    // Prefer the explicitly configured database color.
+    // Prefer the configured group color.
     if (explicitPalettes[explicit]) {
         return explicitPalettes[explicit];
     }
 
-    // Otherwise, match the group name.
+    // Match common group names.
     const matchedPalette = GROUP_PALETTES.find((palette) =>
         palette.match.some((keyword) => name.includes(keyword)),
     );
@@ -185,7 +212,7 @@ function getGroupPalette(group, index = 0) {
         return matchedPalette;
     }
 
-    // Give custom group names a consistent fallback color.
+    // Stable color for custom group names.
     const palettes = [
         DEFAULT_GROUP_PALETTE,
         ...EXTRA_GROUP_PALETTES,
@@ -248,17 +275,9 @@ function getDueDateLabel(value) {
         (dueDate.getTime() - today.getTime()) / 86400000,
     );
 
-    if (days === 0) {
-        return 'Today';
-    }
-
-    if (days === 1) {
-        return 'Tomorrow';
-    }
-
-    if (days === -1) {
-        return 'Yesterday';
-    }
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Tomorrow';
+    if (days === -1) return 'Yesterday';
 
     if (days < 0) {
         return `${Math.abs(days)} days ago`;
@@ -319,7 +338,7 @@ function PriorityBadge({ priority }) {
 
     return (
         <span
-            className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium ring-1 ring-inset ${
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
                 PRIORITY_STYLES[value] || PRIORITY_STYLES.NORMAL
             }`}
         >
@@ -327,8 +346,8 @@ function PriorityBadge({ priority }) {
                 viewBox="0 0 20 20"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.6"
-                className="h-3.5 w-3.5 shrink-0"
+                strokeWidth="1.8"
+                className="h-3 w-3 shrink-0"
                 aria-hidden="true"
             >
                 <path
@@ -338,7 +357,7 @@ function PriorityBadge({ priority }) {
                 />
             </svg>
 
-            <span>{label}</span>
+            {label}
         </span>
     );
 }
@@ -356,7 +375,7 @@ function DueDate({ task }) {
     return (
         <span
             title={value || 'No due date'}
-            className={`inline-flex max-w-full items-center whitespace-nowrap text-xs ${
+            className={`inline-flex max-w-full items-center whitespace-nowrap text-[11.5px] ${
                 overdue
                     ? 'font-semibold text-rose-600'
                     : value
@@ -369,8 +388,8 @@ function DueDate({ task }) {
                     viewBox="0 0 20 20"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="1.6"
-                    className="mr-1.5 h-3.5 w-3.5 shrink-0"
+                    strokeWidth="1.8"
+                    className="mr-1 h-3 w-3 shrink-0"
                     aria-hidden="true"
                 >
                     <circle cx="10" cy="10" r="7" />
@@ -395,14 +414,14 @@ function DueDate({ task }) {
 function AssigneeStack({ assignees }) {
     if (!assignees.length) {
         return (
-            <span className="text-xs text-slate-400">
+            <span className="text-[11.5px] text-slate-400">
                 Unassigned
             </span>
         );
     }
 
     return (
-        <div className="flex items-center -space-x-2">
+        <div className="flex items-center -space-x-1.5">
             {assignees.slice(0, 3).map((assignee, index) => (
                 <span
                     key={assignee.id ?? assignee.name ?? index}
@@ -412,7 +431,7 @@ function AssigneeStack({ assignees }) {
                     <Avatar
                         name={assignee.name || '?'}
                         src={assignee.avatar_url}
-                        className="h-7 w-7 text-[10px]"
+                        className="h-6 w-6 text-[9px]"
                     />
                 </span>
             ))}
@@ -420,7 +439,7 @@ function AssigneeStack({ assignees }) {
             {assignees.length > 3 && (
                 <span
                     title={`${assignees.length - 3} more assignees`}
-                    className="flex h-7 min-w-7 items-center justify-center rounded-full bg-slate-100 px-1.5 text-[10px] font-semibold text-slate-600 ring-2 ring-white"
+                    className="flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-100 px-1 text-[9px] font-semibold text-slate-600 ring-2 ring-white"
                 >
                     +{assignees.length - 3}
                 </span>
@@ -452,17 +471,17 @@ function TaskRow({
         !task?.restore_blocked_reason;
 
     return (
-        <div className="group relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-b border-slate-100/90 px-3 py-3 transition-colors last:border-b-0 hover:bg-slate-50/60 sm:grid-cols-[minmax(0,1fr)_120px_115px_130px] sm:gap-4 sm:px-4">
+        <div className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-b border-slate-100/80 px-4 py-2.5 transition-colors last:border-b-0 hover:bg-slate-50/70 sm:grid-cols-[minmax(0,1fr)_110px_110px_120px] sm:gap-4 sm:px-5">
             {/* Task title and metadata */}
-            <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
                 <button
                     type="button"
                     onClick={() => onOpen?.(task)}
                     title={`Open ${getTaskTitle(task)}`}
                     aria-label={`Open task ${getTaskTitle(task)}`}
-                    className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 border-indigo-500 bg-white text-transparent transition hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-[1.5px] border-slate-300 bg-white transition hover:border-indigo-500 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 >
-                    <span className="h-2 w-2 rounded-full bg-indigo-600" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-transparent transition group-hover:bg-indigo-400" />
                 </button>
 
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
@@ -470,13 +489,13 @@ function TaskRow({
                         type="button"
                         onClick={() => onOpen?.(task)}
                         title={getTaskTitle(task)}
-                        className="max-w-full truncate text-left text-[13px] font-medium text-slate-800 transition hover:text-indigo-700 focus:outline-none focus:text-indigo-700"
+                        className="max-w-full truncate text-left text-[13px] font-medium text-slate-700 transition hover:text-indigo-700 focus:outline-none focus:text-indigo-700"
                     >
                         {getTaskTitle(task)}
                     </button>
 
                     {task?.code && (
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">
+                        <span className="rounded border border-slate-200 bg-slate-50 px-1 py-px font-mono text-[10px] text-slate-500">
                             {task.code}
                         </span>
                     )}
@@ -494,7 +513,7 @@ function TaskRow({
                     )}
 
                     {archived && (
-                        <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
                             Archived
                         </span>
                     )}
@@ -508,7 +527,7 @@ function TaskRow({
                         />
                     </div>
 
-                    {/* Restore action */}
+                    {/* Mobile restore action */}
                     {archived && (
                         <div className="w-full pt-1 sm:hidden">
                             {canRestore ? (
@@ -550,8 +569,8 @@ function TaskRow({
                 />
             </div>
 
-            {/* Due date and desktop restore */}
-            <div className="flex min-w-0 flex-col items-end gap-2 sm:items-start">
+            {/* Due date and restore */}
+            <div className="flex min-w-0 flex-col items-end gap-1.5 sm:items-start">
                 <DueDate task={task} />
 
                 {archived && (
@@ -561,7 +580,7 @@ function TaskRow({
                                 type="button"
                                 disabled={restoring}
                                 onClick={() => onRestore?.(task)}
-                                className="text-xs font-medium text-indigo-600 transition hover:text-indigo-800 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                className="text-[11px] font-medium text-indigo-600 transition hover:text-indigo-800 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 {restoring
                                     ? 'Restoring…'
@@ -573,7 +592,7 @@ function TaskRow({
                                     task?.restore_blocked_reason ||
                                     'This task cannot be restored.'
                                 }
-                                className="text-[11px] text-slate-400"
+                                className="text-[10.5px] text-slate-400"
                             >
                                 Restore unavailable
                             </span>
@@ -581,6 +600,43 @@ function TaskRow({
                     </div>
                 )}
             </div>
+        </div>
+    );
+}
+
+/*
+|--------------------------------------------------------------------------
+| Empty State
+|--------------------------------------------------------------------------
+*/
+
+function EmptyState() {
+    return (
+        <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
+            <div className="mb-2.5 flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="h-4 w-4"
+                    aria-hidden="true"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"
+                    />
+                </svg>
+            </div>
+
+            <p className="text-[13px] font-medium text-slate-600">
+                No tasks yet
+            </p>
+
+            <p className="mt-0.5 text-[11px] text-slate-400">
+                Tasks added to this group will appear here.
+            </p>
         </div>
     );
 }
@@ -604,10 +660,17 @@ export default function TaskGroupSection({
 
     const palette = getGroupPalette(group);
 
+    const taskCount = tasks.length;
+
     return (
-        <section className="mb-6 bg-white">
+        <section
+            className={`mb-4 overflow-hidden rounded-xl border bg-white shadow-sm transition-shadow duration-200 hover:shadow-md ${palette.border}`}
+        >
             {/* Group Header */}
-            <div className="flex items-center gap-2 border-b border-slate-100 px-1 py-3">
+            <div
+                className={`flex min-h-[48px] items-center gap-2.5 border-b px-3 py-2.5 sm:px-4 ${palette.soft} ${palette.border}`}
+            >
+                {/* Collapse button */}
                 <button
                     type="button"
                     onClick={() =>
@@ -617,12 +680,12 @@ export default function TaskGroupSection({
                     aria-label={`${
                         collapsed ? 'Expand' : 'Collapse'
                     } ${groupName}`}
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 >
                     <svg
                         viewBox="0 0 20 20"
                         fill="currentColor"
-                        className={`h-4 w-4 transition-transform duration-200 ${
+                        className={`h-3.5 w-3.5 transition-transform duration-200 ${
                             collapsed ? '-rotate-90' : ''
                         }`}
                         aria-hidden="true"
@@ -635,52 +698,53 @@ export default function TaskGroupSection({
                     </svg>
                 </button>
 
-                {/* Dynamic group badge */}
+                {/* Group color */}
                 <span
-                    className={`inline-flex min-w-0 items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold ${palette.badge}`}
-                >
-                    <span
-                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${palette.dot}`}
-                    />
+                    className={`h-2.5 w-2.5 shrink-0 rounded-full ${palette.dot}`}
+                    aria-hidden="true"
+                />
 
-                    <span className="truncate">
-                        {groupName}
-                    </span>
-                </span>
+                {/* Group name */}
+                <h3
+                    title={groupName}
+                    className={`truncate text-[13px] font-semibold ${palette.headerText}`}
+                >
+                    {groupName}
+                </h3>
 
                 {/* Task count */}
-                <span className="ml-1 text-xs font-semibold text-slate-400">
-                    {tasks.length}
+                <span
+                    className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold tabular-nums ${palette.count}`}
+                >
+                    {taskCount}
                 </span>
 
-                {/* Dropdown status */}
-                <span className="ml-auto text-[11px] text-slate-400">
-                    {collapsed
-                        ? 'Expand'
-                        : `${tasks.length} ${
-                              tasks.length === 1
-                                  ? 'task'
-                                  : 'tasks'
-                          }`}
-                </span>
+                <div className="flex-1" />
+
+                {/* Collapse / expand */}
+                <button
+                    type="button"
+                    onClick={() =>
+                        setCollapsed((value) => !value)
+                    }
+                    className="rounded-md px-2 py-1 text-[11px] font-medium text-slate-500 transition hover:bg-white hover:text-slate-700"
+                >
+                    {collapsed ? 'Show' : 'Hide'}
+                </button>
             </div>
 
-            {/* Collapsible Content */}
+            {/* Collapsible Body */}
             {!collapsed && (
-                <div className="border-b border-slate-200">
+                <div className="bg-white">
                     {/* Table Header */}
-                    <div className="hidden grid-cols-[minmax(0,1fr)_120px_115px_130px] items-center gap-4 border-b border-slate-100 px-4 py-2.5 text-[11px] font-medium text-slate-400 sm:grid">
-                        <span>Name</span>
-
+                    <div className="hidden grid-cols-[minmax(0,1fr)_110px_110px_120px] items-center gap-4 border-b border-slate-100 bg-slate-50/60 px-5 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400 sm:grid">
+                        <span>Task</span>
                         <span>Assignees</span>
-
                         <span>Priority</span>
-
                         <span className="flex items-center gap-1">
-                            Due date
-
+                            Due
                             <svg
-                                className="h-3 w-3 text-slate-400"
+                                className="h-2.5 w-2.5"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -689,7 +753,7 @@ export default function TaskGroupSection({
                                 <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
-                                    strokeWidth="2"
+                                    strokeWidth="2.5"
                                     d="M19 14l-7 7m0 0l-7-7m7 7V3"
                                 />
                             </svg>
@@ -697,7 +761,7 @@ export default function TaskGroupSection({
                     </div>
 
                     {/* Task Rows */}
-                    {tasks.length > 0 ? (
+                    {taskCount > 0 ? (
                         tasks.map((task) => (
                             <TaskRow
                                 key={getTaskId(task)}
@@ -705,33 +769,31 @@ export default function TaskGroupSection({
                                 onOpen={onOpen}
                                 onRestore={onRestore}
                                 restoring={
-                                    restoringId ===
-                                    getTaskId(task)
+                                    restoringId === getTaskId(task)
                                 }
                             />
                         ))
                     ) : (
-                        <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-                            <span className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="1.5"
-                                    className="h-5 w-5"
-                                    aria-hidden="true"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"
-                                    />
-                                </svg>
+                        <EmptyState />
+                    )}
+
+                    {/* Footer */}
+                    {taskCount > 0 && (
+                        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/40 px-4 py-2 sm:px-5">
+                            <span className="text-[10.5px] tabular-nums text-slate-400">
+                                {taskCount}{' '}
+                                {taskCount === 1 ? 'task' : 'tasks'}
                             </span>
 
-                            <p className="text-xs font-medium text-slate-500">
-                                No tasks in this group
-                            </p>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setCollapsed(true)
+                                }
+                                className="text-[10.5px] font-medium text-slate-400 transition hover:text-indigo-600"
+                            >
+                                Collapse
+                            </button>
                         </div>
                     )}
                 </div>

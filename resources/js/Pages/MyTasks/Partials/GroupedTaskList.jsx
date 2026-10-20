@@ -69,7 +69,7 @@ export default function GroupedTaskList({
     }
 
     return (
-        <div className="space-y-6">
+        <div className="mt-2 space-y-6">
             {groupedTasks.map(({ group, tasks: groupTasks }) => (
                 <TaskGroupSection
                     key={

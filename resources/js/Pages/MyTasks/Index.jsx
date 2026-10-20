@@ -12,6 +12,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Avatar from '@/Components/Avatar';
 import TaskDrawer from '@/Components/Board/TaskDrawer';
 import GroupedTaskList from './Partials/GroupedTaskList';
+import TaskOwnershipBar from './Partials/TaskOwnershipBar';
+import TaskFilters from './Partials/TaskFilters';
 
 import {
     errorMessage,
@@ -161,80 +163,6 @@ function getPriority(task) {
             PRIORITY_STYLES[priority] ||
             'bg-slate-100 text-slate-600 ring-slate-200',
     };
-}
-
-/* -------------------------------------------------------------------------- */
-/* Form controls                                                              */
-/* -------------------------------------------------------------------------- */
-
-function SelectField({
-    label,
-    value,
-    onChange,
-    children,
-    className = '',
-}) {
-    return (
-        <label className={cn('block min-w-0', className)}>
-            {label && (
-                <span className="mb-1.5 block text-xs font-semibold text-slate-600">
-                    {label}
-                </span>
-            )}
-
-            <select
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            >
-                {children}
-            </select>
-        </label>
-    );
-}
-
-function DateField({
-    label,
-    value,
-    onChange,
-    min,
-    max,
-}) {
-    return (
-        <label className="block min-w-0">
-            <span className="mb-1.5 block text-xs font-semibold text-slate-600">
-                {label}
-            </span>
-
-            <input
-                type="date"
-                value={value}
-                min={min}
-                max={max}
-                onChange={(event) => onChange(event.target.value)}
-                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            />
-        </label>
-    );
-}
-
-function CheckboxFilter({
-    checked,
-    onChange,
-    children,
-}) {
-    return (
-        <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600">
-            <input
-                type="checkbox"
-                checked={checked}
-                onChange={(event) => onChange(event.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-
-            <span>{children}</span>
-        </label>
-    );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1717,525 +1645,249 @@ export default function Index() {
     /* ---------------------------------------------------------------------- */
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={
+                <div className="flex w-full min-w-0 items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                        <h1 className="truncate text-base font-semibold text-slate-900 sm:text-lg">
+                            My Tasks
+                        </h1>
+
+                        <p className="mt-0.5 truncate text-xs text-slate-500 sm:text-sm">
+                            Tasks assigned to you or created by you.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={refreshCurrentPage}
+                        disabled={loading}
+                        className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            className={cn(
+                                'h-4 w-4',
+                                loading && 'animate-spin',
+                            )}
+                            aria-hidden="true"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M20 7v5h-5M4 17v-5h5m10-1a7 7 0 0 0-12-4L4 12m16 0-3 5a7 7 0 0 1-12-4"
+                            />
+                        </svg>
+
+                        <span className="hidden sm:inline">
+                            {loading ? 'Refreshing...' : 'Refresh'}
+                        </span>
+                    </button>
+                </div>
+            }
+        >
+
+        
             <Head title="My Tasks" />
 
-            <div className="min-h-screen bg-slate-50">
-                <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-[1600px] space-y-4">
 
-                    {/* Page heading */}
+                {/* Task ownership — compact bar */}
 
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600">
-                                    <svg
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.7"
-                                        className="h-5 w-5"
-                                        aria-hidden="true"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"
-                                        />
-                                    </svg>
-                                </div>
+                <TaskOwnershipBar
+                    mode={mode}
+                    onModeChange={(value) =>
+                        changeFilter(setMode, value)
+                    }
+                    archivedTasks={archivedTasks}
+                    onArchivedTasksChange={(value) =>
+                        changeFilter(setArchivedTasks, value)
+                    }
+                    archivedProjects={archivedProjects}
+                    onArchivedProjectsChange={(value) =>
+                        changeFilter(setArchivedProjects, value)
+                    }
+                    loading={loading}
+                    total={pagination?.total}
+                    activeCount={activeCount}
+                />
 
-                                <div>
-                                    <h1 className="text-xl font-bold tracking-tight text-slate-900">
-                                        My Tasks
-                                    </h1>
+                {/* Filters — search + collapsible panel */}
 
-                                    <p className="mt-0.5 text-sm text-slate-500">
-                                        Tasks assigned to you or created by you.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                <TaskFilters
+                    searchInput={searchInput}
+                    onSearchChange={setSearchInput}
+                    projectId={projectId}
+                    onProjectChange={(value) =>
+                        changeFilter(setProjectId, value)
+                    }
+                    groupId={groupId}
+                    onGroupChange={(value) =>
+                        changeFilter(setGroupId, value)
+                    }
+                    priority={priority}
+                    onPriorityChange={(value) =>
+                        changeFilter(setPriority, value)
+                    }
+                    tagId={tagId}
+                    onTagChange={(value) =>
+                        changeFilter(setTagId, value)
+                    }
+                    dateFrom={dateFrom}
+                    onDateFromChange={(value) =>
+                        changeFilter(setDateFrom, value)
+                    }
+                    dateTo={dateTo}
+                    onDateToChange={(value) =>
+                        changeFilter(setDateTo, value)
+                    }
+                    projectOptions={projectOptions}
+                    groupOptions={groupOptions}
+                    tagOptions={tagOptions}
+                    priorityOptions={priorityOptions}
+                    hasFilters={hasFilters}
+                    onReset={resetFilters}
+                    optionsLoading={optionsLoading}
+                />
+
+                {/* Notifications */}
+
+                {notice && (
+                    <div
+                        role="status"
+                        className={cn(
+                            'flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm',
+                            notice.type === 'success'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                : 'border-rose-200 bg-rose-50 text-rose-700',
+                        )}
+                    >
+                        <span>{notice.message}</span>
 
                         <button
                             type="button"
-                            onClick={refreshCurrentPage}
-                            disabled={loading}
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => setNotice(null)}
+                            aria-label="Dismiss notification"
+                            className="shrink-0 font-semibold opacity-70 hover:opacity-100"
                         >
-                            <svg
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                className={cn(
-                                    'h-4 w-4',
-                                    loading && 'animate-spin',
-                                )}
-                                aria-hidden="true"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M20 7v5h-5M4 17v-5h5m10-1a7 7 0 0 0-12-4L4 12m16 0-3 5a7 7 0 0 1-12-4"
-                                />
-                            </svg>
-
-                            Refresh
+                            ×
                         </button>
                     </div>
+                )}
 
-                    {/* Task ownership */}
+                {/* Task list */}
 
-                    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                            <div>
-                                <h2 className="text-sm font-semibold text-slate-800">
-                                    Task ownership
-                                </h2>
+                <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-5">
+                        <div>
+                            <h2 className="text-sm font-semibold text-slate-800">
+                                {archivedTasks
+                                    ? 'Archived Tasks'
+                                    : archivedProjects
+                                      ? 'Tasks in Archived Projects'
+                                      : 'My Task List'}
+                            </h2>
 
-                                <p className="mt-1 text-xs text-slate-500">
-                                    Choose which tasks you want to see.
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 sm:grid-cols-3">
-                                {[
-                                    {
-                                        value: 'assigned',
-                                        label: 'Assigned to me',
-                                        description: 'Tasks assigned to you',
-                                    },
-                                    {
-                                        value: 'created',
-                                        label: 'Created by me',
-                                        description: 'Tasks you created',
-                                    },
-                                    {
-                                        value: 'both',
-                                        label: 'Assigned or created by me',
-                                        description: 'Assigned or created',
-                                    },
-                                ].map((item) => (
-                                    <button
-                                        key={item.value}
-                                        type="button"
-                                        onClick={() =>
-                                            changeFilter(
-                                                setMode,
-                                                item.value,
-                                            )
-                                        }
-                                        aria-pressed={
-                                            mode === item.value
-                                        }
-                                        className={cn(
-                                            'rounded-lg px-4 py-2.5 text-left transition sm:min-w-40 sm:text-center',
-                                            mode === item.value
-                                                ? 'border border-slate-200 bg-white text-blue-700 shadow-sm'
-                                                : 'border border-transparent text-slate-500 hover:bg-white hover:text-slate-700',
-                                        )}
-                                    >
-                                        <span className="block text-sm font-semibold">
-                                            {item.label}
-                                        </span>
-
-                                        <span className="mt-0.5 hidden text-[11px] text-slate-400 sm:block">
-                                            {item.description}
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-slate-100 pt-4">
-                            <CheckboxFilter
-                                checked={archivedTasks}
-                                onChange={(value) =>
-                                    changeFilter(
-                                        setArchivedTasks,
-                                        value,
-                                    )
-                                }
-                            >
-                                Archived Tasks
-                            </CheckboxFilter>
-
-                            <CheckboxFilter
-                                checked={archivedProjects}
-                                onChange={(value) =>
-                                    changeFilter(
-                                        setArchivedProjects,
-                                        value,
-                                    )
-                                }
-                            >
-                                Archived Projects
-                            </CheckboxFilter>
-
-                            <div className="ml-auto flex items-center gap-2 text-xs text-slate-400">
-                                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-
-                                {loading
-                                    ? 'Loading tasks…'
-                                    : `${pagination?.total ?? activeCount} tasks`}
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Filters */}
-
-                    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                            <div>
-                                <h2 className="text-sm font-semibold text-slate-800">
-                                    Filters
-                                </h2>
-
-                                <p className="mt-1 text-xs text-slate-500">
-                                    Narrow down your tasks by project, group, priority, tag, or date.
-                                </p>
-                            </div>
-
-                            {hasFilters && (
-                                <button
-                                    type="button"
-                                    onClick={resetFilters}
-                                    className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-                                >
-                                    Clear all filters
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-
-                            {/* Search */}
-
-                            <label className="block min-w-0 sm:col-span-2 xl:col-span-1">
-                                <span className="mb-1.5 block text-xs font-semibold text-slate-600">
-                                    Search
-                                </span>
-
-                                <div className="relative">
-                                    <svg
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.8"
-                                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                                        aria-hidden="true"
-                                    >
-                                        <circle
-                                            cx="11"
-                                            cy="11"
-                                            r="7"
-                                        />
-
-                                        <path
-                                            strokeLinecap="round"
-                                            d="m16 16 4 4"
-                                        />
-                                    </svg>
-
-                                    <input
-                                        type="search"
-                                        value={searchInput}
-                                        onChange={(event) =>
-                                            setSearchInput(
-                                                event.target.value,
-                                            )
-                                        }
-                                        placeholder="Search title or task code…"
-                                        className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                                    />
-                                </div>
-                            </label>
-
-                            {/* Project */}
-
-                            <SelectField
-                                label="Project"
-                                value={projectId}
-                                onChange={(value) =>
-                                    changeFilter(
-                                        setProjectId,
-                                        value,
-                                    )
-                                }
-                            >
-                                <option value="">
-                                    All accessible projects
-                                </option>
-
-                                {projectOptions.map((project) => (
-                                    <option
-                                        key={project.id}
-                                        value={project.id}
-                                    >
-                                        {project.code
-                                            ? `${project.code} — ${project.name}`
-                                            : project.name}
-                                        {project.archived
-                                            ? ' (Archived)'
-                                            : ''}
-                                    </option>
-                                ))}
-                            </SelectField>
-
-                            {/* Task group */}
-
-                            <SelectField
-                                label="Task Group"
-                                value={groupId}
-                                onChange={(value) =>
-                                    changeFilter(
-                                        setGroupId,
-                                        value,
-                                    )
-                                }
-                            >
-                                <option value="">
-                                    All task groups
-                                </option>
-
-                                {groupOptions.map((group) => (
-                                    <option
-                                        key={group.id}
-                                        value={group.id}
-                                    >
-                                        {group.name}
-                                    </option>
-                                ))}
-                            </SelectField>
-
-                            {/* Priority */}
-
-                            <SelectField
-                                label="Priority"
-                                value={priority}
-                                onChange={(value) =>
-                                    changeFilter(
-                                        setPriority,
-                                        value,
-                                    )
-                                }
-                            >
-                                <option value="">
-                                    All priorities
-                                </option>
-
-                                {priorityOptions.map((item) => (
-                                    <option
-                                        key={item}
-                                        value={item}
-                                    >
-                                        {PRIORITY_LABELS[item] || item}
-                                    </option>
-                                ))}
-                            </SelectField>
-
-                            {/* Tag */}
-
-                            <SelectField
-                                label="Tag"
-                                value={tagId}
-                                onChange={(value) =>
-                                    changeFilter(
-                                        setTagId,
-                                        value,
-                                    )
-                                }
-                            >
-                                <option value="">
-                                    All tags
-                                </option>
-
-                                {tagOptions.map((tag) => (
-                                    <option
-                                        key={tag.id}
-                                        value={tag.id}
-                                    >
-                                        {tag.name}
-                                        {tag.inactive
-                                            ? ' (Inactive)'
-                                            : ''}
-                                    </option>
-                                ))}
-                            </SelectField>
-
-                            {/* Date from */}
-
-                            <DateField
-                                label="Date From"
-                                value={dateFrom}
-                                max={dateTo || undefined}
-                                onChange={(value) =>
-                                    changeFilter(
-                                        setDateFrom,
-                                        value,
-                                    )
-                                }
-                            />
-
-                            {/* Date to */}
-
-                            <DateField
-                                label="Date To"
-                                value={dateTo}
-                                min={dateFrom || undefined}
-                                onChange={(value) =>
-                                    changeFilter(
-                                        setDateTo,
-                                        value,
-                                    )
-                                }
-                            />
-                        </div>
-
-                        {optionsLoading && (
-                            <p className="mt-3 text-xs text-slate-400">
-                                Loading filter options…
+                            <p className="mt-1 text-xs text-slate-500">
+                                {mode === 'assigned'
+                                    ? 'Tasks assigned to you'
+                                    : mode === 'created'
+                                      ? 'Tasks created by you'
+                                      : 'Tasks assigned to you or created by you'}
                             </p>
-                        )}
-                    </section>
+                        </div>
 
-                    {/* Notifications */}
+                        <div className="text-xs text-slate-400">
+                            {loading
+                                ? 'Updating…'
+                                : `${tasks.length} on this page`}
+                        </div>
+                    </div>
 
-                    {notice && (
-                        <div
-                            role="status"
-                            className={cn(
-                                'flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm',
-                                notice.type === 'success'
-                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                    : 'border-rose-200 bg-rose-50 text-rose-700',
-                            )}
-                        >
-                            <span>{notice.message}</span>
+                    {/* Loading state */}
+
+                    {loading && tasks.length === 0 ? (
+                        <div className="space-y-4 px-5 py-8">
+                            {[1, 2, 3, 4].map((item) => (
+                                <div
+                                    key={item}
+                                    className="animate-pulse space-y-2"
+                                >
+                                    <div className="h-4 w-1/3 rounded bg-slate-100" />
+
+                                    <div className="h-3 w-1/4 rounded bg-slate-100" />
+
+                                    <div className="h-px w-full bg-slate-100" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : error ? (
+                        /* Error state */
+
+                        <div className="px-5 py-14 text-center">
+                            <p className="text-sm font-semibold text-rose-700">
+                                Could not load tasks
+                            </p>
+
+                            <p className="mt-2 text-sm text-slate-500">
+                                {error}
+                            </p>
 
                             <button
                                 type="button"
-                                onClick={() => setNotice(null)}
-                                aria-label="Dismiss notification"
-                                className="shrink-0 font-semibold opacity-70 hover:opacity-100"
+                                onClick={refreshCurrentPage}
+                                className="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                             >
-                                ×
+                                Try again
                             </button>
+                        </div>
+                    ) : tasks.length === 0 ? (
+                        /* Empty state */
+
+                        <EmptyState
+                            archivedTasks={archivedTasks}
+                            archivedProjects={archivedProjects}
+                            hasFilters={hasFilters}
+                            onReset={resetFilters}
+                        />
+                    ) : (
+                        /* Grouped task rows */
+
+                        <div
+                            className={cn(
+                                'px-3 pb-4 sm:px-4',
+                                loading && 'opacity-60',
+                            )}
+                        >
+                            <GroupedTaskList
+                                tasks={tasks}
+                                groups={groupOptions}
+                                onOpen={openTask}
+                                onRestore={handleRestore}
+                                restoringId={restoringId}
+                            />
                         </div>
                     )}
 
-                    {/* Task list */}
+                    {/* Pagination */}
 
-                    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-5">
-                            <div>
-                                <h2 className="text-sm font-semibold text-slate-800">
-                                    {archivedTasks
-                                        ? 'Archived Tasks'
-                                        : archivedProjects
-                                          ? 'Tasks in Archived Projects'
-                                          : 'My Task List'}
-                                </h2>
+                    {!error && (
+                        <Pagination
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
+                            loading={loading}
+                        />
+                    )}
+                </section>
 
-                                <p className="mt-1 text-xs text-slate-500">
-                                    {mode === 'assigned'
-                                        ? 'Tasks assigned to you'
-                                        : mode === 'created'
-                                          ? 'Tasks created by you'
-                                          : 'Tasks assigned to you or created by you'}
-                                </p>
-                            </div>
-
-                            <div className="text-xs text-slate-400">
-                                {loading
-                                    ? 'Updating…'
-                                    : `${tasks.length} on this page`}
-                            </div>
-                        </div>
-
-                        {/* Loading state */}
-
-                        {loading && tasks.length === 0 ? (
-                            <div className="space-y-4 px-5 py-8">
-                                {[1, 2, 3, 4].map((item) => (
-                                    <div
-                                        key={item}
-                                        className="animate-pulse space-y-2"
-                                    >
-                                        <div className="h-4 w-1/3 rounded bg-slate-100" />
-
-                                        <div className="h-3 w-1/4 rounded bg-slate-100" />
-
-                                        <div className="h-px w-full bg-slate-100" />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : error ? (
-                            /* Error state */
-
-                            <div className="px-5 py-14 text-center">
-                                <p className="text-sm font-semibold text-rose-700">
-                                    Could not load tasks
-                                </p>
-
-                                <p className="mt-2 text-sm text-slate-500">
-                                    {error}
-                                </p>
-
-                                <button
-                                    type="button"
-                                    onClick={refreshCurrentPage}
-                                    className="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                                >
-                                    Try again
-                                </button>
-                            </div>
-                        ) : tasks.length === 0 ? (
-                            /* Empty state */
-
-                            <EmptyState
-                                archivedTasks={archivedTasks}
-                                archivedProjects={archivedProjects}
-                                hasFilters={hasFilters}
-                                onReset={resetFilters}
-                            />
-                        ) : (
-                            /* Grouped task rows */
-
-                            <div
-                                className={cn(
-                                    'px-3 pb-4 sm:px-4',
-                                    loading && 'opacity-60',
-                                )}
-                            >
-                                <GroupedTaskList
-                                    tasks={tasks}
-                                    groups={groupOptions}
-                                    onOpen={openTask}
-                                    onRestore={handleRestore}
-                                    restoringId={restoringId}
-                                />
-                            </div>
-                        )}
-
-                        {/* Pagination */}
-
-                        {!error && (
-                            <Pagination
-                                pagination={pagination}
-                                onPageChange={handlePageChange}
-                                loading={loading}
-                            />
-                        )}
-                    </section>
-
-                    <p className="pb-2 text-xs text-slate-400">
-                        Showing your accessible projects only.
-                        Archived and completed projects may contain
-                        read-only tasks.
-                    </p>
-                </div>
+                <p className="pb-2 text-xs text-slate-400">
+                    Showing your accessible projects only.
+                    Archived and completed projects may contain
+                    read-only tasks.
+                </p>
             </div>
 
             {/* Shared task drawer */}
