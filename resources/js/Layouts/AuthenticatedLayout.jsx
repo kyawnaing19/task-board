@@ -11,33 +11,23 @@ export default function AuthenticatedLayout({ header, children }) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
     const navigation = [
-        // {
-        //     name: 'Dashboard',
-        //     href: route('dashboard'),
-        //     icon: DashboardIcon,
-        //     active: route().current('dashboard'),
-        // },
-...(user?.role !== 'SUPER_ADMIN'
-        ? [
-              {
-                  name: 'Dashboard',
-                  href: route('dashboard'),
-                  icon: DashboardIcon,
-                  active: route().current('dashboard'),
-              },
-          ]
-        : []),
+        {
+            name: 'Dashboard',
+            href: route('dashboard'),
+            icon: DashboardIcon,
+            active: route().current('dashboard'),
+        },
         ...(user?.role === 'SUPER_ADMIN'
-    ? [
-        { name: 'Employees', href: route('employees.index'), icon: UsersIcon, active: route().current('employees.*') },
-        { name: 'Teams', href: route('teams.index'), icon: TeamIcon, active: route().current('teams.*') },
-    ]
-    : [
-        {   name: 'My Teams',
-            href: route('my-teams.index'),
-            icon: TeamIcon,
-            active: route().current('my-teams.*') },
-    ]),
+        ? [
+            { name: 'Employees', href: route('employees.index'), icon: UsersIcon, active: route().current('employees.*') },
+            { name: 'Teams', href: route('teams.index'), icon: TeamIcon, active: route().current('teams.*') },
+        ]
+        : [
+            {   name: 'My Teams',
+                href: route('my-teams.index'),
+                icon: TeamIcon,
+                active: route().current('my-teams.*') },
+        ]),
 
         {
         name: 'Projects',
@@ -46,14 +36,6 @@ export default function AuthenticatedLayout({ header, children }) {
         active: route().current('projects.*') || route().current('my-projects.*'),
         },
 
-
-
-        // {
-        //     name: 'Task Groups',
-        //     href: '#',
-        //     icon: TaskGroupIcon,
-        //     active: route().current('task-groups.*'),
-        // },
         ...(user?.role === 'SUPER_ADMIN'
         ? [{ name: 'Task Groups', href: route('task-groups.index'), icon: TaskGroupIcon, active: route().current('task-groups.*') }]
         : []),
@@ -62,12 +44,7 @@ export default function AuthenticatedLayout({ header, children }) {
         ? [{ name: 'Tags', href: route('tags.index'), icon: TagIcon, active: route().current('tags.*') }]
         : []),
 
-        // {
-        //     name: 'Tasks',
-        //     href: '#',
-        //     icon: TaskIcon,
-        //     active: route().current('tasks.*'),
-        // },
+      
         ...(user?.role !== 'SUPER_ADMIN'
         ? [{
             name: 'My Tasks',
