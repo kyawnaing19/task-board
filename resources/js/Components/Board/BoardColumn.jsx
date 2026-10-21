@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import GroupPill from '@/Components/GroupPill';
 import TaskCard from './TaskCard';
@@ -29,7 +29,117 @@ export default function BoardColumn({
     const listRef = useRef(null);
     const addTaskFormRef = useRef(null);
 
+    // Prevent duplicate requests for the same column.
+    const loadingLockRef = useRef(false);
+
     const [dropIndex, setDropIndex] = useState(null);
+
+    // Clear the request lock if the column changes.
+    useEffect(() => {
+        loadingLockRef.current = false;
+    }, [group.id]);
+
+    /**
+     * Automatically fetch the next page.
+     *
+     * The lock prevents multiple requests from being fired
+     * while the previous request is still running.
+     */
+    const requestMore = useCallback(() => {
+        if (
+            !onLoadMore ||
+            group.fully_loaded ||
+            group.next_cursor == null ||
+            loadingMore ||
+            loadingLockRef.current
+        ) {
+            return;
+        }
+
+        loadingLockRef.current = true;
+
+        Promise.resolve(onLoadMore(group))
+            .catch(() => {
+                // ProjectBoard handles request errors and notifications.
+            })
+            .finally(() => {
+                loadingLockRef.current = false;
+            });
+    }, [
+        group,
+        group.id,
+        group.fully_loaded,
+        group.next_cursor,
+        loadingMore,
+        onLoadMore,
+    ]);
+
+    /**
+     * Infinite scroll:
+     * Load the next page when the list is close to its bottom.
+     */
+    const checkScrollPosition = useCallback(() => {
+        const element = listRef.current;
+
+        if (
+            !element ||
+            group.fully_loaded ||
+            loadingMore ||
+            loadingLockRef.current
+        ) {
+            return;
+        }
+
+        const remainingScroll =
+            element.scrollHeight -
+            element.scrollTop -
+            element.clientHeight;
+
+        // Start loading shortly before reaching the bottom.
+        if (remainingScroll <= 100) {
+            requestMore();
+        }
+    }, [
+        group.fully_loaded,
+        loadingMore,
+        requestMore,
+    ]);
+
+    // Check when the user scrolls.
+    const handleListScroll = () => {
+        checkScrollPosition();
+    };
+
+    /**
+     * Check again when a new page arrives.
+     *
+     * If the column is still too short to scroll, automatically
+     * fetch another page until the column can scroll normally.
+     */
+    useEffect(() => {
+        const element = listRef.current;
+
+        if (
+            !element ||
+            group.fully_loaded ||
+            loadingMore
+        ) {
+            return;
+        }
+
+        const frame = requestAnimationFrame(() => {
+            checkScrollPosition();
+        });
+
+        return () => cancelAnimationFrame(frame);
+    }, [
+        group.id,
+        group.tasks.length,
+        group.next_cursor,
+        group.fully_loaded,
+        loadingMore,
+        checkScrollPosition,
+    ]);
 
     // Clear the drop indicator when dragging ends.
     useEffect(() => {
@@ -141,34 +251,6 @@ export default function BoardColumn({
 
     const hovering = accepts && dropIndex !== null;
 
-    // Close Add Task when clicking outside the form.
-    // useEffect(() => {
-    //     if (!addingTask) {
-    //         return undefined;
-    //     }
-
-    //     const handleOutsideClick = (event) => {
-    //         if (
-    //             addTaskFormRef.current &&
-    //             !addTaskFormRef.current.contains(event.target)
-    //         ) {
-    //             onAddTaskClose?.();
-    //         }
-    //     };
-
-    //     document.addEventListener(
-    //         'mousedown',
-    //         handleOutsideClick,
-    //     );
-
-    //     return () => {
-    //         document.removeEventListener(
-    //             'mousedown',
-    //             handleOutsideClick,
-    //         );
-    //     };
-    // }, [addingTask, onAddTaskClose]);
-
     return (
         <section
             onDragOver={handleDragOver}
@@ -177,8 +259,8 @@ export default function BoardColumn({
             className={`
                 flex
                 min-h-0
-                max-h-[calc(100vh-190px)]
-                max-h-[calc(100dvh-190px)]
+                max-h-[calc(100vh-240px)]
+                max-h-[calc(100dvh-240px)]
                 w-[min(19rem,calc(100vw-2rem))]
                 shrink-0
                 flex-col
@@ -222,6 +304,7 @@ export default function BoardColumn({
             {/* Only this area scrolls vertically */}
             <div
                 ref={listRef}
+                onScroll={handleListScroll}
                 className="
                     min-h-0
                     flex-1
@@ -274,6 +357,28 @@ export default function BoardColumn({
                         </div>
                     );
                 })}
+
+                {/* Automatic loading indicator */}
+                {!group.fully_loaded && (
+                    <div
+                        aria-live="polite"
+                        className="py-2 text-center"
+                    >
+                        {loadingMore && (
+                            <span className="inline-flex items-center gap-2 text-xs text-slate-500">
+                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-500" />
+                                Loading more tasks…
+                            </span>
+                        )}
+
+                        {!loadingMore && remaining > 0 && (
+                            <span className="text-[11px] text-slate-400">
+                                {remaining} more{' '}
+                                {remaining === 1 ? 'task' : 'tasks'}
+                            </span>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Drop message */}
@@ -281,47 +386,6 @@ export default function BoardColumn({
                 <p className="mt-2 shrink-0 text-center text-[11px] font-medium text-indigo-600">
                     Will be added to the end of this group
                 </p>
-            )}
-
-            {/* Load more stays outside the scrollable list */}
-            {!group.fully_loaded && (
-                <button
-                    type="button"
-                    onClick={() => onLoadMore(group)}
-                    disabled={loadingMore}
-                    className="
-                        mt-2
-                        w-full
-                        shrink-0
-                        rounded-lg
-                        border
-                        border-slate-200
-                        bg-white
-                        px-3
-                        py-2
-                        text-xs
-                        font-medium
-                        text-slate-600
-                        shadow-sm
-                        transition
-                        hover:border-slate-300
-                        hover:bg-slate-50
-                        hover:text-slate-900
-                        focus:outline-none
-                        focus-visible:ring-2
-                        focus-visible:ring-indigo-500
-                        disabled:cursor-not-allowed
-                        disabled:opacity-50
-                    "
-                >
-                    {loadingMore
-                        ? 'Loading…'
-                        : `Load more${
-                              remaining > 0
-                                  ? ` (${remaining})`
-                                  : ''
-                          }`}
-                </button>
             )}
 
             {/* Add Task stays visible and closed by default */}
