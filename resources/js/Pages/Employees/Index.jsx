@@ -177,7 +177,7 @@ export default function Index({ employees, roles, filters }) {
             <Head title="Employees" />
 
             {/* Page Header */}
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            {/* <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-xl font-semibold text-slate-900">
                         Employees
@@ -194,7 +194,7 @@ export default function Index({ employees, roles, filters }) {
                 >
                     + New employee
                 </button>
-            </div>
+            </div> */}
 
             {/* Search */}
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -232,7 +232,15 @@ export default function Index({ employees, roles, filters }) {
                             ×
                         </button>
                     )}
+
+                    
                 </div>
+                <button
+                    onClick={() => setCreateOpen(true)}
+                    className="shrink-0 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700"
+                >
+                    + New employee
+                </button>
 
                 {search && (
                     <p className="text-xs text-slate-500">

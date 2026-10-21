@@ -140,9 +140,9 @@ const menuItems = (project) => {
                 {/* Page heading */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+                        {/* <h1 className="text-xl font-semibold tracking-tight text-slate-900">
                             Projects
-                        </h1>
+                        </h1> */}
                         <p className="mt-1 text-sm text-slate-500">
                             Manage and track your projects.
                         </p>

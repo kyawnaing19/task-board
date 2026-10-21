@@ -9,7 +9,7 @@ import TaskDrawer from './TaskDrawer';
 
 import { readTaskParam, writeTaskParam } from '@/lib/taskParam';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 15;
 
 const EMPTY_FILTERS = {
     q: '',

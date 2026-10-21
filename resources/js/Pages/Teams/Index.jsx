@@ -117,7 +117,7 @@ export default function Index({ teams, filters }) {
 
             <div className="space-y-6">
                 {/* Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                {/* <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-xl font-semibold text-slate-900">
                             Teams
@@ -148,7 +148,7 @@ export default function Index({ teams, filters }) {
 
                         New team
                     </button>
-                </div>
+                </div> */}
 
                 {/* Tabs + Search + Count */}
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -176,8 +176,8 @@ export default function Index({ teams, filters }) {
                         </Link>
                     </div>
 
-                    {/* Search */}
-                    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
+                    {/* Search — after Tabs */}
+                    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:ml-auto lg:w-auto">
                         <div className="relative w-full sm:w-72">
                             <svg
                                 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
@@ -195,9 +195,7 @@ export default function Index({ teams, filters }) {
                             <input
                                 type="text"
                                 value={search}
-                                onChange={(e) =>
-                                    setSearch(e.target.value)
-                                }
+                                onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search teams..."
                                 className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                             />
@@ -220,6 +218,28 @@ export default function Index({ teams, filters }) {
                             {teams.total === 1 ? 'team' : 'teams'}
                         </div>
                     </div>
+
+                    {/* New Team Button */}
+                    <button
+                        type="button"
+                        onClick={() => setCreateOpen(true)}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    >
+                        <svg
+                            className="h-4 w-4"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden="true"
+                        >
+                            <path
+                                fillRule="evenodd"
+                                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                clipRule="evenodd"
+                            />
+                        </svg>
+
+                        New team
+                    </button>
                 </div>
 
                 {/* Success message */}

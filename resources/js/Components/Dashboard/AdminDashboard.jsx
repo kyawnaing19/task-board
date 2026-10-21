@@ -915,26 +915,20 @@ export default function AdminDashboard() {
     const summary = overview?.summary ?? {};
 
     return (
-        <div className="min-h-full bg-slate-50">
-            <div className="mx-auto max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="-mx-4 -my-4 min-h-full w-auto bg-slate-50 sm:-mx-6 sm:-my-6 lg:-mx-8 lg:-my-8">
+            <div className="w-full space-y-6 px-4 pb-6 pt-0 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8">
 
                 {/* Page heading */}
 
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <p className="text-sm font-semibold text-indigo-600">
-                            COMPANY OVERVIEW
+                <div className="mt-1 flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    {overview?.generated_at && (
+                        <p className="text-xs text-slate-400">
+                            Last updated: {formatDateTime(overview.generated_at)}
+                            {overview.timezone
+                                ? ` · ${overview.timezone}`
+                                : ''}
                         </p>
-
-                        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                            Admin Dashboard
-                        </h1>
-
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                            Monitor active projects, task progress,
-                            deadlines, and employee workload.
-                        </p>
-                    </div>
+                    )}
 
                     <button
                         type="button"
@@ -955,15 +949,7 @@ export default function AdminDashboard() {
 
                 {/* Last updated */}
 
-                {overview?.generated_at && (
-                    <p className="text-xs text-slate-400">
-                        Last updated: {formatDateTime(overview.generated_at)}
-
-                        {overview.timezone
-                            ? ` · ${overview.timezone}`
-                            : ''}
-                    </p>
-                )}
+                
 
                 {/* Main error */}
 

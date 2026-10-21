@@ -67,7 +67,7 @@ export default function Index({ tags, active_names, colors, filters }) {
 
             <div className="space-y-6">
                 {/* Header actions */}
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h1 className="text-xl font-semibold text-slate-900">
                             Tags
@@ -87,7 +87,7 @@ export default function Index({ tags, active_names, colors, filters }) {
                             New tag
                         </button>
                     )}
-                </div>
+                </div> */}
 
                 {/* Tabs */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -108,6 +108,16 @@ export default function Index({ tags, active_names, colors, filters }) {
                             Archived
                         </Link>
                     </div>
+                     {!isArchived && (
+                        <button
+                            type="button"
+                            onClick={() => setForm('create')}
+                            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        >
+                            <span className="text-lg leading-none">+</span>
+                            New tag
+                        </button>
+                    )}
                 </div>
 
                 {/* Success message */}

@@ -5,12 +5,40 @@ import Avatar from '@/Components/Avatar';
 
 export default function Show({ team, members = [] }) {
     return (
-        <AuthenticatedLayout header="My Teams">
+       <AuthenticatedLayout
+    header={
+        <div className="flex min-w-0 items-center gap-4">
+            <Link
+                href={route('my-teams.index')}
+                className="inline-flex shrink-0 items-center gap-2 rounded-md text-sm font-medium text-slate-500 transition hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+                <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    aria-hidden="true"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 19l-7-7 7-7"
+                    />
+                </svg>
+            </Link>
+
+            <h1 className="truncate text-base font-semibold text-slate-900 sm:text-lg">
+                My Teams
+            </h1>
+        </div>
+    }
+>
             <Head title={team.name} />
 
             <div className="space-y-6">
                 {/* Back Navigation */}
-                <Link
+                {/* <Link
                     href={route('my-teams.index')}
                     className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-md"
                 >
@@ -29,7 +57,7 @@ export default function Show({ team, members = [] }) {
                         />
                     </svg>
                     Back to my teams
-                </Link>
+                </Link> */}
 
                 {/* Team Header */}
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">

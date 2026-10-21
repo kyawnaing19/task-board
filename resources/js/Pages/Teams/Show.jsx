@@ -38,61 +38,42 @@ export default function Show({ team, members = [], projects = [] }) {
 
     return (
 
-        <AuthenticatedLayout header="Teams">
+        <AuthenticatedLayout
+            header={
+                <div className="flex min-w-0 items-center gap-2 text-sm">
+                    <Link
+                        href={route(
+                            'teams.index',
+                            archived ? { status: 'archived' } : {},
+                        )}
+                        className="shrink-0 font-medium text-slate-500 transition hover:text-indigo-600"
+                    >
+                        Teams
+                    </Link>
+
+                    <svg
+                        className="h-4 w-4 shrink-0 text-slate-300"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            fillRule="evenodd"
+                            d="M7.21 14.77a.75.75 0 001.06.02l4.25-4a.75.75 0 000-1.08l-4.25-4a.75.75 0 10-1.02 1.1L10.92 10l-3.71 3.48a.75.75 0 00.02 1.29z"
+                            clipRule="evenodd"
+                        />
+                    </svg>
+
+                    <span className="truncate font-semibold text-slate-900">
+                        {team.name}
+                    </span>
+                </div>
+            }
+        >
 
             <Head title={team.name} />
 
-            <div className="mx-auto w-full max-w-7xl space-y-6">
-
-                {/* Back navigation */}
-
-                <div>
-
-                    <Link
-
-                        href={route(
-
-                            'teams.index',
-
-                            archived ? { status: 'archived' } : {}
-
-                        )}
-
-                        className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-indigo-600"
-
-                    >
-
-                        <svg
-
-                            className="h-4 w-4"
-
-                            viewBox="0 0 24 24"
-
-                            fill="none"
-
-                            stroke="currentColor"
-
-                            strokeWidth="2"
-
-                        >
-
-                            <path
-
-                                strokeLinecap="round"
-
-                                strokeLinejoin="round"
-
-                                d="M19 12H5m7 7-7-7 7-7"
-
-                            />
-
-                        </svg>
-
-                        Back to teams
-
-                    </Link>
-
-                </div>
+            <div className="w-full space-y-6">
 
                 {/* Team header */}
 

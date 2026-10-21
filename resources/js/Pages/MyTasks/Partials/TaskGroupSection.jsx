@@ -687,6 +687,7 @@ export default function TaskGroupSection({
                     {/* Table Header */}
                     <div className="hidden grid-cols-[minmax(0,1fr)_110px_110px_120px] items-center gap-4 border-b border-slate-100 px-5 py-3 text-[13px] text-slate-400 sm:grid">
                         <span>Name</span>
+                        <span>Assignee</span>
                         <span>Priority</span>
                         <span className="flex items-center gap-1">
                             Due date
