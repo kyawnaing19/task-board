@@ -1693,8 +1693,7 @@ export default function Index() {
         
             <Head title="My Tasks" />
 
-            <div className="mx-auto max-w-[1600px] space-y-4">
-
+            <div className="w-full min-w-0 space-y-4">
                 {/* Task ownership — compact bar */}
 
                 <TaskOwnershipBar

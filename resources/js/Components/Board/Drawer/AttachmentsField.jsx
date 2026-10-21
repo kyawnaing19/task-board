@@ -3,6 +3,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { errorMessage } from '@/lib/http';
 import { formatDateTime } from '@/lib/taskFormat';
 
+import ConfirmationModal from '@/Components/ConfirmationModal';
+
 const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 const MAX_ATTACHMENT_COUNT = 10;
 
@@ -135,14 +137,14 @@ const formatFileSize = (bytes) => {
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export default function AttachmentsField({
-    taskId,
-    canManage,
-}) {
+export default function AttachmentsField({ taskId, canManage }) {
     const [attachments, setAttachments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState(null);
+
+    // Store the attachment selected for deletion.
+    const [deleteConfirmation, setDeleteConfirmation] = useState(null);
 
     const inputRef = useRef(null);
     const alive = useRef(true);
@@ -162,6 +164,7 @@ export default function AttachmentsField({
         setAttachments([]);
         setLoading(true);
         setError(null);
+        setDeleteConfirmation(null);
 
         fetch(route('tasks.attachments.index', taskId), {
             method: 'GET',
@@ -312,17 +315,30 @@ export default function AttachmentsField({
         }
     };
 
-    // Delete an attachment.
-    const deleteAttachment = async (attachment) => {
+    // Open the confirmation modal.
+    const requestDeleteAttachment = (attachment) => {
         if (!canManage || busy) {
             return;
         }
 
-        if (
-            !confirm(
-                `Delete "${attachment.original_name}"? This action cannot be undone.`,
-            )
-        ) {
+        setError(null);
+        setDeleteConfirmation(attachment);
+    };
+
+    // Cancel deletion.
+    const cancelDeleteAttachment = () => {
+        if (busy) {
+            return;
+        }
+
+        setDeleteConfirmation(null);
+    };
+
+    // Delete the attachment after confirmation.
+    const deleteAttachment = async () => {
+        const attachment = deleteConfirmation;
+
+        if (!attachment || !canManage || busy) {
             return;
         }
 
@@ -357,6 +373,8 @@ export default function AttachmentsField({
             setAttachments((previous) =>
                 previous.filter((item) => item.id !== attachment.id),
             );
+
+            setDeleteConfirmation(null);
         } catch (err) {
             if (alive.current) {
                 setError(
@@ -372,233 +390,261 @@ export default function AttachmentsField({
     };
 
     return (
-        <section className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2">
-                    <h3 className="text-sm font-semibold text-slate-800">
-                        Attachments
-                    </h3>
+        <>
+            <section className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <h3 className="text-sm font-semibold text-slate-800">
+                            Attachments
+                        </h3>
 
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-                        {attachments.length}
-                    </span>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                            {attachments.length}
+                        </span>
+                    </div>
+
+                    {canManage && (
+                        <>
+                            <input
+                                ref={inputRef}
+                                type="file"
+                                multiple
+                                accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
+                                onChange={uploadAttachments}
+                                disabled={busy}
+                                className="hidden"
+                                aria-label="Select attachment files"
+                            />
+
+                            <button
+                                type="button"
+                                onClick={() => inputRef.current?.click()}
+                                disabled={busy}
+                                className="
+                                    inline-flex shrink-0 items-center gap-2
+                                    rounded-lg border border-indigo-200
+                                    bg-indigo-50 px-3 py-2
+                                    text-xs font-semibold text-indigo-700
+                                    transition-colors hover:bg-indigo-100
+                                    focus:outline-none focus-visible:ring-2
+                                    focus-visible:ring-indigo-500
+                                    disabled:cursor-not-allowed disabled:opacity-50
+                                "
+                            >
+                                <UploadIcon />
+                                {busy ? 'Working…' : 'Upload files'}
+                            </button>
+                        </>
+                    )}
                 </div>
 
-                {canManage && (
-                    <>
-                        <input
-                            ref={inputRef}
-                            type="file"
-                            multiple
-                            accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
-                            onChange={uploadAttachments}
-                            disabled={busy}
-                            className="hidden"
-                            aria-label="Select attachment files"
-                        />
-
-                        <button
-                            type="button"
-                            onClick={() => inputRef.current?.click()}
-                            disabled={busy}
+                <div className="rounded-xl border border-slate-200/80 bg-white p-3.5">
+                    {error && (
+                        <div
+                            role="alert"
                             className="
-                                inline-flex shrink-0 items-center gap-2
-                                rounded-lg border border-indigo-200
-                                bg-indigo-50 px-3 py-2
-                                text-xs font-semibold text-indigo-700
-                                transition-colors hover:bg-indigo-100
-                                focus:outline-none focus-visible:ring-2
-                                focus-visible:ring-indigo-500
-                                disabled:cursor-not-allowed disabled:opacity-50
+                                mb-3 rounded-lg border border-rose-200
+                                bg-rose-50 px-3 py-2.5
+                                text-xs leading-5 text-rose-700
                             "
                         >
-                            <UploadIcon />
-                            {busy ? 'Working…' : 'Upload files'}
-                        </button>
-                    </>
-                )}
-            </div>
-
-            <div className="rounded-xl border border-slate-200/80 bg-white p-3.5">
-                {error && (
-                    <div
-                        role="alert"
-                        className="
-                            mb-3 rounded-lg border border-rose-200
-                            bg-rose-50 px-3 py-2.5
-                            text-xs leading-5 text-rose-700
-                        "
-                    >
-                        {error}
-                    </div>
-                )}
-
-                {busy && (
-                    <div
-                        className="mb-3 flex items-center gap-2 text-xs text-slate-500"
-                        role="status"
-                    >
-                        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
-                        Processing attachments…
-                    </div>
-                )}
-
-                {loading ? (
-                    <div className="space-y-3" aria-busy="true">
-                        <div className="h-14 animate-pulse rounded-lg bg-slate-50" />
-                        <div className="h-14 animate-pulse rounded-lg bg-slate-50" />
-                    </div>
-                ) : attachments.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center">
-                        <div className="text-slate-300">
-                            <AttachmentIcon />
+                            {error}
                         </div>
+                    )}
 
-                        <p className="mt-2 text-sm font-medium text-slate-600">
-                            No attachments yet
-                        </p>
+                    {busy && (
+                        <div
+                            className="mb-3 flex items-center gap-2 text-xs text-slate-500"
+                            role="status"
+                        >
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
+                            Processing attachments…
+                        </div>
+                    )}
 
-                        <p className="mt-1 text-xs leading-5 text-slate-400">
-                            Upload images or documents related to this task.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="space-y-2.5">
-                        {attachments.map((attachment) => {
-                            const isImage =
-                                typeof attachment.mime_type === 'string' &&
-                                attachment.mime_type.startsWith('image/') &&
-                                Boolean(attachment.preview_url);
+                    {loading ? (
+                        <div className="space-y-3" aria-busy="true">
+                            <div className="h-14 animate-pulse rounded-lg bg-slate-50" />
+                            <div className="h-14 animate-pulse rounded-lg bg-slate-50" />
+                        </div>
+                    ) : attachments.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center">
+                            <div className="text-slate-300">
+                                <AttachmentIcon />
+                            </div>
 
-                            return (
-                                <div
-                                    key={attachment.id}
-                                    className="
-                                        flex min-w-0 items-center gap-3
-                                        rounded-lg border border-slate-100
-                                        bg-white p-2.5 transition-colors
-                                        hover:border-slate-200 hover:bg-slate-50/70
-                                    "
-                                >
-                                    {isImage ? (
-                                        <a
-                                            href={attachment.preview_url}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="
-                                                h-12 w-12 shrink-0
-                                                overflow-hidden rounded-lg
-                                                border border-slate-200 bg-slate-50
-                                            "
-                                            aria-label={`Preview ${attachment.original_name}`}
-                                        >
-                                            <img
-                                                src={attachment.preview_url}
-                                                alt={attachment.original_name}
-                                                loading="lazy"
-                                                className="h-full w-full object-cover"
-                                            />
-                                        </a>
-                                    ) : (
-                                        <div
-                                            className="
-                                                flex h-12 w-12 shrink-0
-                                                items-center justify-center
-                                                rounded-lg border border-slate-200
-                                                bg-slate-50 text-slate-400
-                                            "
-                                        >
-                                            <FileIcon />
-                                        </div>
-                                    )}
+                            <p className="mt-2 text-sm font-medium text-slate-600">
+                                No attachments yet
+                            </p>
 
-                                    <div className="min-w-0 flex-1">
-                                        <p
-                                            title={attachment.original_name}
-                                            className="truncate text-sm font-medium text-slate-700"
-                                        >
-                                            {attachment.original_name}
-                                        </p>
+                            <p className="mt-1 text-xs leading-5 text-slate-400">
+                                Upload images or documents related to this task.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2.5">
+                            {attachments.map((attachment) => {
+                                const isImage =
+                                    typeof attachment.mime_type === 'string' &&
+                                    attachment.mime_type.startsWith('image/') &&
+                                    Boolean(attachment.preview_url);
 
-                                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-400">
-                                            <span>
-                                                {formatFileSize(attachment.size)}
-                                            </span>
-
-                                            {attachment.uploader?.name && (
-                                                <>
-                                                    <span aria-hidden="true">·</span>
-                                                    <span className="max-w-32 truncate">
-                                                        {attachment.uploader.name}
-                                                    </span>
-                                                </>
-                                            )}
-
-                                            {attachment.uploaded_at && (
-                                                <>
-                                                    <span aria-hidden="true">·</span>
-                                                    <span>
-                                                        {formatDateTime(
-                                                            attachment.uploaded_at,
-                                                        )}
-                                                    </span>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <a
-                                        href={attachment.download_url}
+                                return (
+                                    <div
+                                        key={attachment.id}
                                         className="
-                                            inline-flex h-8 w-8 shrink-0
-                                            items-center justify-center rounded-lg
-                                            text-slate-400 transition-colors
-                                            hover:bg-indigo-50 hover:text-indigo-600
-                                            focus:outline-none
-                                            focus-visible:ring-2
-                                            focus-visible:ring-indigo-500
+                                            flex min-w-0 items-center gap-3
+                                            rounded-lg border border-slate-100
+                                            bg-white p-2.5 transition-colors
+                                            hover:border-slate-200 hover:bg-slate-50/70
                                         "
-                                        aria-label={`Download ${attachment.original_name}`}
-                                        title="Download"
                                     >
-                                        <DownloadIcon />
-                                    </a>
+                                        {isImage ? (
+                                            <a
+                                                href={attachment.preview_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="
+                                                    h-12 w-12 shrink-0
+                                                    overflow-hidden rounded-lg
+                                                    border border-slate-200 bg-slate-50
+                                                "
+                                                aria-label={`Preview ${attachment.original_name}`}
+                                            >
+                                                <img
+                                                    src={attachment.preview_url}
+                                                    alt={attachment.original_name}
+                                                    loading="lazy"
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            </a>
+                                        ) : (
+                                            <div
+                                                className="
+                                                    flex h-12 w-12 shrink-0
+                                                    items-center justify-center
+                                                    rounded-lg border border-slate-200
+                                                    bg-slate-50 text-slate-400
+                                                "
+                                            >
+                                                <FileIcon />
+                                            </div>
+                                        )}
 
-                                    {canManage && (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                deleteAttachment(attachment)
-                                            }
-                                            disabled={busy}
+                                        <div className="min-w-0 flex-1">
+                                            <p
+                                                title={attachment.original_name}
+                                                className="truncate text-sm font-medium text-slate-700"
+                                            >
+                                                {attachment.original_name}
+                                            </p>
+
+                                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-400">
+                                                <span>
+                                                    {formatFileSize(
+                                                        attachment.size,
+                                                    )}
+                                                </span>
+
+                                                {attachment.uploader?.name && (
+                                                    <>
+                                                        <span aria-hidden="true">
+                                                            ·
+                                                        </span>
+
+                                                        <span className="max-w-32 truncate">
+                                                            {attachment.uploader.name}
+                                                        </span>
+                                                    </>
+                                                )}
+
+                                                {attachment.uploaded_at && (
+                                                    <>
+                                                        <span aria-hidden="true">
+                                                            ·
+                                                        </span>
+
+                                                        <span>
+                                                            {formatDateTime(
+                                                                attachment.uploaded_at,
+                                                            )}
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <a
+                                            href={attachment.download_url}
                                             className="
                                                 inline-flex h-8 w-8 shrink-0
                                                 items-center justify-center rounded-lg
                                                 text-slate-400 transition-colors
-                                                hover:bg-rose-50 hover:text-rose-600
+                                                hover:bg-indigo-50 hover:text-indigo-600
                                                 focus:outline-none
                                                 focus-visible:ring-2
-                                                focus-visible:ring-rose-500
-                                                disabled:cursor-not-allowed
-                                                disabled:opacity-40
+                                                focus-visible:ring-indigo-500
                                             "
-                                            aria-label={`Delete ${attachment.original_name}`}
-                                            title="Delete attachment"
+                                            aria-label={`Download ${attachment.original_name}`}
+                                            title="Download"
                                         >
-                                            <DeleteIcon />
-                                        </button>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                                            <DownloadIcon />
+                                        </a>
 
-                <p className="mt-3 text-[11px] leading-5 text-slate-400">
-                    Supported formats: images, PDF, Office documents, text,
-                    CSV and ZIP. Maximum 10 files per upload, 10 MB per file.
-                </p>
-            </div>
-        </section>
+                                        {canManage && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    requestDeleteAttachment(
+                                                        attachment,
+                                                    )
+                                                }
+                                                disabled={busy}
+                                                className="
+                                                    inline-flex h-8 w-8 shrink-0
+                                                    items-center justify-center rounded-lg
+                                                    text-slate-400 transition-colors
+                                                    hover:bg-rose-50 hover:text-rose-600
+                                                    focus:outline-none
+                                                    focus-visible:ring-2
+                                                    focus-visible:ring-rose-500
+                                                    disabled:cursor-not-allowed
+                                                    disabled:opacity-40
+                                                "
+                                                aria-label={`Delete ${attachment.original_name}`}
+                                                title="Delete attachment"
+                                            >
+                                                <DeleteIcon />
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    <p className="mt-3 text-[11px] leading-5 text-slate-400">
+                        Supported formats: images, PDF, Office documents, text,
+                        CSV and ZIP. Maximum 10 files per upload, 10 MB per file.
+                    </p>
+                </div>
+            </section>
+
+            <ConfirmationModal
+                show={Boolean(deleteConfirmation)}
+                title="Delete attachment?"
+                message={
+                    deleteConfirmation
+                        ? `Are you sure you want to delete "${deleteConfirmation.original_name}"? This action cannot be undone.`
+                        : ''
+                }
+                confirmText="Delete attachment"
+                cancelText="Cancel"
+                onConfirm={deleteAttachment}
+                onCancel={cancelDeleteAttachment}
+                processing={busy}
+                variant="danger"
+            />
+        </>
     );
 }

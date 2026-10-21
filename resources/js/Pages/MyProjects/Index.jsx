@@ -135,10 +135,24 @@ export default function Index({ projects, filters }) {
                                 {/* Project Rows */}
                                 {rows.map((project, index) => (
                                     
-                                    <tr
+                                   <tr
                                         key={project.id}
-                                        className="transition-colors hover:bg-slate-50 cursor-pointer"
-                                        onClick={() => router.visit(route('my-projects.show', project.id))}
+                                        className="cursor-pointer transition-colors hover:bg-slate-50"
+                                        onClick={(event) => {
+                                            if (event.defaultPrevented) return;
+
+                                            if (
+                                                event.target.closest(
+                                                    'button, a, [role="menu"], [role="menuitem"]'
+                                                )
+                                            ) {
+                                                return;
+                                            }
+
+                                            router.visit(
+                                                route('my-projects.show', project.id)
+                                            );
+                                        }}
                                     >
                                         {/* Project */}
                                         <td className="px-5 py-4">
@@ -166,15 +180,9 @@ export default function Index({ projects, filters }) {
                                                             {project.code}
                                                         </span>
 
-                                                        <Link
-                                                            // href={route(
-                                                            //     'my-projects.show',
-                                                            //     project.id,
-                                                            // )}
-                                                            className="break-words font-semibold text-slate-900 transition-colors hover:text-indigo-600"
-                                                        >
-                                                            {project.name}
-                                                        </Link>
+                                                         <span className="truncate">
+                                                                    {project.name }
+                                                        </span>
                                                     </div>
 
                                                     {project.description && (
