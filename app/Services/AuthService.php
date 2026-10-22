@@ -1,5 +1,7 @@
 <?php
+
 namespace App\Services;
+
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Http\Request;
@@ -16,40 +18,40 @@ class AuthService
     /**
      * Authenticate user credential & state.
      */
-   public function authenticate(
-    string $email,
-    string $password,
-    bool $remember,
-    Request $request
+    public function authenticate(
+        string $email,
+        string $password,
+        bool $remember,
+        Request $request
     ): User {
-    $user = $this->userRepository->findByEmail($email);
+        $user = $this->userRepository->findByEmail($email);
 
-    if (! $user || ! Hash::check($password, $user->password)) {
-        //dd("reach");
-        throw ValidationException::withMessages([
-            'email' => trans('auth.failed'),
-        
-        ]);
+        if (! $user || ! Hash::check($password, $user->password)) {
+            // dd("reach");
+            throw ValidationException::withMessages([
+                'email' => trans('auth.failed'),
+
+            ]);
+        }
+
+        if (! $user->isActive()) {
+            throw ValidationException::withMessages([
+                'email' => 'Your account is inactive.',
+            ]);
+        }
+
+        if ($user->password_expires_at && $user->password_expires_at->isPast()) {
+            throw ValidationException::withMessages([
+                'email' => 'Your temporary password has expired. Please contact your administrator.',
+            ]);
+        }
+
+        Auth::login($user, $remember);
+
+        $request->session()->regenerate();
+
+        return $user;
     }
-
-    if (! $user->isActive()) {
-        throw ValidationException::withMessages([
-            'email' => 'Your account is inactive.',
-        ]);
-    }
-
-    if ($user->password_expires_at && $user->password_expires_at->isPast()) {
-    throw ValidationException::withMessages([
-        'email' => 'Your temporary password has expired. Please contact your administrator.',
-    ]);
-    }
-
-    Auth::login($user, $remember);
-
-    $request->session()->regenerate();
-
-    return $user;
-}
 
     /**
      * Logout and invalidate session.
