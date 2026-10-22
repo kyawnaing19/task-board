@@ -5,6 +5,7 @@ import RowActionsMenu from '@/Components/RowActionsMenu';
 import TagChip from '@/Components/TagChip';
 import TagFormModal from './Partials/TagFormModal';
 import RestoreTagModal from './Partials/RestoreTagModal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 
 const formatDate = (value) =>
     value
@@ -24,25 +25,32 @@ export default function Index({ tags, active_names, colors, filters }) {
     const isArchived = filters.status === 'archived';
     const anyModal = form || restoring;
 
+    const [archiving, setArchiving] = useState(null);
+    const [archiveProcessing, setArchiveProcessing] = useState(false);
+
     const archive = (tag) => {
-        const used =
-            tag.tasks_count > 0
-                ? ` It is used on ${tag.tasks_count} ${
-                      tag.tasks_count === 1 ? 'task' : 'tasks'
-                  }; they keep the tag as an inactive label.`
-                : '';
-
-        if (
-            !confirm(
-                `Archive "${tag.name}"? It can no longer be selected on tasks.${used}`
-            )
-        )
-            return;
-
-        router.post(route('tags.archive', tag.id), {}, {
-            preserveScroll: true,
-        });
+    setArchiving(tag);
     };
+
+    
+
+    const confirmArchive = () => {
+    if (!archiving || archiveProcessing) return;
+
+    setArchiveProcessing(true);
+
+    router.post(
+        route('tags.archive', archiving.id),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                setArchiveProcessing(false);
+                setArchiving(null);
+            },
+        },
+    );
+};
 
     const menuItems = (tag) => [
         { label: 'Edit', onClick: () => setForm(tag) },
@@ -239,6 +247,35 @@ export default function Index({ tags, active_names, colors, filters }) {
                     onClose={() => setRestoring(null)}
                 />
             )}
+
+            {/* Archive confirmation modal */}
+<ConfirmationModal
+    show={Boolean(archiving)}
+    title="Archive tag?"
+    message={
+        archiving
+            ? `Archive "${archiving.name}"? It can no longer be selected on tasks.${
+                  archiving.tasks_count > 0
+                      ? ` It is used on ${archiving.tasks_count} ${
+                            archiving.tasks_count === 1 ? 'task' : 'tasks'
+                        }; they keep the tag as an inactive label.`
+                      : ''
+              }`
+            : ''
+    }
+    confirmText="Archive"
+    cancelText="Cancel"
+    variant="danger"
+    processing={archiveProcessing}
+    onConfirm={confirmArchive}
+    onCancel={() => {
+        if (!archiveProcessing) {
+            setArchiving(null);
+        }
+    }}
+/>
         </AuthenticatedLayout>
+
+        
     );
 }
