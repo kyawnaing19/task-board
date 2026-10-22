@@ -21,6 +21,9 @@ import PeopleField from './Drawer/PeopleField';
 import TagsField from './Drawer/TagsField';
 import AttachmentsField from './Drawer/AttachmentsField';
 import HistoryTimeline from './Drawer/HistoryTimeline';
+import ConfirmationModal from '@/Components/ConfirmationModal';
+
+
 
 const PERSON_LABELS = {
     inactive: 'inactive',
@@ -40,7 +43,6 @@ const PRIORITY_STYLES = {
     HIGH: 'border-amber-200 bg-amber-50 text-amber-700',
     URGENT: 'border-rose-200 bg-rose-50 text-rose-700',
 };
-
 // Preserve previously loaded history pages after refreshing task details.
 const mergeHistory = (prev, next) => {
     const byId = new Map();
@@ -138,6 +140,18 @@ export default function TaskDrawer({
     const [busy, setBusy] = useState(false);
     const [notice, setNotice] = useState(null);
     const [olderLoading, setOlderLoading] = useState(false);
+
+    const [confirmation, setConfirmation] = useState({
+        show: false,
+        title: '',
+        message: '',
+        confirmText: 'Confirm',
+        variant: 'danger',
+        onConfirm: null,
+    });
+
+    const [confirmationProcessing, setConfirmationProcessing] =
+        useState(false);
 
     const alive = useRef(true);
 
@@ -241,54 +255,66 @@ export default function TaskDrawer({
 
     // Save task changes.
     const save = async (patch) => {
-        setBusy(true);
-        setNotice(null);
+    setBusy(true);
+    setNotice(null);
 
-        try {
-            const { task: card } = await patchJson(
-                route('tasks.update', taskId),
-                patch,
-            );
+    try {
+        const { task: card } = await patchJson(
+            route('tasks.update', taskId),
+            patch,
+        );
 
-            if (!alive.current) {
-                return;
-            }
-
-            onCardChange(card);
-
-            await refresh();
-        } finally {
-            if (alive.current) {
-                setBusy(false);
-            }
+        if (!alive.current) {
+            return false;
         }
-    };
+
+        onCardChange(card);
+
+        await refresh();
+
+        return true;
+    } catch (err) {
+        if (alive.current) {
+            setNotice(errorMessage(err, ['task', 'project']));
+        }
+
+        return false;
+    } finally {
+        if (alive.current) {
+            setBusy(false);
+        }
+    }
+};
 
     // Archive and restore actions.
     const act = async (url, handler) => {
-        setBusy(true);
-        setNotice(null);
+    setBusy(true);
+    setNotice(null);
 
-        try {
-            const { task: card } = await postJson(url);
+    try {
+        const { task: card } = await postJson(url);
 
-            if (!alive.current) {
-                return;
-            }
-
-            handler(card);
-
-            await refresh();
-        } catch (err) {
-            if (alive.current) {
-                setNotice(errorMessage(err, ['task', 'project']));
-            }
-        } finally {
-            if (alive.current) {
-                setBusy(false);
-            }
+        if (!alive.current) {
+            return false;
         }
-    };
+
+        handler(card);
+
+        await refresh();
+
+        return true;
+    } catch (err) {
+        if (alive.current) {
+            setNotice(errorMessage(err, ['task', 'project']));
+        }
+
+        return false;
+    } finally {
+        if (alive.current) {
+            setBusy(false);
+        }
+    }
+};
 
     // Move the task to another group.
     const changeGroup = async (groupId) => {
@@ -395,25 +421,50 @@ export default function TaskDrawer({
 
     // Remove assignee.
     const removeAssignee = async (person) => {
-        const authorityComesFromAssignment =
-            !isAdmin && task.creator?.id !== viewer.id;
+    const authorityComesFromAssignment =
+        !isAdmin && task.creator?.id !== viewer.id;
 
-        if (
-            person.id === viewer.id &&
-            authorityComesFromAssignment &&
-            !confirm(
-                'Remove yourself from this task? You will no longer be able to edit it, but you can still view it while you are a member of the project.',
-            )
-        ) {
-            return;
-        }
+    const removingSelf = person.id === viewer.id;
 
-        await save({
+    const updateAssignees = () =>
+        save({
             assignee_ids: task.assignees
                 .filter((assignee) => assignee.id !== person.id)
                 .map((assignee) => assignee.id),
         });
-    };
+
+    if (!removingSelf || !authorityComesFromAssignment) {
+        await updateAssignees();
+        return;
+    }
+
+    setConfirmation({
+        show: true,
+        title: 'Remove yourself from this task?',
+        message:
+            'You will no longer be able to edit this task, but you can still view it while you are a member of the project.',
+        confirmText: 'Remove myself',
+        variant: 'danger',
+
+        onConfirm: async () => {
+            setConfirmationProcessing(true);
+
+            try {
+                const success = await updateAssignees();
+
+                if (success) {
+                    setConfirmation((current) => ({
+                        ...current,
+                        show: false,
+                        onConfirm: null,
+                    }));
+                }
+            } finally {
+                setConfirmationProcessing(false);
+            }
+        },
+    });
+};
 
     // Add tag.
     const addTag = (id) =>
@@ -431,16 +482,35 @@ export default function TaskDrawer({
 
     // Archive task.
     const archive = () => {
-        if (
-            !confirm(
-                `Archive ${task.code}? It leaves the board and normal search results, but its assignments and history are kept. You can restore it later.`,
-            )
-        ) {
-            return;
-        }
+    setConfirmation({
+        show: true,
+        title: 'Archive task?',
+        message: `Are you sure you want to archive ${task.code}? It will leave the board and normal search results, but its assignments and history will be kept. You can restore it later.`,
+        confirmText: 'Archive task',
+        variant: 'danger',
 
-        act(route('tasks.archive', taskId), onArchived);
-    };
+        onConfirm: async () => {
+            setConfirmationProcessing(true);
+
+            try {
+                const success = await act(
+                    route('tasks.archive', taskId),
+                    onArchived,
+                );
+
+                if (success) {
+                    setConfirmation((current) => ({
+                        ...current,
+                        show: false,
+                        onConfirm: null,
+                    }));
+                }
+            } finally {
+                setConfirmationProcessing(false);
+            }
+        },
+    });
+};
 
     // Restore task.
     const restore = () => {
@@ -927,6 +997,7 @@ export default function TaskDrawer({
                         )}
                     </div>
                 </div>
+                
 
                 {/* Footer actions */}
                 {task &&
@@ -989,7 +1060,31 @@ export default function TaskDrawer({
                             )}
                         </footer>
                     )}
+
+                    
             </aside>
+            <ConfirmationModal
+    show={confirmation.show}
+    title={confirmation.title}
+    message={confirmation.message}
+    confirmText={confirmation.confirmText}
+    cancelText="Cancel"
+    variant={confirmation.variant}
+    processing={confirmationProcessing}
+    onConfirm={confirmation.onConfirm}
+    onCancel={() => {
+        if (confirmationProcessing) return;
+
+        setConfirmation((current) => ({
+            ...current,
+            show: false,
+            onConfirm: null,
+        }));
+    }}
+/>
         </div>
+
+        
     );
+    
 }

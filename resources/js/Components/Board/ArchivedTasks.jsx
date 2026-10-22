@@ -408,23 +408,25 @@ export default function ArchivedTasks({ projectId, onChanged }) {
                         </p>
                     </div>
                 ) : data ? (
-                    /* Task list */
-                    <ul
-                        className={`divide-y divide-slate-100 transition-opacity ${
-                            loading ? 'opacity-60' : 'opacity-100'
-                        }`}
-                        aria-busy={loading}
-                    >
-                        {data.data.map((task) => (
-                            <Row
-                                key={task.id}
-                                task={task}
-                                restoring={restoringId === task.id}
-                                onOpen={openTask}
-                                onRestore={restore}
-                            />
-                        ))}
-                    </ul>
+                    /* Task list: scroll inside the list instead of the page */
+                    <div className="max-h-[calc(100dvh-19rem)] min-h-0 overflow-y-auto overscroll-contain">
+                        <ul
+                            className={`divide-y divide-slate-100 transition-opacity ${
+                                loading ? 'opacity-60' : 'opacity-100'
+                            }`}
+                            aria-busy={loading}
+                        >
+                            {data.data.map((task) => (
+                                <Row
+                                    key={task.id}
+                                    task={task}
+                                    restoring={restoringId === task.id}
+                                    onOpen={openTask}
+                                    onRestore={restore}
+                                />
+                            ))}
+                        </ul>
+                    </div>
                 ) : null}
 
                 {/* Pagination */}
