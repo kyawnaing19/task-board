@@ -9,10 +9,11 @@ use Illuminate\Support\Facades\DB;
 
 class TagRepository implements TagRepositoryInterface
 {
-    public function list(bool $archived = false): Collection
+    public function list(bool $archived = false, string $search = ''): Collection
     {
         return Tag::query()
             ->when($archived, fn ($q) => $q->archived()->latest('archived_at'), fn ($q) => $q->active()->ordered())
+            ->when($search !== '', fn ($q) => $q->where('name', 'like', "%{$search}%"))
             ->get();
     }
 

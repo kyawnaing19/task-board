@@ -24,9 +24,10 @@ class TagController extends Controller
     public function index(Request $request): Response
     {
         $archived = $request->query('status') === 'archived';
+        $search = $request->query('search', '');
 
-        $active = $this->tags->list(false);
-        $rows = $archived ? $this->tags->list(true) : $active;
+        $active = $this->tags->list(false, $search);
+        $rows = $archived ? $this->tags->list(true, $search) : $active;
         $usage = $this->tags->usageCounts($rows->pluck('id')->all());
 
         return Inertia::render('Tags/Index', [
@@ -40,7 +41,7 @@ class TagController extends Controller
             // Restore မှာ နာမည်တူနေလားကို client က ကြိုစစ်ဖို့
             'active_names' => $active->pluck('name')->values(),
             'colors'       => array_column(GroupColor::cases(), 'value'),
-            'filters'      => ['status' => $archived ? 'archived' : 'active'],
+            'filters'      => ['status' => $archived ? 'archived' : 'active', 'search' => $search],
         ]);
     }
 

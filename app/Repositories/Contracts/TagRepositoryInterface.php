@@ -7,7 +7,7 @@ use Illuminate\Support\Collection;
 
 interface TagRepositoryInterface
 {
-    public function list(bool $archived = false): Collection;
+    public function list(bool $archived = false, string $search = ''): Collection;
 
     /** Tag row အားလုံးကို lock လုပ်ပြီး ယူမယ် (နာမည်ထပ်တာကို serialize လုပ်ဖို့) */
     public function lockAll(): Collection;
