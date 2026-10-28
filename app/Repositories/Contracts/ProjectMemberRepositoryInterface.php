@@ -12,8 +12,13 @@ interface ProjectMemberRepositoryInterface
     public function members(Project $project): Collection;
 
     /** Individual အဖြစ် ထည့်လို့ရတဲ့ active EMPLOYEE များ (ဒီ project မှာ individual row မရှိသေးသူ) */
-    public function candidates(Project $project, ?string $search = null, int $limit = 20): Collection;
+    //public function candidates(Project $project, ?string $search = null, int $limit = 20): Collection;
 
+    public function candidates(Project $project, ?string $search = null, int $limit = 20, ?array $teamIds = null): Collection;
+
+    /** $userIds ထဲက $teamIds ထဲက team တစ်ခုခုရဲ့ active member ဖြစ်သူများ */
+    public function userIdsInTeams(array $teamIds, array $userIds): array;
+    
     public function eligibleEmployeeIds(array $userIds): array;
 
     /** ပေးထားတဲ့ id တွေထဲက ဒီ project မှာ active individual member ဖြစ်နေပြီးသားတွေ */

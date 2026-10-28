@@ -11,7 +11,9 @@ use App\Repositories\Contracts\ProjectMemberRepositoryInterface;
 use App\Repositories\Contracts\ProjectRepositoryInterface;
 use App\Repositories\Contracts\ProjectTeamRepositoryInterface;
 use App\Services\ProjectAccess;
+use App\Services\ProjectCreationService;
 use App\Services\ProjectService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,7 +26,8 @@ class ProjectController extends Controller
         protected ProjectRepositoryInterface $projects,
         protected ProjectTeamRepositoryInterface $teamLinks,
         protected ProjectMemberRepositoryInterface $memberLinks,
-        protected ProjectAccess $access
+        protected ProjectAccess $access,
+        protected ProjectCreationService $creation,
     ) {}
 
     public function index(Request $request): Response
@@ -43,33 +46,31 @@ class ProjectController extends Controller
     }
 
 
+    // public function store(StoreProjectRequest $request): RedirectResponse
+    // {
+    //     $project = $this->service->create($request->user(), $request->validated());
+
+    //     return redirect()
+    //         ->route('projects.index')
+    //         ->with('success', "Project {$project->code} created.");
+    // }
     public function store(StoreProjectRequest $request): RedirectResponse
     {
-        $project = $this->service->create($request->user(), $request->validated());
+        $project = $this->creation->create($request->user(), $request->validated());
 
-        return redirect()
-            ->route('projects.index')
-            ->with('success', "Project {$project->code} created.");
+        // Leader ကို ဆောက်ပြီးတဲ့ project ဆီ၊ Super Admin ကို list ဆီ ပိုမယ်
+        if ($request->user()->isSuperAdmin()) {
+            return redirect()->route('projects.index')->with('success', "Project {$project->code} created.");
+        }
+
+        return redirect()->route('my-projects.show', $project->id)->with('success', "Project {$project->code} created.");
     }
 
-    // public function show(Project $project): Response
-    // {
-    //     $project->load(['creator:id,name', 'archiver:id,name']);
+    public function createOptions(Request $request): JsonResponse
+    {
+        return response()->json($this->creation->options($request->user()));
+    }
 
-    //     return Inertia::render('Projects/Show', [
-    //         'project'   => $project,
-    //         'read_only' => $project->isReadOnly(),
-    //         'teams'     => $this->teamLinks->linkedTeams($project)->map(fn ($team) => [
-    //             'id'            => $team->id,
-    //             'name'          => $team->name,
-    //             'description'   => $team->description,
-    //             'members_count' => $team->members_count,
-    //             'archived'      => $team->archived_at !== null,
-    //         ])->values(),
-    //         // Team source ကနေ လက်ရှိ access ရနေတဲ့ Employee အရေအတွက် (individual source ကို နောက်အဆင့်မှာ ထပ်ပေါင်းမယ်)
-    //         'access_count' => count($this->access->memberIds($project)),
-    //     ]);
-    // }
 
     public function show(Project $project): Response
     {
@@ -104,18 +105,36 @@ class ProjectController extends Controller
         ]);
     }
 
+    // public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
+    // {
+    //     $this->service->update($project, $request->validated());
+
+    //     return back()->with('success', 'Project updated.');
+    // }
+
     public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
     {
-        $this->service->update($project, $request->validated());
+        $this->service->update($request->user(), $project, $request->validated());
 
         return back()->with('success', 'Project updated.');
     }
+
+    // public function changeStatus(ChangeProjectStatusRequest $request, Project $project): RedirectResponse
+    // {
+    //     $target = ProjectStatus::from($request->validated('status'));
+
+    //     $this->service->changeStatus($project, $target);
+
+    //     return back()->with('success', $target === ProjectStatus::COMPLETED
+    //         ? 'Project marked as completed.'
+    //         : 'Project reopened.');
+    // }
 
     public function changeStatus(ChangeProjectStatusRequest $request, Project $project): RedirectResponse
     {
         $target = ProjectStatus::from($request->validated('status'));
 
-        $this->service->changeStatus($project, $target);
+        $this->service->changeStatus($request->user(), $project, $target);
 
         return back()->with('success', $target === ProjectStatus::COMPLETED
             ? 'Project marked as completed.'

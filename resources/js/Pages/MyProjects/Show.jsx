@@ -1,4 +1,4 @@
-//import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -8,32 +8,39 @@ import ProjectBoard from '@/Components/Board/ProjectBoard';
 import ArchivedTasks from '@/Components/Board/ArchivedTasks';
 import ProjectTabs from '@/Components/ProjectTabs';
 
+import EditProjectModal from '@/Pages/Projects/Partials/EditProjectModal';
+
 import useProjectTab from '@/lib/useProjectTab';
 import { formatDate, isOverdue } from '@/lib/dates';
-
-import React, { useEffect, useState } from 'react';
 
 export default function Show({
     project,
     teams = [],
     members = [],
+    permissions = {},
+    type_suggestions = [],
 }) {
     // --------------------------------------------------
     // Project tabs
     // --------------------------------------------------
 
-    //const [tab, setTab] = useProjectTab();
     const [tab, setTab] = useProjectTab();
 
-useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
 
-    if (params.has('task') && params.get('task')) {
-        setTab('board');
-    }
-}, [setTab]);
+        if (params.has('task') && params.get('task')) {
+            setTab('board');
+        }
+    }, [setTab]);
 
-    // Increment after restoring an archived task.
+    // --------------------------------------------------
+    // Modal state
+    // --------------------------------------------------
+
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+    // Refresh board after archived task changes.
     const [boardVersion, setBoardVersion] = useState(0);
 
     // --------------------------------------------------
@@ -44,8 +51,10 @@ useEffect(() => {
     const completed = project.status === 'COMPLETED';
     const readOnly = archived || completed;
 
-    // Change component identity only when project status changes.
     const projectVersion = `${project.status}-${project.archived_at ?? 'live'}`;
+
+    // Only users authorized by the backend can see Edit.
+    const canEditProject = Boolean(permissions?.can_edit) && !readOnly;
 
     // --------------------------------------------------
     // Archived task actions
@@ -186,10 +195,6 @@ useEffect(() => {
 
                 {/* =========================================
                     PROJECT BOARD
-
-                    Keep mounted while changing tabs.
-                    Pass active and refreshToken as in the
-                    reference Projects Show component.
                 ========================================= */}
 
                 <section
@@ -210,9 +215,6 @@ useEffect(() => {
 
                 {/* =========================================
                     ARCHIVED TASKS
-
-                    Mount only when the archived tab opens.
-                    Notify the board when a task is restored.
                 ========================================= */}
 
                 {tab === 'archived' && (
@@ -239,122 +241,151 @@ useEffect(() => {
                             : 'hidden'
                     }
                 >
-                {/* Project Details */}
-                <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    {/* Header */}
-                    <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50">
-                            <svg
-                                className="h-5 w-5 text-indigo-600"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.7"
-                                aria-hidden="true"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M8.25 6.75h7.5m-7.5 4.5h7.5m-7.5 4.5h4.5M6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6A2.25 2.25 0 0 1 6 3.75Z"
-                                />
-                            </svg>
-                        </div>
+                    {/* =====================================
+                        PROJECT DETAILS
+                    ===================================== */}
 
-                        <div>
-                            <h2 className="text-sm font-semibold text-slate-900">
-                                Project details
-                            </h2>
-
-                            <p className="mt-0.5 text-xs text-slate-500">
-                                Description and project timeline
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Details */}
-                    <dl className="grid gap-4 p-3 sm:grid-cols-2">
-                        {/* Description - Left */}
-                        <div className="min-w-0">
-                            <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Description
-                            </dt>
-
-                            <dd className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-700">
-                                {project.description || (
-                                    <span className="italic text-slate-400">
-                                        No description provided.
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        {/* Project Type - Right */}
-                        <div className="min-w-0">
-                            <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Project type
-                            </dt>
-
-                            <dd className="mt-2">
-                                {project.type ? (
-                                    <span className="inline-flex max-w-full items-center rounded-lg border border-indigo-100 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700">
-                                        <span className="truncate">
-                                            {project.type}
-                                        </span>
-                                    </span>
-                                ) : (
-                                    <span className="text-sm italic text-slate-400">
-                                        No type specified.
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        {/* Start Date */}
-                        <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-                            <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Start date
-                            </dt>
-
-                            <dd className="mt-2 text-sm font-medium text-slate-800">
-                                {formatDate(project.start_date)}
-                            </dd>
-                        </div>
-
-                        {/* Target Due Date */}
-                        <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-                            <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                Target due date
-                            </dt>
-
-                            <dd className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                                <span
-                                    className={
-                                        isOverdue(project)
-                                            ? 'font-semibold text-rose-600'
-                                            : 'font-medium text-slate-800'
-                                    }
+                    <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                        {/* Header */}
+                        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
+                                <svg
+                                    className="h-5 w-5 text-indigo-600"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.7"
+                                    aria-hidden="true"
                                 >
-                                    {formatDate(project.due_date)}
-                                </span>
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M8.25 6.75h7.5m-7.5 4.5h7.5m-7.5 4.5h4.5M6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6A2.25 2.25 0 0 1 6 3.75Z"
+                                    />
+                                </svg>
+                            </div>
 
-                                {isOverdue(project) && (
-                                    <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-200">
-                                        Overdue
-                                    </span>
-                                )}
-                            </dd>
+                            <div className="min-w-0 flex-1">
+                                <h2 className="text-sm font-semibold text-slate-900">
+                                    Project details
+                                </h2>
+
+                                <p className="mt-0.5 text-xs text-slate-500">
+                                    Description and project timeline
+                                </p>
+                            </div>
+
+                            {/* Edit Project Button */}
+                            {canEditProject && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(true)}
+                                    className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                >
+                                    <svg
+                                        className="h-4 w-4"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.8"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="m16.862 4.487 2.651 2.651M8.25 16.5l7.94-7.94a1.875 1.875 0 0 0-2.652-2.652l-7.94 7.94L4.5 19.5l4.5-3Z"
+                                        />
+                                    </svg>
+
+                                    <span>Edit project</span>
+                                </button>
+                            )}
                         </div>
-                    </dl>
-                </section>
 
-                    {/* =========================================
+                        {/* Details */}
+                        <dl className="grid gap-4 p-3 sm:grid-cols-2">
+                            {/* Description */}
+                            <div className="min-w-0">
+                                <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                    Description
+                                </dt>
+
+                                <dd className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-700">
+                                    {project.description || (
+                                        <span className="italic text-slate-400">
+                                            No description provided.
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            {/* Project Type */}
+                            <div className="min-w-0">
+                                <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                    Project type
+                                </dt>
+
+                                <dd className="mt-2">
+                                    {project.type ? (
+                                        <span className="inline-flex max-w-full items-center rounded-lg border border-indigo-100 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700">
+                                            <span className="truncate">
+                                                {project.type}
+                                            </span>
+                                        </span>
+                                    ) : (
+                                        <span className="text-sm italic text-slate-400">
+                                            No type specified.
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            {/* Start Date */}
+                            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                                <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                    Start date
+                                </dt>
+
+                                <dd className="mt-2 text-sm font-medium text-slate-800">
+                                    {formatDate(project.start_date)}
+                                </dd>
+                            </div>
+
+                            {/* Target Due Date */}
+                            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                                <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                    Target due date
+                                </dt>
+
+                                <dd className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                                    <span
+                                        className={
+                                            isOverdue(project)
+                                                ? 'font-semibold text-rose-600'
+                                                : 'font-medium text-slate-800'
+                                        }
+                                    >
+                                        {formatDate(project.due_date)}
+                                    </span>
+
+                                    {isOverdue(project) && (
+                                        <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-200">
+                                            Overdue
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+                        </dl>
+                    </section>
+
+                    {/* =====================================
                         TEAMS
-                    ========================================= */}
+                    ===================================== */}
 
                     {teams.length > 0 && (
                         <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                             <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-50">
                                     <svg
                                         className="h-5 w-5 text-violet-600"
                                         viewBox="0 0 24 24"
@@ -371,7 +402,7 @@ useEffect(() => {
                                     </svg>
                                 </div>
 
-                                <div>
+                                <div className="min-w-0 flex-1">
                                     <h2 className="text-sm font-semibold text-slate-900">
                                         Teams
                                     </h2>
@@ -457,13 +488,13 @@ useEffect(() => {
                         </section>
                     )}
 
-                    {/* =========================================
+                    {/* =====================================
                         MEMBERS
-                    ========================================= */}
+                    ===================================== */}
 
                     <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                         <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
                                 <svg
                                     className="h-5 w-5 text-emerald-600"
                                     viewBox="0 0 24 24"
@@ -480,7 +511,7 @@ useEffect(() => {
                                 </svg>
                             </div>
 
-                            <div>
+                            <div className="min-w-0 flex-1">
                                 <h2 className="text-sm font-semibold text-slate-900">
                                     Members
                                 </h2>
@@ -557,6 +588,18 @@ useEffect(() => {
                     </section>
                 </div>
             </div>
+
+            {/* =============================================
+                EDIT PROJECT MODAL
+            ============================================= */}
+
+            {isEditModalOpen && canEditProject && (
+                <EditProjectModal
+                    project={project}
+                    typeSuggestions={type_suggestions}
+                    onClose={() => setIsEditModalOpen(false)}
+                />
+            )}
         </AuthenticatedLayout>
     );
 }

@@ -14,7 +14,8 @@ class TeamMemberService
    
     public function __construct(
     protected TeamMemberRepositoryInterface $members,
-    protected ProjectAccess $access
+    protected ProjectAccess $access,
+    protected TeamLeadership $leadership
     ) {}
 
 
@@ -104,6 +105,8 @@ class TeamMemberService
 
             // not hard delete //do end-date 
             $this->members->end($membership, $actor->id);
+            // Leader ကို team ကနေ ဖယ်ရင် leader ဖြစ်ခွင့်လည်း အလိုအလျောက်ပျောက်မယ်
+            $this->leadership->clearIfLeader($locked, $user->id);
         });
     }
 

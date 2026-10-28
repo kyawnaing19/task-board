@@ -7,6 +7,7 @@ use App\Repositories\Contracts\ProjectRepositoryInterface;
 use App\Repositories\Contracts\ProjectTeamRepositoryInterface;
 use App\Repositories\Contracts\TeamRepositoryInterface;
 use App\Services\ProjectAccess;
+use App\Services\ProjectAuthorization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,7 +20,8 @@ class MyProjectController extends Controller
         protected ProjectTeamRepositoryInterface $teamLinks,
         protected ProjectMemberRepositoryInterface $memberLinks,
         protected TeamRepositoryInterface $teams,
-        protected ProjectAccess $access
+        protected ProjectAccess $access,
+        protected ProjectAuthorization $authorization,
     ) {}
 
     public function index(Request $request): Response|RedirectResponse
@@ -48,6 +50,7 @@ class MyProjectController extends Controller
                 'archived_at' => $p->archived_at,
             ]),
             'filters' => ['status' => $filter],
+            'can_create' => $this->authorization->canCreate($user),
         ]);
     }
 
@@ -93,6 +96,7 @@ class MyProjectController extends Controller
                     'avatar_url' => $u->avatar_url,
                     'is_me'      => $u->id === $user->id,
                 ])->values(),
+            'permissions' => $this->authorization->abilities($user, $found),
         ]);
     }
 }

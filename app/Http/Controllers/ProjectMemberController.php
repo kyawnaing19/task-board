@@ -16,19 +16,35 @@ class ProjectMemberController extends Controller
         protected ProjectMemberService $service
     ) {}
 
+    // public function candidates(Request $request, Project $project): JsonResponse
+    // {
+    //     $request->validate(['search' => ['nullable', 'string', 'max:100']]);
+
+    //     return response()->json(
+    //         $this->service->candidates($project, $request->query('search'))
+    //     );
+    // }
+
     public function candidates(Request $request, Project $project): JsonResponse
     {
         $request->validate(['search' => ['nullable', 'string', 'max:100']]);
 
         return response()->json(
-            $this->service->candidates($project, $request->query('search'))
+            $this->service->candidates($request->user(), $project, $request->query('search'))
         );
     }
+
+    // public function previewAdd(AddProjectMembersRequest $request, Project $project): JsonResponse
+    // {
+    //     return response()->json(
+    //         $this->service->addImpact($project, $request->validated('user_ids'))
+    //     );
+    // }
 
     public function previewAdd(AddProjectMembersRequest $request, Project $project): JsonResponse
     {
         return response()->json(
-            $this->service->addImpact($project, $request->validated('user_ids'))
+            $this->service->addImpact($request->user(), $project, $request->validated('user_ids'))
         );
     }
 
@@ -41,9 +57,13 @@ class ProjectMemberController extends Controller
             : "{$count} employees added to the project.");
     }
 
-    public function previewRemove(Project $project, User $user): JsonResponse
+    // public function previewRemove(Project $project, User $user): JsonResponse
+    // {
+    //     return response()->json($this->service->removeImpact($project, $user));
+    // }
+    public function previewRemove(Request $request, Project $project, User $user): JsonResponse
     {
-        return response()->json($this->service->removeImpact($project, $user));
+        return response()->json($this->service->removeImpact($request->user(), $project, $user));
     }
 
     public function destroy(Request $request, Project $project, User $user): RedirectResponse

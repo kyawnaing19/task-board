@@ -14,21 +14,38 @@ class TeamRepository implements TeamRepositoryInterface
     public function paginate(bool $archived = false,int $perPage = 15,?string $search = null): LengthAwarePaginator 
     {
         return Team::query()
-            ->with('creator')
+            //->with('creator')
+            ->with([
+                'creator:id,name',
+                'leader:id,name,avatar_path',
+            ])
             ->when(
                 $archived,
                 fn ($q) => $q->archived(),
                 fn ($q) => $q->active()
             )
+            // ->when($search, function ($query) use ($search) {
+            //     $query->where(function ($query) use ($search) {
+            //         $query->where('name', 'like', "%{$search}%")
+            //             ->orWhere('description', 'like', "%{$search}%")
+            //             ->orWhereHas('creator', function ($query) use ($search) {
+            //                 $query->where('name', 'like', "%{$search}%");
+            //             });
+                        
+            //     });
+            // })
             ->when($search, function ($query) use ($search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%")
-                        ->orWhereHas('creator', function ($query) use ($search) {
-                            $query->where('name', 'like', "%{$search}%");
-                        });
-                });
-            })
+            $query->where(function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('creator', function ($query) use ($search) {
+                        $query->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('leader', function ($query) use ($search) {
+                        $query->where('name', 'like', "%{$search}%");
+                    });
+            });
+        })
             ->latest()
             ->paginate($perPage)
             ->withQueryString();

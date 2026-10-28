@@ -16,17 +16,18 @@ class ProjectMemberService
         protected ProjectMemberRepositoryInterface $members,
         protected ProjectRepositoryInterface $projects,
         protected ProjectService $projectService,
-        protected ProjectAccess $access
+        protected ProjectAccess $access,
+        protected ProjectAuthorization $authorization,
+        protected TeamLeadership $leadership
     ) {}
 
-    /**
-     * Candidates စာရင်း။ Team ကနေ access ရပြီးသားသူကို ထည့်လို့ရတယ်၊ ဒါပေမယ့် via_teams နဲ့ မြင်သာအောင် ပြမယ်။
-     */
-    public function candidates(Project $project, ?string $search = null): Collection
+    /** Team ကနေ access ရပြီးသားသူကိုလည်း ထည့်လို့ရတယ်၊ via_teams နဲ့ မြင်သာအောင် ပြမယ် */
+    public function candidates(User $actor, Project $project, ?string $search = null): Collection
     {
+        $this->authorization->assertCanManage($actor, $project);
         $this->projectService->assertEditable($project);
 
-        $users = $this->members->candidates($project, $search);
+        $users = $this->members->candidates($project, $search, 20, $this->restriction($actor));
         $sources = $this->access->teamSources($project, $users->pluck('id')->all());
 
         return $users->map(fn (User $u) => array_merge($u->toArray(), [
@@ -41,17 +42,17 @@ class ProjectMemberService
      *     already_have_access: array<int, array{id: int, name: string, teams: string[]}>
      * }
      */
-    public function addImpact(Project $project, array $userIds): array
+    public function addImpact(User $actor, Project $project, array $userIds): array
     {
         $userIds = $this->normalize($userIds);
 
+        $this->authorization->assertCanManage($actor, $project);
         $this->projectService->assertEditable($project);
-        $this->assertAddable($project, $userIds);
+        $this->assertAddable($actor, $project, $userIds);
 
         $gaining = $this->access->newlyGranted($project, $userIds);
         $already = array_values(array_diff($userIds, $gaining));
         $sources = $this->access->teamSources($project, $already);
-
         $names = User::query()->whereIn('id', $already)->pluck('name', 'id');
 
         return [
@@ -68,13 +69,16 @@ class ProjectMemberService
     /**
      * @return array{loses_access: bool, still_via_teams: string[]}
      */
-    public function removeImpact(Project $project, User $user): array
+    public function removeImpact(User $actor, Project $project, User $user): array
     {
+        $this->authorization->assertCanManage($actor, $project);
         $this->projectService->assertEditable($project);
 
         if (! $this->members->findActive($project, $user->id)) {
             throw $this->notMember();
         }
+
+        $this->assertWithinLedTeams($actor, [$user->id], 'project', 'remove');
 
         return [
             'loses_access'    => $this->access->losesAccessWhenIndividualRemoved($project, $user->id),
@@ -89,8 +93,9 @@ class ProjectMemberService
         return DB::transaction(function () use ($actor, $project, $userIds) {
             $locked = $this->projects->lock($project);
 
+            $this->authorization->assertCanManage($actor, $locked);
             $this->projectService->assertEditable($locked);
-            $this->assertAddable($locked, $userIds);
+            $this->assertAddable($actor, $locked, $userIds);
 
             $this->members->addMany($locked, $userIds, $actor->id);
 
@@ -101,8 +106,7 @@ class ProjectMemberService
     public function remove(User $actor, Project $project, User $user): void
     {
         DB::transaction(function () use ($actor, $project, $user) {
-            $locked = $this->projects->lock($project);
-
+            $locked = $this->projects->lock($project);$this->authorization->assertCanManage($actor, $locked);
             $this->projectService->assertEditable($locked);
 
             $member = $this->members->findActive($locked, $user->id, lock: true);
@@ -111,22 +115,48 @@ class ProjectMemberService
                 throw $this->notMember();
             }
 
+            $this->assertWithinLedTeams($actor, [$user->id], 'project', 'remove');
+
             // hard delete မလုပ်ဘူး၊ end-date ပဲလုပ်မယ်
             $this->members->end($member, $actor->id);
         });
+    }
+
+    /** Super Admin = null (ကန့်သတ်ချက်မရှိ)၊ Leader = ကိုယ်ဦးဆောင်တဲ့ team id များ */
+    protected function restriction(User $actor): ?array
+    {
+        return $actor->isSuperAdmin() ? null : $this->leadership->ledTeamIds($actor);
+    }
+
+    protected function assertWithinLedTeams(User $actor, array $userIds, string $errorKey, string $verb): void
+    {
+        $led = $this->restriction($actor);
+
+        if ($led === null) {
+            return;
+        }
+
+        if (count($this->members->userIdsInTeams($led, $userIds)) !== count($userIds)) {
+            throw ValidationException::withMessages([
+                $errorKey => "You can only {$verb} members of the teams you lead.",
+            ]);
+        }
     }
 
     protected function normalize(array $ids): array
     {
         return array_values(array_unique(array_map('intval', $ids)));
     }
-    protected function assertAddable(Project $project, array $userIds): void
+
+    protected function assertAddable(User $actor, Project $project, array $userIds): void
     {
         if (count($this->members->eligibleEmployeeIds($userIds)) !== count($userIds)) {
             throw ValidationException::withMessages([
                 'user_ids' => 'Only active employees can be added to a project.',
             ]);
         }
+
+        $this->assertWithinLedTeams($actor, $userIds, 'user_ids', 'add');
 
         // Individual row ထပ်နေတာကိုပဲ တားမယ်။ Team ကနေ access ရပြီးသားဆိုတာကို မတားဘူး။
         if ($this->members->activeMemberIds($project, $userIds)) {

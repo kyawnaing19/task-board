@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Team\SetTeamLeaderRequest;
 use App\Http\Requests\Team\StoreTeamRequest;
 use App\Http\Requests\Team\UpdateTeamRequest;
 use App\Models\Team;
 use App\Repositories\Contracts\ProjectTeamRepositoryInterface;
 use App\Repositories\Contracts\TeamRepositoryInterface;
+use App\Services\TeamLeadership;
 use App\Services\TeamService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +21,8 @@ class TeamController extends Controller
     public function __construct(
         protected TeamService $service,
         protected TeamRepositoryInterface $teams,
-        protected ProjectTeamRepositoryInterface $projectLinks
+        protected ProjectTeamRepositoryInterface $projectLinks,
+        protected TeamLeadership $leadership,
     ) {}
 
     public function index(Request $request): Response
@@ -42,7 +45,8 @@ class TeamController extends Controller
 
     public function show(Team $team): Response
     {
-        $team->load(['creator:id,name', 'archiver:id,name']);
+        //$team->load(['creator:id,name', 'archiver:id,name']);
+        $team->load(['creator:id,name', 'archiver:id,name', 'leader:id,name']);
 
         $members = $team->memberships()
             ->active()
@@ -57,6 +61,7 @@ class TeamController extends Controller
                 'avatar_url' => $m->user->avatar_url,
                 'status'     => $m->user->status,
                 'added_at'   => $m->added_at,
+                'is_leader' => $m->user->id === $team->leader_id,
             ]);
 
         return Inertia::render('Teams/Show', [
@@ -73,6 +78,17 @@ class TeamController extends Controller
         return redirect()
             ->route('teams.index')
             ->with('success', "Team \"{$team->name}\" created.");
+    }
+
+    public function setLeader(SetTeamLeaderRequest $request, Team $team): RedirectResponse
+    {
+        $team = $this->leadership->assign(
+            $request->user(),
+            $team,
+            $request->filled('user_id') ? (int) $request->validated('user_id') : null
+        );
+
+        return back()->with('success', $team->leader_id ? 'Team leader updated.' : 'Team leader removed.');
     }
 
     public function update(UpdateTeamRequest $request, Team $team): RedirectResponse

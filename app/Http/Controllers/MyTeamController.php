@@ -28,6 +28,7 @@ class MyTeamController extends Controller
                 'name'          => $team->name,
                 'description'   => $team->description,
                 'members_count' => $team->members_count,
+                'you_lead' => $team->leader_id === $user->id,
             ])->values(),
         ]);
     }
@@ -57,6 +58,7 @@ class MyTeamController extends Controller
                 'job_title'  => $m->job_title,
                 'avatar_url' => $m->avatar_url,
                 'is_me'      => $m->id === $user->id,
+                'is_leader' => $m->id === $found->leader_id,
             ])->values(),
         ]);
     }

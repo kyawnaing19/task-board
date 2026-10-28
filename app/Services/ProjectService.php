@@ -20,7 +20,8 @@ class ProjectService
     protected ProjectCodeGenerator $codes,
     protected ProjectTeamRepositoryInterface $teamLinks,
     protected TaskRepositoryInterface $tasks,
-    protected TaskGroupRepositoryInterface $groups
+    protected TaskGroupRepositoryInterface $groups,
+    protected ProjectAuthorization $authorization,
     ) {}
 
     public function create(User $actor, array $data): Project
@@ -40,11 +41,35 @@ class ProjectService
     }
 
    
-    public function update(Project $project, array $data): Project
+    // public function update(Project $project, array $data): Project
+    // {
+    //     return DB::transaction(function () use ($project, $data) {
+    //         $locked = $this->projects->lock($project);
+
+    //         $this->assertEditable($locked);
+
+    //         $attributes = [
+    //             'name'        => $data['name'],
+    //             'description' => $data['description'] ?? null,
+    //             'start_date'  => $data['start_date'] ?? null,
+    //             'due_date'    => $data['due_date'] ?? null,
+    //         ];
+
+    //         // type ပါလာမှသာ ပြောင်းမယ် (null ဆိုရင် ရှင်းမယ်)
+    //         if (array_key_exists('type', $data)) {
+    //             $attributes['type'] = $this->normalizeType($data['type']);
+    //         }
+
+    //         return $this->projects->update($locked, $attributes);
+    //     });
+    // }
+
+    public function update(User $actor, Project $project, array $data): Project
     {
-        return DB::transaction(function () use ($project, $data) {
+        return DB::transaction(function () use ($actor, $project, $data) {
             $locked = $this->projects->lock($project);
 
+            $this->authorization->assertCanManage($actor, $locked);
             $this->assertEditable($locked);
 
             $attributes = [
@@ -54,7 +79,6 @@ class ProjectService
                 'due_date'    => $data['due_date'] ?? null,
             ];
 
-            // type ပါလာမှသာ ပြောင်းမယ် (null ဆိုရင် ရှင်းမယ်)
             if (array_key_exists('type', $data)) {
                 $attributes['type'] = $this->normalizeType($data['type']);
             }
@@ -64,13 +88,23 @@ class ProjectService
     }
 
     
-    public function changeStatus(Project $project, ProjectStatus $target): Project
+    // public function changeStatus(Project $project, ProjectStatus $target): Project
+    // {
+    //     return DB::transaction(function () use ($project, $target) {
+    //         if ($target === ProjectStatus::COMPLETED) {
+    //         $this->groups->lockCompleted();
+    //         }
+    //         $locked = $this->projects->lock($project);
+    public function changeStatus(User $actor, Project $project, ProjectStatus $target): Project
     {
-        return DB::transaction(function () use ($project, $target) {
+        return DB::transaction(function () use ($actor, $project, $target) {
             if ($target === ProjectStatus::COMPLETED) {
-            $this->groups->lockCompleted();
+                $this->groups->lockCompleted();
             }
+
             $locked = $this->projects->lock($project);
+
+            $this->authorization->assertCanChangeStatus($actor, $locked, $target);
 
             if ($locked->isArchived()) {
                 throw ValidationException::withMessages([
@@ -99,6 +133,8 @@ class ProjectService
 
     public function archive(User $actor, Project $project): Project
     {
+
+        abort_unless($actor->isSuperAdmin(), 403);
         return DB::transaction(function () use ($actor, $project) {
             $locked = $this->projects->lock($project);
 

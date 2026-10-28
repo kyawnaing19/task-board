@@ -19,6 +19,7 @@ class EmployeeService
     public function __construct(
         protected EmployeeRepositoryInterface $employees,
         protected FileUploadService $fileUploadService,
+        protected TeamLeadership $leadership,
     ) {}
 
     /**
@@ -177,10 +178,33 @@ class EmployeeService
     /**
      * Activate or deactivate an employee.
      */
+    // public function setStatus(
+    //     User $actor,
+    //     User $target,
+    //     UserStatus $status,
+    // ): User {
+    //     // if (
+    //     //     $actor->is($target) &&
+    //     //     $status === UserStatus::INACTIVE
+    //     // ) {
+    //     //     throw ValidationException::withMessages([
+    //     //         'status' => 'You cannot deactivate your own account.',
+    //     //     ]);
+    //     // }
+    //         if ($status === UserStatus::INACTIVE) {
+    //         $this->sessions->revokeAll($updated);
+    //         // Deactivate လုပ်ရင် leader ဖြစ်ခွင့်ကိုပါ ရှင်းမယ် (ပြန် activate လုပ်လည် အာဏာ မပြန်ရောက်ဘူး)
+    //         $this->leadership->clearAllFor($updated);
+    //     }
+    //     return $this->employees->update($target, [
+    //         'status' => $status->value,
+    //     ]);
+    // }
+
     public function setStatus(
-        User $actor,
-        User $target,
-        UserStatus $status,
+    User $actor,
+    User $target,
+    UserStatus $status,
     ): User {
         if (
             $actor->is($target) &&
@@ -191,9 +215,20 @@ class EmployeeService
             ]);
         }
 
-        return $this->employees->update($target, [
+        $updated = $this->employees->update($target, [
             'status' => $status->value,
         ]);
+
+        if ($status === UserStatus::INACTIVE) {
+            // Revoke all sessions when the employee is deactivated.
+            $this->sessions->revokeAll($updated);
+
+            // Clear leadership assignments permanently.
+            // Reactivation will not restore previous leadership assignments.
+            $this->leadership->clearAllFor($updated);
+        }
+
+        return $updated;
     }
 
     /**

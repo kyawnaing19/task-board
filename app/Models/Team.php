@@ -47,6 +47,11 @@ class Team extends Model
         return $this->hasMany(TeamMembership::class);
     }
 
+    public function leader(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'leader_id');
+    }
+
     /** လက်ရှိ active member များသာ (removed_at မရှိသူ) */
     public function members(): BelongsToMany
     {

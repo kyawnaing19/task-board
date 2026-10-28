@@ -295,6 +295,9 @@ export default function Index({ teams, filters }) {
                                     <th className="hidden px-5 py-3.5 md:table-cell">
                                         Created by
                                     </th>
+                             <th className="hidden px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 lg:table-cell">
+                                    Team Leader
+                                </th>
 
                                     <th className="px-5 py-3.5">
                                         {isArchived
@@ -414,6 +417,38 @@ export default function Index({ teams, filters }) {
                                             <td className="hidden px-5 py-4 text-slate-600 md:table-cell">
                                                 {team.creator?.name ?? '—'}
                                             </td>
+
+                                            <td className="hidden px-5 py-4 lg:table-cell">
+    {team.leader ? (
+        <div className="flex items-center gap-2.5">
+            {team.leader.avatar_path ? (
+                <img
+                    src={`/storage/${team.leader.avatar_path}`}
+                    alt={team.leader.name}
+                    className="h-8 w-8 rounded-full border border-slate-200 object-cover"
+                />
+            ) : (
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50 text-xs font-semibold text-amber-700">
+                    {team.leader.name?.trim().charAt(0).toUpperCase() ?? '?'}
+                </div>
+            )}
+
+            <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-slate-800">
+                    {team.leader.name}
+                </p>
+
+                <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">
+                    Leader
+                </span>
+            </div>
+        </div>
+    ) : (
+        <span className="text-sm text-slate-400">
+            No leader assigned
+        </span>
+    )}
+</td>
 
                                             {/* Date */}
                                             <td className="whitespace-nowrap px-5 py-4 text-slate-600">

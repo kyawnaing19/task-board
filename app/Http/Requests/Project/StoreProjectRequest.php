@@ -8,7 +8,7 @@ class StoreProjectRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isSuperAdmin() ?? false;
+        return $this->user() !== null;
     }
 
     protected function prepareForValidation(): void
@@ -43,6 +43,10 @@ class StoreProjectRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:5000'],
             'start_date'  => ['nullable', 'date_format:Y-m-d'],
             'due_date'    => $dueDate,
+            'team_ids'     => ['nullable', 'array', 'max:20'],
+            'team_ids.*'   => ['integer', 'distinct'],
+            'member_ids'   => ['nullable', 'array', 'max:100'],
+            'member_ids.*' => ['integer', 'distinct'],
         ];
     }
 
