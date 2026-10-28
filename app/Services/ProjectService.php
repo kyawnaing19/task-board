@@ -29,6 +29,7 @@ class ProjectService
             return $this->projects->create([
                 'code'        => $this->codes->next(),
                 'name'        => $data['name'],
+                'type' => $this->normalizeType($data['type'] ?? null),
                 'description' => $data['description'] ?? null,
                 'start_date'  => $data['start_date'] ?? null,
                 'due_date'    => $data['due_date'] ?? null,
@@ -46,12 +47,19 @@ class ProjectService
 
             $this->assertEditable($locked);
 
-            return $this->projects->update($locked, [
+            $attributes = [
                 'name'        => $data['name'],
                 'description' => $data['description'] ?? null,
                 'start_date'  => $data['start_date'] ?? null,
                 'due_date'    => $data['due_date'] ?? null,
-            ]);
+            ];
+
+            // type ပါလာမှသာ ပြောင်းမယ် (null ဆိုရင် ရှင်းမယ်)
+            if (array_key_exists('type', $data)) {
+                $attributes['type'] = $this->normalizeType($data['type']);
+            }
+
+            return $this->projects->update($locked, $attributes);
         });
     }
 
@@ -131,6 +139,18 @@ class ProjectService
                 'status'      => ProjectStatus::COMPLETED,
             ]);
         });
+    }
+
+    protected function normalizeType(?string $type): ?string
+    {
+        $type = trim((string) preg_replace('/\s+/u', ' ', (string) $type));
+
+        if ($type === '') {
+            return null;
+        }
+
+        // "Client" / "client" / "CLIENT" ကွဲမသွားအောင် ရှိပြီးသား spelling ကို ပြန်သုံးမယ်
+        return $this->projects->canonicalType($type) ?? $type;
     }
 
     /**

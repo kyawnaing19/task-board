@@ -10,27 +10,13 @@ use Illuminate\Support\Collection;
 
 class ProjectRepository implements ProjectRepositoryInterface
 {
-    // public function paginate(string $filter = 'active', int $perPage = 15): LengthAwarePaginator
-    // {
-    //     return Project::query()
-    //         ->with('creator:id,name')
-    //         ->when(
-    //             $filter === 'archived',
-    //             fn ($q) => $q->archived(),
-    //             fn ($q) => $q->notArchived()->where(
-    //                 'status',
-    //                 ($filter === 'completed' ? ProjectStatus::COMPLETED : ProjectStatus::ACTIVE)->value
-    //             )
-    //         )
-    //         ->latest('id')
-    //         ->paginate($perPage)
-    //         ->withQueryString();
-    // }
-    public function paginate(string $filter = 'active', int $perPage = 15, ?array $projectIds = null): LengthAwarePaginator
+    
+    public function paginate(string $filter = 'active', int $perPage = 15, ?array $projectIds = null, ?string $type = null): LengthAwarePaginator
     {
         return Project::query()
             ->when($projectIds === null, fn ($q) => $q->with('creator:id,name'))
             ->when($projectIds !== null, fn ($q) => $q->whereIn('id', $projectIds))
+            ->when($type !== null, fn ($q) => $q->whereRaw('LOWER(type) = ?', [mb_strtolower($type)]))
             ->when(
                 $filter === 'archived',
                 fn ($q) => $q->archived(),
@@ -42,6 +28,26 @@ class ProjectRepository implements ProjectRepositoryInterface
             ->latest('id')
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    public function types(): array
+    {
+        // DISTINCT + ORDER BY LOWER() က MySQL / PostgreSQL မှာ error ဖြစ်လို့ GROUP BY နဲ့
+        return Project::query()
+            ->whereNotNull('type')
+            ->groupBy('type')
+            ->orderByRaw('LOWER(type)')
+            ->limit(200)
+            ->pluck('type')
+            ->all();
+    }
+
+    public function canonicalType(string $type): ?string
+    {
+        return Project::query()
+            ->whereRaw('LOWER(type) = ?', [mb_strtolower($type)])
+            ->orderBy('id')
+            ->value('type');
     }
 
     public function find(int $id): ?Project

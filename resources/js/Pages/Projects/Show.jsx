@@ -26,6 +26,7 @@ const STATUS_STYLES = {
 
 export default function Show({
     project,
+    type_suggestions = [],
     read_only,
     teams = [],
     members = [],
@@ -579,7 +580,9 @@ export default function Show({
                 >
                     {/* Project details */}
 
+                    
                     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                        {/* Header */}
                         <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
                             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
                                 <svg
@@ -609,13 +612,15 @@ export default function Show({
                             </div>
                         </div>
 
-                        <dl className="grid gap-4 p-3 sm:grid-cols-2">
-                            <div className="sm:col-span-2">
+                        {/* Details */}
+                        <dl className="grid gap-x-6 gap-y-5 p-4 sm:grid-cols-2">
+                            {/* Description - Left */}
+                            <div className="min-w-0">
                                 <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                                     Description
                                 </dt>
 
-                                <dd className="mt-1.5 whitespace-pre-line text-sm leading-6 text-slate-700">
+                                <dd className="mt-1.5 whitespace-pre-line break-words text-sm leading-6 text-slate-700">
                                     {project.description || (
                                         <span className="italic text-slate-400">
                                             No description available.
@@ -624,7 +629,29 @@ export default function Show({
                                 </dd>
                             </div>
 
-                            <div>
+                            {/* Project Type - Right */}
+                            <div className="min-w-0">
+                                <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Project type
+                                </dt>
+
+                                <dd className="mt-1.5">
+                                    {project.type ? (
+                                        <span className="inline-flex max-w-full items-center rounded-lg border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">
+                                            <span className="truncate">
+                                                {project.type}
+                                            </span>
+                                        </span>
+                                    ) : (
+                                        <span className="text-sm italic text-slate-400">
+                                            No type specified.
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            {/* Start Date - Left */}
+                            <div className="min-w-0">
                                 <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                                     Start date
                                 </dt>
@@ -649,7 +676,8 @@ export default function Show({
                                 </dd>
                             </div>
 
-                            <div>
+                            {/* Target Due Date - Right */}
+                            <div className="min-w-0">
                                 <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                                     Target due date
                                 </dt>
@@ -693,6 +721,7 @@ export default function Show({
                             </div>
                         </dl>
                     </div>
+
 
                     {/* Teams and members */}
 
@@ -1008,6 +1037,8 @@ export default function Show({
                 <EditProjectModal
                     project={project}
                     onClose={() => setEditing(false)}
+                    typeSuggestions={type_suggestions}
+
                 />
             )}
 

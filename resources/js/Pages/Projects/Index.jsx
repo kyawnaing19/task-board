@@ -19,13 +19,13 @@ const EMPTY_MESSAGES = {
     completed: 'No completed projects.',
     archived: 'No archived projects.',
 };
-export default function Index({ projects, filters }) {
+export default function Index({ projects, filters, type_suggestions = [] }) {
     const { flash, errors } = usePage().props;
     const [createOpen, setCreateOpen] = useState(false);
     const rows = projects.data;
     const current = filters.status;
     const [confirmation, setConfirmation] = useState(null);
-const [processing, setProcessing] = useState(false);
+    const [processing, setProcessing] = useState(false);
 
 const act = (method, url, title, message, data = {}, variant = 'danger') => {
     setConfirmation({
@@ -226,12 +226,14 @@ const menuItems = (project) => {
                             {TABS.map((tab) => (
                                 <Link
                                     key={tab.key}
-                                    href={route(
-                                        'projects.index',
-                                        tab.key === 'active'
+                                    href={route('projects.index', {
+                                        ...(tab.key === 'active'
                                             ? {}
-                                            : { status: tab.key },
-                                    )}
+                                            : { status: tab.key }),
+                                        ...(filters.type
+                                            ? { type: filters.type }
+                                            : {}),
+                                    })}
                                     preserveScroll
                                     className={tabClass(current === tab.key)}
                                     aria-current={
@@ -242,11 +244,47 @@ const menuItems = (project) => {
                                 </Link>
                             ))}
                         </div>
-                        <p className="text-xs text-slate-500">
-                            {projects.total}{' '}
-                            {projects.total === 1 ? 'project' : 'projects'}
-                        </p>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                            <select
+                                value={filters.type ?? ''}
+                                aria-label="Filter projects by type"
+                                onChange={(e) =>
+                                    router.get(
+                                        route('projects.index'),
+                                        {
+                                            ...(filters.status !== 'active'
+                                                ? { status: filters.status }
+                                                : {}),
+                                            ...(e.target.value
+                                                ? { type: e.target.value }
+                                                : {}),
+                                        },
+                                        {
+                                            preserveScroll: true,
+                                            preserveState: true,
+                                            replace: true,
+                                        },
+                                    )
+                                }
+                                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="">All types</option>
+                                {type_suggestions.map((type) => (
+                                    <option key={type} value={type}>
+                                        {type}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <p className="text-xs text-slate-500">
+                                {projects.total}{' '}
+                                {projects.total === 1 ? 'project' : 'projects'}
+                            </p>
+                        </div>
                     </div>
+
+                    
                     {/* Responsive table */}
                     <div className="w-full overflow-x-auto">
                         <table className="w-full min-w-[650px] divide-y divide-slate-200 text-sm">
@@ -359,6 +397,11 @@ const menuItems = (project) => {
                                                             <p className="mt-1 line-clamp-2 max-w-xl text-xs leading-5 text-slate-500">
                                                                 {project.description}
                                                             </p>
+                                                        )}
+
+                                                        {project.type && (
+                                                            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                                                                {project.type}</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -493,6 +536,7 @@ const menuItems = (project) => {
             <CreateProjectModal
                 open={createOpen}
                 onClose={() => setCreateOpen(false)}
+                typeSuggestions={type_suggestions}
             />
 
             <ConfirmationModal

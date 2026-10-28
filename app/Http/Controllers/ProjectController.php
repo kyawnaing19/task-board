@@ -32,11 +32,16 @@ class ProjectController extends Controller
         $status = $request->query('status');
         $filter = in_array($status, ['completed', 'archived'], true) ? $status : 'active';
 
+        $type = trim((string) $request->query('type', ''));
+        $type = $type !== '' ? mb_substr($type, 0, 100) : null;
+
         return Inertia::render('Projects/Index', [
-            'projects' => $this->projects->paginate($filter),
-            'filters'  => ['status' => $filter],
+            'projects'         => $this->projects->paginate($filter, 15, null, $type),
+            'filters'          => ['status' => $filter, 'type' => $type],
+            'type_suggestions' => $this->projects->types(),
         ]);
     }
+
 
     public function store(StoreProjectRequest $request): RedirectResponse
     {
@@ -95,6 +100,7 @@ class ProjectController extends Controller
             ])->values(),
             // Source နှစ်ခု ပေါင်းပြီး distinct ရေတွက်ထားတဲ့ effective member အရေအတွက်
             'access_count' => count($this->access->memberIds($project)),
+            'type_suggestions' => $this->projects->types(),
         ]);
     }
 

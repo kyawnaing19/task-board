@@ -13,14 +13,20 @@ class StoreProjectRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $name = preg_replace('/\s+/u', ' ', trim((string) $this->input('name')));
-
-        $this->merge([
-            'name'        => $name,
+        $merge = [
+            'name'        => preg_replace('/\s+/u', ' ', trim((string) $this->input('name'))),
             'description' => filled($this->input('description'))
                 ? trim((string) $this->input('description'))
                 : null,
-        ]);
+        ];
+
+        // Request ထဲမှာ type ပါမှသာ ထိမယ် (မပါရင် Update မှာ ရှိပြီးသား type ကို မရှင်းမိအောင်)
+        if ($this->has('type')) {
+            $type = preg_replace('/\s+/u', ' ', trim((string) $this->input('type')));
+            $merge['type'] = $type === '' ? null : $type;
+        }
+
+        $this->merge($merge);
     }
 
     public function rules(): array
@@ -33,6 +39,7 @@ class StoreProjectRequest extends FormRequest
 
         return [
             'name'        => ['required', 'string', 'max:255'],
+            'type'        => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:5000'],
             'start_date'  => ['nullable', 'date_format:Y-m-d'],
             'due_date'    => $dueDate,

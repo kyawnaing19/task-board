@@ -239,88 +239,113 @@ useEffect(() => {
                             : 'hidden'
                     }
                 >
-                    {/* Project Details */}
-
-                    <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50">
-                                <svg
-                                    className="h-5 w-5 text-indigo-600"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="1.7"
-                                    aria-hidden="true"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M8.25 6.75h7.5m-7.5 4.5h7.5m-7.5 4.5h4.5M6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6A2.25 2.25 0 0 1 6 3.75Z"
-                                    />
-                                </svg>
-                            </div>
-
-                            <div>
-                                <h2 className="text-sm font-semibold text-slate-900">
-                                    Project details
-                                </h2>
-
-                                <p className="mt-0.5 text-xs text-slate-500">
-                                    Description and project timeline
-                                </p>
-                            </div>
+                {/* Project Details */}
+                <section className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    {/* Header */}
+                    <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50">
+                            <svg
+                                className="h-5 w-5 text-indigo-600"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.7"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M8.25 6.75h7.5m-7.5 4.5h7.5m-7.5 4.5h4.5M6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6A2.25 2.25 0 0 1 6 3.75Z"
+                                />
+                            </svg>
                         </div>
 
-                        <dl className="grid gap-4 p-3 sm:grid-cols-2">
-                            <div className="sm:col-span-2">
-                                <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                    Description
-                                </dt>
+                        <div>
+                            <h2 className="text-sm font-semibold text-slate-900">
+                                Project details
+                            </h2>
 
-                                <dd className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">
-                                    {project.description || (
-                                        <span className="italic text-slate-400">
-                                            No description provided.
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
+                            <p className="mt-0.5 text-xs text-slate-500">
+                                Description and project timeline
+                            </p>
+                        </div>
+                    </div>
 
-                            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-                                <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                    Start date
-                                </dt>
+                    {/* Details */}
+                    <dl className="grid gap-4 p-3 sm:grid-cols-2">
+                        {/* Description - Left */}
+                        <div className="min-w-0">
+                            <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                Description
+                            </dt>
 
-                                <dd className="mt-2 text-sm font-medium text-slate-800">
-                                    {formatDate(project.start_date)}
-                                </dd>
-                            </div>
-
-                            <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-                                <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                    Target due date
-                                </dt>
-
-                                <dd className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                                    <span
-                                        className={
-                                            isOverdue(project)
-                                                ? 'font-semibold text-rose-600'
-                                                : 'font-medium text-slate-800'
-                                        }
-                                    >
-                                        {formatDate(project.due_date)}
+                            <dd className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-700">
+                                {project.description || (
+                                    <span className="italic text-slate-400">
+                                        No description provided.
                                     </span>
+                                )}
+                            </dd>
+                        </div>
 
-                                    {isOverdue(project) && (
-                                        <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-200">
-                                            Overdue
+                        {/* Project Type - Right */}
+                        <div className="min-w-0">
+                            <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                Project type
+                            </dt>
+
+                            <dd className="mt-2">
+                                {project.type ? (
+                                    <span className="inline-flex max-w-full items-center rounded-lg border border-indigo-100 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700">
+                                        <span className="truncate">
+                                            {project.type}
                                         </span>
-                                    )}
-                                </dd>
-                            </div>
-                        </dl>
-                    </section>
+                                    </span>
+                                ) : (
+                                    <span className="text-sm italic text-slate-400">
+                                        No type specified.
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        {/* Start Date */}
+                        <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                            <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                Start date
+                            </dt>
+
+                            <dd className="mt-2 text-sm font-medium text-slate-800">
+                                {formatDate(project.start_date)}
+                            </dd>
+                        </div>
+
+                        {/* Target Due Date */}
+                        <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                            <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                Target due date
+                            </dt>
+
+                            <dd className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                                <span
+                                    className={
+                                        isOverdue(project)
+                                            ? 'font-semibold text-rose-600'
+                                            : 'font-medium text-slate-800'
+                                    }
+                                >
+                                    {formatDate(project.due_date)}
+                                </span>
+
+                                {isOverdue(project) && (
+                                    <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-200">
+                                        Overdue
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
 
                     {/* =========================================
                         TEAMS

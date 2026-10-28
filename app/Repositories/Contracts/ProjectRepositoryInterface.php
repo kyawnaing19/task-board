@@ -9,13 +9,22 @@ use Illuminate\Support\Collection;
 interface ProjectRepositoryInterface
 {
     //public function paginate(string $filter = 'active', int $perPage = 15): LengthAwarePaginator;
-    public function paginate(string $filter = 'active', int $perPage = 15, ?array $projectIds = null): LengthAwarePaginator;
+    //public function paginate(string $filter = 'active', int $perPage = 15, ?array $projectIds = null): LengthAwarePaginator;
+    
+    public function paginate(string $filter = 'active', int $perPage = 15, ?array $projectIds = null, ?string $type = null): LengthAwarePaginator;
+
+    /** ရှိပြီးသား type များ (အကြီးအသေးမခွဲ ထပ်တူမရှိ၊ နာမည်စဉ်) */
+    public function types(): array;
+
+    /** ဒီ type နဲ့ အကြီးအသေးပဲကွာတဲ့ ရှိပြီးသား spelling (အစောဆုံး project ရဲ့) */
+    public function canonicalType(string $type): ?string;
+
 
     public function create(array $data): Project;
 
     public function update(Project $project, array $data): Project;
 
-/** Lock the row within the transaction and retrieve it with the latest state */
+    /** Lock the row within the transaction and retrieve it with the latest state */
     public function lock(Project $project): Project;
 
     /**

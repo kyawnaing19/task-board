@@ -5,8 +5,13 @@ const inputClass =
     'mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100';
 
 const MAX_DESCRIPTION = 150;
+const MAX_TYPE_LENGTH = 100;
 
-export default function CreateProjectModal({ open, onClose }) {
+export default function CreateProjectModal({
+    open,
+    onClose,
+    typeSuggestions = [],
+}) {
     const {
         data,
         setData,
@@ -17,12 +22,15 @@ export default function CreateProjectModal({ open, onClose }) {
         clearErrors,
     } = useForm({
         name: '',
+        type: '',
         description: '',
         start_date: '',
         due_date: '',
     });
 
     const handleClose = () => {
+        if (processing) return;
+
         reset();
         clearErrors();
         onClose();
@@ -32,13 +40,15 @@ export default function CreateProjectModal({ open, onClose }) {
         if (!open) return;
 
         const onKey = (e) => {
-            if (e.key === 'Escape') handleClose();
+            if (e.key === 'Escape') {
+                handleClose();
+            }
         };
 
         window.addEventListener('keydown', onKey);
 
         return () => window.removeEventListener('keydown', onKey);
-    }, [open]);
+    }, [open, processing]);
 
     if (!open) return null;
 
@@ -47,7 +57,11 @@ export default function CreateProjectModal({ open, onClose }) {
 
         post(route('projects.store'), {
             preserveScroll: true,
-            onSuccess: () => handleClose(),
+            onSuccess: () => {
+                reset();
+                clearErrors();
+                onClose();
+            },
         });
     };
 
@@ -78,7 +92,8 @@ export default function CreateProjectModal({ open, onClose }) {
                     <button
                         type="button"
                         onClick={handleClose}
-                        className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        disabled={processing}
+                        className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label="Close"
                     >
                         ✕
@@ -89,11 +104,15 @@ export default function CreateProjectModal({ open, onClose }) {
                 <form onSubmit={submit} className="mt-6 space-y-5">
                     {/* Project name */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-700">
+                        <label
+                            htmlFor="project-name"
+                            className="block text-sm font-medium text-slate-700"
+                        >
                             Project name
                         </label>
 
                         <input
+                            id="project-name"
                             type="text"
                             value={data.name}
                             onChange={(e) =>
@@ -113,9 +132,50 @@ export default function CreateProjectModal({ open, onClose }) {
                         )}
                     </div>
 
+                    {/* Project type */}
+                    <div>
+                        <label
+                            htmlFor="project-type"
+                            className="block text-sm font-medium text-slate-700"
+                        >
+                            Type{' '}
+                            <span className="font-normal text-slate-400">
+                                (optional)
+                            </span>
+                        </label>
+
+                        <input
+                            id="project-type"
+                            type="text"
+                            list="project-type-options"
+                            value={data.type}
+                            onChange={(e) =>
+                                setData('type', e.target.value)
+                            }
+                            maxLength={MAX_TYPE_LENGTH}
+                            //placeholder="e.g. Client work, Internal, Product"
+                            className={inputClass}
+                        />
+
+                        <datalist id="project-type-options">
+                            {typeSuggestions.map((type) => (
+                                <option key={type} value={type} />
+                            ))}
+                        </datalist>
+
+                        {errors.type && (
+                            <p className="mt-1.5 text-xs text-rose-600">
+                                {errors.type}
+                            </p>
+                        )}
+                    </div>
+
                     {/* Description */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-700">
+                        <label
+                            htmlFor="project-description"
+                            className="block text-sm font-medium text-slate-700"
+                        >
                             Description{' '}
                             <span className="font-normal text-slate-400">
                                 (optional)
@@ -123,6 +183,7 @@ export default function CreateProjectModal({ open, onClose }) {
                         </label>
 
                         <textarea
+                            id="project-description"
                             rows={4}
                             value={data.description}
                             onChange={(e) =>
@@ -146,8 +207,12 @@ export default function CreateProjectModal({ open, onClose }) {
 
                     {/* Dates */}
                     <div className="grid gap-4 sm:grid-cols-2">
+                        {/* Start date */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700">
+                            <label
+                                htmlFor="project-start-date"
+                                className="block text-sm font-medium text-slate-700"
+                            >
                                 Start date{' '}
                                 <span className="font-normal text-slate-400">
                                     (optional)
@@ -155,6 +220,7 @@ export default function CreateProjectModal({ open, onClose }) {
                             </label>
 
                             <input
+                                id="project-start-date"
                                 type="date"
                                 value={data.start_date}
                                 max={data.due_date || undefined}
@@ -171,8 +237,12 @@ export default function CreateProjectModal({ open, onClose }) {
                             )}
                         </div>
 
+                        {/* Target due date */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700">
+                            <label
+                                htmlFor="project-due-date"
+                                className="block text-sm font-medium text-slate-700"
+                            >
                                 Target due date{' '}
                                 <span className="font-normal text-slate-400">
                                     (optional)
@@ -180,6 +250,7 @@ export default function CreateProjectModal({ open, onClose }) {
                             </label>
 
                             <input
+                                id="project-due-date"
                                 type="date"
                                 value={data.due_date}
                                 min={data.start_date || undefined}
@@ -202,7 +273,8 @@ export default function CreateProjectModal({ open, onClose }) {
                         <button
                             type="button"
                             onClick={handleClose}
-                            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
+                            disabled={processing}
+                            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Cancel
                         </button>

@@ -190,6 +190,11 @@ export default function Index({ projects, filters }) {
                                                             {project.description}
                                                         </p>
                                                     )}
+
+                                                    {project.type && (
+                                                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                                                            {project.type}</span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </td>
