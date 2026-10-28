@@ -1,14 +1,52 @@
 import React from 'react';
 import PropertyDropdown from './PropertyDropdown';
 
+// function formatDate(value) {
+//     if (!value) return '';
+
+//     const [year, month, day] = value.split('-');
+
+//     if (!year || !month || !day) return value;
+
+//     return `${month}/${day}/${year}`;
+// }
+
 function formatDate(value) {
     if (!value) return '';
 
-    const [year, month, day] = value.split('-');
+    const [year, month, day] = value.split('-').map(Number);
 
     if (!year || !month || !day) return value;
 
-    return `${month}/${day}/${year}`;
+    // Use UTC to prevent the date from shifting across time zones.
+    const date = new Date(Date.UTC(year, month - 1, day));
+
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        timeZone: 'UTC',
+    });
+}
+
+function formatDateRange(startDate, endDate) {
+    if (!startDate && !endDate) return '';
+
+    if (!startDate) {
+        return formatDate(endDate);
+    }
+
+    if (!endDate) {
+        return formatDate(startDate);
+    }
+
+    const startYear = startDate.slice(0, 4);
+    const endYear = endDate.slice(0, 4);
+
+    if (startYear !== endYear) {
+        return `${formatDate(startDate)}, ${startYear} – ${formatDate(endDate)}, ${endYear}`;
+    }
+
+    return `${formatDate(startDate)} – ${formatDate(endDate)}, ${endYear}`;
 }
 
 export default function DatePicker({
@@ -19,12 +57,13 @@ export default function DatePicker({
     open,
     onToggle,
 }) {
-    const summary = [
-        startDate && formatDate(startDate),
-        endDate && formatDate(endDate),
-    ]
-        .filter(Boolean)
-        .join(' – ');
+    // const summary = [
+    //     startDate && formatDate(startDate),
+    //     endDate && formatDate(endDate),
+    // ]
+    //     .filter(Boolean)
+    //     .join(' – ');
+    const summary = formatDateRange(startDate, endDate);
 
     return (
         <PropertyDropdown

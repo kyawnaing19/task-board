@@ -17,7 +17,10 @@ export default function PropertyDropdown({
 }) {
     const triggerRef = useRef(null);
     const popoverRef = useRef(null);
+
     const [position, setPosition] = useState(null);
+
+    const hasSummary = Boolean(summary);
 
     const updatePosition = useCallback(() => {
         const trigger = triggerRef.current;
@@ -27,13 +30,18 @@ export default function PropertyDropdown({
         const rect = trigger.getBoundingClientRect();
         const gap = 6;
         const margin = 12;
-        const popoverWidth = Math.min(width, window.innerWidth - margin * 2);
+
+        const popoverWidth = Math.min(
+            width,
+            window.innerWidth - margin * 2,
+        );
 
         const estimatedHeight =
             popoverRef.current?.getBoundingClientRect().height ?? 300;
 
         let top = rect.bottom + gap;
 
+        // Open above the trigger if there is not enough space below.
         if (
             top + estimatedHeight > window.innerHeight - margin &&
             rect.top > estimatedHeight + gap
@@ -43,17 +51,27 @@ export default function PropertyDropdown({
 
         top = Math.max(
             margin,
-            Math.min(top, window.innerHeight - margin - estimatedHeight),
+            Math.min(
+                top,
+                window.innerHeight - margin - estimatedHeight,
+            ),
         );
 
         let left = rect.left;
 
         left = Math.max(
             margin,
-            Math.min(left, window.innerWidth - popoverWidth - margin),
+            Math.min(
+                left,
+                window.innerWidth - popoverWidth - margin,
+            ),
         );
 
-        setPosition({ top, left, width: popoverWidth });
+        setPosition({
+            top,
+            left,
+            width: popoverWidth,
+        });
     }, [width]);
 
     useEffect(() => {
@@ -82,23 +100,62 @@ export default function PropertyDropdown({
             }
         };
 
-        document.addEventListener('pointerdown', handlePointerDown);
-        document.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('resize', updatePosition);
-        window.addEventListener('scroll', updatePosition, true);
+        document.addEventListener(
+            'pointerdown',
+            handlePointerDown,
+        );
+
+        document.addEventListener(
+            'keydown',
+            handleKeyDown,
+        );
+
+        window.addEventListener(
+            'resize',
+            updatePosition,
+        );
+
+        window.addEventListener(
+            'scroll',
+            updatePosition,
+            true,
+        );
 
         return () => {
-            document.removeEventListener('pointerdown', handlePointerDown);
-            document.removeEventListener('keydown', handleKeyDown);
-            window.removeEventListener('resize', updatePosition);
-            window.removeEventListener('scroll', updatePosition, true);
+            document.removeEventListener(
+                'pointerdown',
+                handlePointerDown,
+            );
+
+            document.removeEventListener(
+                'keydown',
+                handleKeyDown,
+            );
+
+            window.removeEventListener(
+                'resize',
+                updatePosition,
+            );
+
+            window.removeEventListener(
+                'scroll',
+                updatePosition,
+                true,
+            );
         };
     }, [open, onToggle, updatePosition]);
 
     useEffect(() => {
-        if (!open || !popoverRef.current) return;
+        if (
+            !open ||
+            !popoverRef.current ||
+            typeof ResizeObserver === 'undefined'
+        ) {
+            return;
+        }
 
         const observer = new ResizeObserver(updatePosition);
+
         observer.observe(popoverRef.current);
 
         return () => observer.disconnect();
@@ -117,18 +174,46 @@ export default function PropertyDropdown({
                         : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
             >
+                {/* Property icon */}
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-base">
                     {icon}
                 </span>
 
-                <span className="min-w-0 flex-1 font-medium">
-                    {label}
-                </span>
+                {hasSummary ? (
+                    /* Selected value */
+                    <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+<span className="whitespace-nowrap text-xs font-medium text-slate-700">
+                            {summary}
+                        </span>
 
-                <span className="max-w-[55%] truncate text-right text-xs text-slate-500">
-                    {summary || 'Add'}
-                </span>
+                        {/* Selected check icon */}
+                        <svg
+                            className="h-4 w-4 shrink-0 text-emerald-500"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path d="m5 12 4 4L19 6" />
+                        </svg>
+                    </span>
+                ) : (
+                    /* Empty value */
+                    <>
+                        <span className="min-w-0 flex-1 truncate font-medium">
+                            {label}
+                        </span>
 
+                        <span className="shrink-0 text-xs text-slate-400">
+                            Add
+                        </span>
+                    </>
+                )}
+
+                {/* Dropdown arrow */}
                 <svg
                     className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
                         open ? 'rotate-180' : ''
@@ -145,6 +230,7 @@ export default function PropertyDropdown({
                 </svg>
             </button>
 
+            {/* Dropdown popover */}
             {open &&
                 typeof document !== 'undefined' &&
                 createPortal(
@@ -155,7 +241,9 @@ export default function PropertyDropdown({
                             top: position?.top ?? 0,
                             left: position?.left ?? 0,
                             width: position?.width ?? width,
-                            visibility: position ? 'visible' : 'hidden',
+                            visibility: position
+                                ? 'visible'
+                                : 'hidden',
                         }}
                         className="z-[9999] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10"
                     >
