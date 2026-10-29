@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Task;
 use App\Models\User;
 use App\Repositories\Contracts\TaskRepositoryInterface;
+use App\Repositories\Contracts\TaskCommentRepositoryInterface;
+
 
 class TaskDetail
 {
@@ -15,7 +17,9 @@ class TaskDetail
         protected TaskAuthorization $authorization,
         protected ProjectAccess $access,
         protected TaskPresenter $presenter,
-        protected TaskActivityPresenter $activities
+        protected TaskActivityPresenter $activities,
+        protected TaskCommentRepositoryInterface $comments
+
     ) {}
 
     /**
@@ -33,6 +37,7 @@ class TaskDetail
             'creator:id,name,avatar_path,status',
             'assignees:id,name,avatar_path,status',
             'tags:id,name,color,archived_at',
+            'creator:id,name,avatar_path,status,role',
         ]);
 
         $owner = $viewer->isSuperAdmin() || $this->authorization->ownsLoaded($viewer, $task);
@@ -50,8 +55,15 @@ class TaskDetail
             'restore_blocked_reason' => ($owner && $archived && $readOnly) ? TaskService::RESTORE_BLOCKED_PROJECT : null,
         ];
 
+        // return [
+        //     'task'    => $this->presenter->detail($task, $this->access->memberIds($project), $permissions),
+        //     'history' => $this->historyPage($task, null, self::HISTORY_PAGE),
+        // ];
         return [
-            'task'    => $this->presenter->detail($task, $this->access->memberIds($project), $permissions),
+            'task'    => array_merge(
+                $this->presenter->detail($task, $this->access->memberIds($project), $permissions),
+                ['comments_count' => $this->comments->countVisible($task)]
+            ),
             'history' => $this->historyPage($task, null, self::HISTORY_PAGE),
         ];
     }

@@ -71,6 +71,11 @@ class Task extends Model
         return $this->hasMany(TaskActivity::class)->orderBy('id');
     }
 
+    public function comments(): HasMany
+    {
+        return $this->hasMany(TaskComment::class);
+    }
+
     public function isArchived(): bool
     {
         return $this->archived_at !== null;

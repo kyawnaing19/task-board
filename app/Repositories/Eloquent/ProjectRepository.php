@@ -72,6 +72,11 @@ class ProjectRepository implements ProjectRepositoryInterface
         return Project::query()->whereKey($project->id)->lockForUpdate()->firstOrFail();
     }
 
+    public function lockShared(Project $project): Project
+    {
+        return Project::query()->whereKey($project->id)->sharedLock()->firstOrFail();
+    }
+
     public function nextTaskSequence(Project $locked): int
     {
         $next = ((int) $locked->task_sequence) + 1;

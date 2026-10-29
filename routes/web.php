@@ -19,6 +19,8 @@ use App\Http\Controllers\TeamMemberController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\TaskBoardController;
+use App\Http\Controllers\TaskCommentController;
+
 
 
 // Guest Routes
@@ -252,6 +254,17 @@ Route::middleware(['auth', 'active'])->group(function () {
             '/tasks/{task}/attachments/{attachment}',
             [TaskAttachmentController::class, 'destroy']
         )->name('tasks.attachments.destroy');
+
+        //tskComment
+
+        Route::get('/tasks/{task}/comments', [TaskCommentController::class, 'index'])
+            ->whereNumber('task')->name('tasks.comments.index');
+        Route::post('/tasks/{task}/comments', [TaskCommentController::class, 'store'])
+            ->whereNumber('task')->middleware('throttle:task-comments')->name('tasks.comments.store');
+        Route::patch('/comments/{comment}', [TaskCommentController::class, 'update'])
+            ->whereNumber('comment')->middleware('throttle:task-comments')->name('comments.update');
+        Route::delete('/comments/{comment}', [TaskCommentController::class, 'destroy'])
+            ->whereNumber('comment')->name('comments.destroy');
         
 
 

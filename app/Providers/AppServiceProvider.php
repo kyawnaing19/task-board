@@ -6,6 +6,7 @@ use App\Repositories\Contracts\ProjectMemberRepositoryInterface;
 use App\Repositories\Contracts\ProjectRepositoryInterface;
 use App\Repositories\Contracts\ProjectTeamRepositoryInterface;
 use App\Repositories\Contracts\TagRepositoryInterface;
+use App\Repositories\Contracts\TaskCommentRepositoryInterface;
 use App\Repositories\Contracts\TaskGroupRepositoryInterface;
 use App\Repositories\Contracts\TaskRepositoryInterface;
 use App\Repositories\Contracts\TeamMemberRepositoryInterface;
@@ -16,11 +17,15 @@ use App\Repositories\Eloquent\ProjectMemberRepository;
 use App\Repositories\Eloquent\ProjectRepository;
 use App\Repositories\Eloquent\ProjectTeamRepository;
 use App\Repositories\Eloquent\TagRepository;
+use App\Repositories\Eloquent\TaskCommentRepository;
 use App\Repositories\Eloquent\TaskGroupRepository;
 use App\Repositories\Eloquent\TaskRepository;
 use App\Repositories\Eloquent\TeamMemberRepository;
 use App\Repositories\Eloquent\TeamRepository as EloquentTeamRepository;
 use App\Repositories\Eloquent\UserRepository;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -38,10 +43,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(TaskGroupRepositoryInterface::class,TaskGroupRepository::class);
         $this->app->bind(TagRepositoryInterface::class,TagRepository::class);
         $this->app->bind(TaskRepositoryInterface::class,TaskRepository::class);
+        $this->app->bind(TaskCommentRepositoryInterface::class,TaskCommentRepository::class);
     }
 
     public function boot(): void
     {
-        //
+        RateLimiter::for('task-comments', fn (Request $request) => Limit::perMinute(20)
+        ->by('user:'.($request->user()?->id ?? $request->ip())));
     }
 }

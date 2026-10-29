@@ -6,16 +6,24 @@ import Avatar from '@/Components/Avatar';
 
 export default function Show({ team, members = [] }) {
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex min-w-0 items-center gap-4">
-                    <Link
-                        href={route('my-teams.index')}
-                        aria-label="Back to my teams"
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        
+            <AuthenticatedLayout
+                header={
+                    <nav
+                        aria-label="Breadcrumb"
+                        className="flex min-w-0 items-center gap-2 text-sm"
                     >
+                        {/* Parent Breadcrumb */}
+                        <Link
+                            href={route('my-teams.index')}
+                            className="shrink-0 font-medium text-slate-500 transition-colors hover:text-indigo-600"
+                        >
+                            My Teams
+                        </Link>
+
+                        {/* Separator */}
                         <svg
-                            className="h-5 w-5"
+                            className="h-4 w-4 shrink-0 text-slate-300"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -25,23 +33,21 @@ export default function Show({ team, members = [] }) {
                             <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                d="M15 19l-7-7 7-7"
+                                d="m9 18 6-6-6-6"
                             />
                         </svg>
-                    </Link>
 
-                    <div className="min-w-0">
-                        <p className="text-xs font-medium text-slate-400">
-                            Teams
-                        </p>
+                        {/* Current Team */}
+                        <span
+                            aria-current="page"
+                            className="truncate font-semibold text-slate-900"
+                        >
+                            {team.name}
+                        </span>
+                    </nav>
+                }
+            >
 
-                        <h1 className="truncate text-base font-semibold text-slate-900 sm:text-lg">
-                            My Teams
-                        </h1>
-                    </div>
-                </div>
-            }
-        >
             <Head title={team.name} />
 
             <div className="space-y-6">

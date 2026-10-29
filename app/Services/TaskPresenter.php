@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\Task;
 use App\Models\User;
@@ -79,12 +80,22 @@ class TaskPresenter
     }
 
     /** Inactive / project member မဟုတ်တော့တဲ့သူကို label ဖြင့် ဆက်ပြမယ် (မဖယ်ဘူး) */
-    public function personLabel(User $user, array $memberIds): ?string
+   public function personLabel(User $user, array $memberIds): ?string
     {
-        if ($user->status !== UserStatus::ACTIVE->value) {
-            return 'inactive';
+        // Super Admin က project member မဖြစ်နိုင်လို့ "non_member" လို့ မတပ်ရဘူး
+        if (($user->getAttributes()['role'] ?? null) === UserRole::SUPER_ADMIN->value) {
+            return $this->statusLabel($user);
+        }
+
+        if ($label = $this->statusLabel($user)) {
+            return $label;
         }
 
         return in_array($user->id, $memberIds, true) ? null : 'non_member';
+    }
+
+    protected function statusLabel(User $user): ?string
+    {
+        return $user->status !== UserStatus::ACTIVE->value ? 'inactive' : null;
     }
 }

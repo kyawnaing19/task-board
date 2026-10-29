@@ -3,6 +3,7 @@ import { usePage } from '@inertiajs/react';
 
 import Avatar from '@/Components/Avatar';
 import GroupPill from '@/Components/GroupPill';
+import CommentsField from './Drawer/CommentsField';
 
 import {
     errorMessage,
@@ -918,11 +919,23 @@ export default function TaskDrawer({
                                     </div>
                                 </section>
 
-                                {/* Attachments:*/}
+                              {/* Attachments */}
                                 <AttachmentsField
                                     taskId={taskId}
                                     canManage={canManageAttachments}
                                 />
+
+                                {/* Comments */}
+                                <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 sm:p-4">
+                                    <CommentsField
+                                        taskId={taskId}
+                                        canComment={
+                                            !task.is_archived &&
+                                            !task.project.archived &&
+                                            !task.project.read_only
+                                        }
+                                    />
+                                </div>
 
                                 {/* Details */}
                                 <Section title="Details">
