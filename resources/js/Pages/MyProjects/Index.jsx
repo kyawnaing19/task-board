@@ -168,18 +168,9 @@ export default function Index({
             <Head title="My Projects" />
 
             <div className="min-h-screen bg-slate-50/70">
-                <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
-                    {/* Page heading */}
+                <div className="w-full px-3 py-5 sm:px-5 lg:px-6">                    {/* Page heading */}
                     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                                Projects
-                            </h1>
-
-                            <p className="mt-1 text-sm text-slate-500">
-                                Keep track of your team projects and their progress.
-                            </p>
-                        </div>
+                     
 
                         {can_create && (
                             <button
@@ -278,11 +269,12 @@ export default function Index({
                                                     Status
                                                 </th>
 
-                                                <th className="w-14 px-4 py-3">
+                                                {/* <th className="w-14 px-4 py-3">
+                                                    
                                                     <span className="sr-only">
                                                         Actions
                                                     </span>
-                                                </th>
+                                                </th> */}
                                             </tr>
                                         </thead>
 
@@ -413,7 +405,7 @@ export default function Index({
                                                         </td>
 
                                                         {/* Actions */}
-                                                        <td
+                                                        {/* <td
                                                             className="px-4 py-4 text-right"
                                                             onClick={(event) => event.stopPropagation()}
                                                             onKeyDown={(event) => event.stopPropagation()}
@@ -421,7 +413,7 @@ export default function Index({
                                                             <RowActionsMenu
                                                                 actions={getProjectActions(project)}
                                                             />
-                                                        </td>
+                                                        </td> */}
                                                     </tr>
                                                 );
                                             })}

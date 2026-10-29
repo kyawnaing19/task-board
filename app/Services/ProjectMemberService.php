@@ -103,21 +103,59 @@ class ProjectMemberService
         });
     }
 
+    // public function remove(User $actor, Project $project, User $user): void
+    // {
+    //     DB::transaction(function () use ($actor, $project, $user) {
+    //         $locked = $this->projects->lock($project);$this->authorization->assertCanManage($actor, $locked);
+    //         $this->projectService->assertEditable($locked);
+
+    //         $member = $this->members->findActive($locked, $user->id, lock: true);
+
+    //         if (! $member) {
+    //             throw $this->notMember();
+    //         }
+
+    //         $this->assertWithinLedTeams($actor, [$user->id], 'project', 'remove');
+
+    //         // hard delete မလုပ်ဘူး၊ end-date ပဲလုပ်မယ်
+    //         $this->members->end($member, $actor->id);
+    //     });
+    // }
+
     public function remove(User $actor, Project $project, User $user): void
     {
         DB::transaction(function () use ($actor, $project, $user) {
-            $locked = $this->projects->lock($project);$this->authorization->assertCanManage($actor, $locked);
+            $locked = $this->projects->lock($project);
+
+            $this->authorization->assertCanManage($actor, $locked);
+
             $this->projectService->assertEditable($locked);
 
-            $member = $this->members->findActive($locked, $user->id, lock: true);
+            // Prevent users from removing themselves from the project.
+            if ($actor->is($user)) {
+                throw ValidationException::withMessages([
+                    'user' => 'You cannot remove yourself from this project.',
+                ]);
+            }
+
+            $member = $this->members->findActive(
+                $locked,
+                $user->id,
+                lock: true,
+            );
 
             if (! $member) {
                 throw $this->notMember();
             }
 
-            $this->assertWithinLedTeams($actor, [$user->id], 'project', 'remove');
+            $this->assertWithinLedTeams(
+                $actor,
+                [$user->id],
+                'project',
+                'remove',
+            );
 
-            // hard delete မလုပ်ဘူး၊ end-date ပဲလုပ်မယ်
+            // Soft removal: set the membership end date instead of hard deleting.
             $this->members->end($member, $actor->id);
         });
     }
