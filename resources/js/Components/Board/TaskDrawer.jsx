@@ -533,29 +533,13 @@ export default function TaskDrawer({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex justify-end"
+            className="fixed inset-0 z-50 flex flex-col bg-white text-slate-900"
             role="dialog"
             aria-modal="true"
             aria-label="Task details"
         >
-            {/* Backdrop */}
-            <button
-                type="button"
-                tabIndex={-1}
-                aria-label="Close task details"
-                className="absolute inset-0 cursor-default bg-slate-950/25 backdrop-blur-[3px]"
-                onClick={onClose}
-            />
-
-            {/* Drawer */}
-            <aside
-                className="
-                    relative flex h-full w-full max-w-xl flex-col
-                    border-l border-slate-200/80
-                    bg-white text-slate-900
-                    shadow-2xl shadow-slate-950/10
-                "
-            >
+            {/* Full-screen task workspace */}
+            <aside className="flex h-full min-h-0 w-full flex-col bg-white text-slate-900">
                 {/* Header */}
                 <header
                     className="
@@ -607,6 +591,10 @@ export default function TaskDrawer({
                     </button>
                 </header>
 
+                {/* Main task area + independent comments panel */}
+                <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+                    {/* Main task content */}
+                    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
                 {/* Scrollable content */}
                 <div className="min-h-0 flex-1 overflow-y-auto bg-white">
                     <div className="px-5 py-5 sm:px-6 sm:py-6">
@@ -925,19 +913,7 @@ export default function TaskDrawer({
                                     canManage={canManageAttachments}
                                 />
 
-                                {/* Comments */}
-                                <div className="rounded-xl border border-slate-200/80 bg-white p-3.5 sm:p-4">
-                                    <CommentsField
-                                        taskId={taskId}
-                                        canComment={
-                                            !task.is_archived &&
-                                            !task.project.archived &&
-                                            !task.project.read_only
-                                        }
-                                    />
-                                </div>
-
-                                {/* Details */}
+{/* Details */}
                                 <Section title="Details">
                                     <dl className="divide-y divide-slate-100">
                                         <DetailRow label="Creator">
@@ -1012,8 +988,7 @@ export default function TaskDrawer({
                 </div>
                 
 
-                {/* Footer actions */}
-                {task &&
+                {/* Footer actions */}{task &&
                     (task.is_archived
                         ? perm.can_restore || perm.restore_blocked_reason
                         : perm.can_archive) && (
@@ -1073,8 +1048,35 @@ export default function TaskDrawer({
                             )}
                         </footer>
                     )}
+                    </div>
 
-                    
+                    {/* Comments sidebar */}
+                    <aside className="flex min-h-0 w-full shrink-0 flex-col border-t border-slate-200 bg-white lg:w-[380px] lg:border-l lg:border-t-0 xl:w-[420px]">
+                        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 py-4">
+                            <div>
+                                <h2 className="text-sm font-semibold text-slate-900">Comments</h2>
+                                <p className="mt-0.5 text-xs text-slate-500">Discuss this task with your team</p>
+                            </div>
+                        </div>
+                        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+                            {task ? (
+                                <CommentsField
+                                    taskId={taskId}
+                                    canComment={
+                                        !task.is_archived &&
+                                        !task.project.archived &&
+                                        !task.project.read_only
+                                    }
+                                />
+                            ) : (
+                                <div className="animate-pulse space-y-3">
+                                    <div className="h-16 rounded-xl bg-slate-100" />
+                                    <div className="h-16 rounded-xl bg-slate-100" />
+                                </div>
+                            )}
+                        </div>
+                    </aside>
+                </div>
             </aside>
             <ConfirmationModal
     show={confirmation.show}
