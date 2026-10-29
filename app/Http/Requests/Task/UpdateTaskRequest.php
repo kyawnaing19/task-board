@@ -18,9 +18,16 @@ class UpdateTaskRequest extends FormRequest
     {
         $merge = [];
 
+        // if ($this->has('title')) {
+        //     $merge['title'] = preg_replace('/\s+/u', ' ', trim((string) $this->input('title')));
+        // }
         if ($this->has('title')) {
-            $merge['title'] = preg_replace('/\s+/u', ' ', trim((string) $this->input('title')));
-        }
+    $merge['title'] = preg_replace(
+        '/\s+/u',
+        ' ',
+        trim((string) $this->input('title'))
+    );
+}
 
         if ($this->has('description')) {
             $description = $this->input('description');

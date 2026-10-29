@@ -14,20 +14,40 @@ class StoreTaskRequest extends FormRequest
         return $this->user() !== null;
     }
 
+    // protected function prepareForValidation(): void
+    // {
+    //     $description = $this->input('description');
+
+    //     if ($description !== null) {
+    //         // စာလုံးရေ တိုင်းတာတာ မှန်အောင် line ending ကို တူအောင်လုပ်မယ်
+    //         $description = trim(str_replace(["\r\n", "\r"], "\n", (string) $description));
+    //     }
+
+    //     $this->merge([
+    //         'title'       => preg_replace('/\s+/u', ' ', trim((string) $this->input('title'))),
+    //         'description' => filled($description) ? $description : null,
+    //     ]);
+    // }
+
     protected function prepareForValidation(): void
-    {
-        $description = $this->input('description');
+{
+    $description = $this->input('description');
 
-        if ($description !== null) {
-            // စာလုံးရေ တိုင်းတာတာ မှန်အောင် line ending ကို တူအောင်လုပ်မယ်
-            $description = trim(str_replace(["\r\n", "\r"], "\n", (string) $description));
-        }
-
-        $this->merge([
-            'title'       => preg_replace('/\s+/u', ' ', trim((string) $this->input('title'))),
-            'description' => filled($description) ? $description : null,
-        ]);
+    if ($description !== null) {
+        $description = trim(
+            str_replace(["\r\n", "\r"], "\n", (string) $description)
+        );
     }
+
+    $this->merge([
+        'title' => preg_replace(
+            '/\s+/u',
+            ' ',
+            trim((string) $this->input('title'))
+        ),
+        'description' => filled($description) ? $description : null,
+    ]);
+}
 
     public function rules(): array
     {

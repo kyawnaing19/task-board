@@ -24,6 +24,9 @@ interface ProjectRepositoryInterface
 
     public function update(Project $project, array $data): Project;
 
+    /** Project row ကို shared lock နဲ့ ယူမယ် (status ပြောင်းတာ၊ archive နဲ့ တိုက်ဆိုင်မှုကို serialize လုပ်ဖို့) */
+    public function lockShared(Project $project): Project;
+
     /** Lock the row within the transaction and retrieve it with the latest state */
     public function lock(Project $project): Project;
 

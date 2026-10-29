@@ -15,7 +15,7 @@ use App\Repositories\Contracts\TaskRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-
+use Mews\Purifier\Facades\Purifier;
 class TaskService
 {    
     public const RESTORE_BLOCKED_PROJECT = 'Project must be Active before this task can be restored';
@@ -66,7 +66,8 @@ class TaskService
                 'sequence'      => $sequence,
                 'code'          => "{$locked->code}-{$sequence}",
                 'title'         => $data['title'],
-                'description'   => $data['description'] ?? null,
+                //'description'   => $data['description'] ?? null,
+                'description' => $this->sanitizeDescription($data['description'] ?? null),
                 'priority'      => $priority,
                 'start_date'    => $data['start_date'] ?? null,
                 'end_date'      => $data['end_date'] ?? null,
@@ -138,6 +139,12 @@ class TaskService
                 throw ValidationException::withMessages([
                     'task' => 'Archived tasks cannot be edited. Restore the task first.',
                 ]);
+            }
+
+            if (array_key_exists('description', $data)) {
+                $data['description'] = $this->sanitizeDescription(
+                    $data['description']
+                );
             }
 
             [$attributes, $changes] = $this->scalarChanges($locked, $data);
@@ -457,41 +464,75 @@ class TaskService
  *
  * @return array{0: array<string, mixed>, 1: array<string, array{from: mixed, to: mixed}>}
  */
+    /**
+ * Scalar task fields တွေကို နှိုင်းယှဉ်ပြီး ပြောင်းလဲမှုများကို ပြန်ပေးမယ်။
+ *
+ * Description ကို HTML အဖြစ် သိမ်းမယ်။
+ * History မှာတော့ plain-text excerpt ပဲ သိမ်းမယ်။
+ *
+ * @return array{0: array, 1: array}
+ */
     protected function scalarChanges(Task $task, array $data): array
     {
-            $old = [
-                'title'       => $task->title,
-                'description' => $task->description,
-                'priority'    => $task->priority->value,
-                'start_date'  => $task->start_date?->toDateString(),
-                'end_date'    => $task->end_date?->toDateString(),
-            ];
+        $old = [
+            'title'       => $task->title,
+            'description' => $task->description,
+            'priority'    => $task->priority->value,
+            'start_date'  => $task->start_date?->toDateString(),
+            'end_date'    => $task->end_date?->toDateString(),
+        ];
 
-            $attributes = [];
-            $changes = [];
+        $attributes = [];
+        $changes = [];
 
-            foreach ($old as $field => $before) {
-                if (! array_key_exists($field, $data)) {
-                    continue;
-                }
+        foreach ($old as $field => $before) {
+            if (! array_key_exists($field, $data)) {
+                continue;
+            }
 
-                $after = $data[$field];
+            $after = $data[$field];
 
+            if ($field === 'description') {
+                // HTML description ကို sanitize လုပ်ပြီးမှ ဒီ method ထဲ ပို့ထားရမယ်။
+                $beforeText = $this->descriptionText($before);
+                $afterText = $this->descriptionText($after);
+
+                // Formatting ပဲပြောင်းရင်လည်း HTML ကို update လုပ်နိုင်ရမယ်။
                 if ($after === $before) {
                     continue;
                 }
 
                 $attributes[$field] = $after;
 
-                // Description ကို history မှာ ပထမ ၂၀၀ လုံးပဲ သိမ်းမယ် (၂၀,၀၀၀ လုံးကို edit တိုင်း ထပ်မသိမ်းဘူး)
-                $changes[$field] = $field === 'description'
-                    ? ['from' => $this->excerpt($before), 'to' => $this->excerpt($after)]
-                    : ['from' => $before, 'to' => $after];
+                // History ထဲမှာ HTML tags မသိမ်းဘဲ plain text excerpt ပဲသိမ်းမယ်။
+                $changes[$field] = [
+                    'from' => $this->excerpt($beforeText),
+                    'to'   => $this->excerpt($afterText),
+                ];
+
+                continue;
+            }
+
+            if ($after === $before) {
+                continue;
+            }
+
+            $attributes[$field] = $after;
+
+            $changes[$field] = [
+                'from' => $before,
+                'to'   => $after,
+            ];
         }
 
-        // Date နှစ်ခု နှိုင်းယှဉ်တာကို ပြောင်းပြီးသား တန်ဖိုး (မပါရင် DB ထဲက တန်ဖိုး) နဲ့ လုပ်မယ်
-        $start = array_key_exists('start_date', $data) ? $data['start_date'] : $old['start_date'];
-        $end = array_key_exists('end_date', $data) ? $data['end_date'] : $old['end_date'];
+        // ပြောင်းလဲပြီးသား date values နဲ့ validation လုပ်မယ်။
+        $start = array_key_exists('start_date', $data)
+            ? $data['start_date']
+            : $old['start_date'];
+
+        $end = array_key_exists('end_date', $data)
+            ? $data['end_date']
+            : $old['end_date'];
 
         if ($start && $end && $end < $start) {
             throw ValidationException::withMessages([
@@ -500,6 +541,30 @@ class TaskService
         }
 
         return [$attributes, $changes];
+    }
+
+    /**
+     * Rich Text HTML ကို plain text အဖြစ် ပြောင်းမယ်။
+     */
+    protected function descriptionText(?string $description): string
+    {
+        if ($description === null || trim($description) === '') {
+            return '';
+        }
+
+        $text = strip_tags(
+            str_replace(
+                ['</p>', '</li>', '</ul>', '</ol>', '<br>', '<br/>', '<br />'],
+                "\n",
+                $description
+            )
+        );
+
+        return trim(html_entity_decode(
+            $text,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        ));
     }
 
     protected function excerpt(?string $text): ?string
@@ -520,6 +585,15 @@ class TaskService
     {
         return array_map(fn ($id) => ['id' => $id, 'name' => $names[$id] ?? null], $ids);
     }
+    private function sanitizeDescription(?string $description): ?string
+    {
+        if ($description === null || trim($description) === '') {
+            return null;
+        }
 
+        $clean = Purifier::clean($description, 'task_description');
+
+        return trim($clean) === '' ? null : $clean;
+    }
 
 }
