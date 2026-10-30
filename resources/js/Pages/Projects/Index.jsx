@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 
 import RowActionsMenu from '@/Components/RowActionsMenu';
@@ -25,6 +25,206 @@ const EMPTY_MESSAGES = {
     archived: 'No archived projects.',
 };
 
+/*
+|--------------------------------------------------------------------------
+| Searchable Dropdown
+|--------------------------------------------------------------------------
+*/
+
+function SearchableDropdown({
+    value,
+    options = [],
+    placeholder = 'Select an option',
+    searchPlaceholder = 'Search...',
+    onChange,
+}) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState('');
+
+    const containerRef = useRef(null);
+
+    const selectedOption = options.find(
+        (option) => String(option.value) === String(value),
+    );
+
+    const filteredOptions = options.filter((option) =>
+        option.label.toLowerCase().includes(search.toLowerCase().trim()),
+    );
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                containerRef.current &&
+                !containerRef.current.contains(event.target)
+            ) {
+                setOpen(false);
+                setSearch('');
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    const selectOption = (option) => {
+        onChange(option.value);
+        setOpen(false);
+        setSearch('');
+    };
+
+    return (
+        <div ref={containerRef} className="relative min-w-0">
+            <button
+                type="button"
+                onClick={() => setOpen((previous) => !previous)}
+                aria-expanded={open}
+                className="flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 text-left text-sm text-slate-700 shadow-sm transition hover:border-slate-300 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            >
+                <span
+                    className={`truncate ${
+                        selectedOption
+                            ? 'text-slate-700'
+                            : 'text-slate-400'
+                    }`}
+                >
+                    {selectedOption?.label ?? placeholder}
+                </span>
+
+                <svg
+                    className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
+                        open ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="m6 9 6 6 6-6"
+                    />
+                </svg>
+            </button>
+
+            {open && (
+                <div className="absolute left-0 top-full z-50 mt-1.5 w-full min-w-[220px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                    {/* Dropdown Search */}
+
+                    <div className="border-b border-slate-100 p-2">
+                        <div className="relative">
+                            <svg
+                                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                            >
+                                <circle cx="11" cy="11" r="7" />
+                                <path
+                                    strokeLinecap="round"
+                                    d="m16 16 4 4"
+                                />
+                            </svg>
+
+                            <input
+                                type="text"
+                                autoFocus
+                                value={search}
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Escape') {
+                                        setOpen(false);
+                                        setSearch('');
+                                    }
+                                }}
+                                placeholder={searchPlaceholder}
+                                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-50"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Dropdown Options */}
+
+                    <div className="max-h-56 overflow-y-auto p-1.5">
+                        <button
+                            type="button"
+                            onClick={() =>
+                                selectOption({
+                                    value: '',
+                                    label: placeholder,
+                                })
+                            }
+                            className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${
+                                !value
+                                    ? 'bg-indigo-50 font-medium text-indigo-700'
+                                    : 'text-slate-600'
+                            }`}
+                        >
+                            {placeholder}
+                        </button>
+
+                        {filteredOptions.map((option) => {
+                            const active =
+                                String(option.value) === String(value);
+
+                            return (
+                                <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => selectOption(option)}
+                                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${
+                                        active
+                                            ? 'bg-indigo-50 font-medium text-indigo-700'
+                                            : 'text-slate-700 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <span className="truncate">
+                                        {option.label}
+                                    </span>
+
+                                    {active && (
+                                        <svg
+                                            className="h-4 w-4 shrink-0 text-indigo-600"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            strokeWidth={2}
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                d="m5 12 4 4L19 6"
+                                            />
+                                        </svg>
+                                    )}
+                                </button>
+                            );
+                        })}
+
+                        {filteredOptions.length === 0 && (
+                            <p className="px-3 py-5 text-center text-xs text-slate-400">
+                                No results found.
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/*
+|--------------------------------------------------------------------------
+| Projects Index
+|--------------------------------------------------------------------------
+*/
+
 export default function Index({
     projects,
     filters,
@@ -37,6 +237,10 @@ export default function Index({
     const [confirmation, setConfirmation] = useState(null);
     const [processing, setProcessing] = useState(false);
 
+    const [search, setSearch] = useState(filters.q ?? '');
+
+    const searchTimer = useRef(null);
+
     const rows = projects.data ?? [];
     const current = filters.status ?? 'active';
 
@@ -46,14 +250,87 @@ export default function Index({
 
     /*
     |--------------------------------------------------------------------------
+    | Search State
+    |--------------------------------------------------------------------------
+    */
+
+    useEffect(() => {
+        setSearch(filters.q ?? '');
+    }, [filters.q]);
+
+    useEffect(() => {
+        return () => {
+            clearTimeout(searchTimer.current);
+        };
+    }, []);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Dropdown Options
+    |--------------------------------------------------------------------------
+    */
+
+    const typeOptions = type_suggestions.map((type) => ({
+        value: type,
+        label: type,
+    }));
+
+    const teamOptions = [
+        ...(selected.team &&
+        !teams.some(
+            (team) => String(team.id) === String(selected.team.id),
+        )
+            ? [
+                  {
+                      value: selected.team.id,
+                      label: `${selected.team.name}${
+                          selected.team.archived ? ' (Archived)' : ''
+                      }`,
+                  },
+              ]
+            : []),
+
+        ...teams.map((team) => ({
+            value: team.id,
+            label: `${team.name}${team.archived ? ' (Archived)' : ''}`,
+        })),
+    ];
+
+    const employeeOptions = [
+        ...(selected.employee &&
+        !employees.some(
+            (employee) =>
+                String(employee.id) === String(selected.employee.id),
+        )
+            ? [
+                  {
+                      value: selected.employee.id,
+                      label: `${selected.employee.name}${
+                          !selected.employee.active ? ' (Inactive)' : ''
+                      }`,
+                  },
+              ]
+            : []),
+
+        ...employees.map((employee) => ({
+            value: employee.id,
+            label: `${employee.name}${
+                employee.job_title ? ` — ${employee.job_title}` : ''
+            }`,
+        })),
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
     | Filter Helpers
     |--------------------------------------------------------------------------
     */
 
     const hasFilters = Boolean(
+        filters.q ||
         filters.type ||
         filters.team_id ||
-        filters.employee_id
+        filters.employee_id,
     );
 
     const applyFilters = (changes = {}) => {
@@ -63,6 +340,7 @@ export default function Index({
                     ? filters.status
                     : undefined,
 
+            q: filters.q || undefined,
             type: filters.type || undefined,
             team_id: filters.team_id || undefined,
             employee_id: filters.employee_id || undefined,
@@ -80,19 +358,32 @@ export default function Index({
             }
         });
 
-        router.get(
-            route('projects.index'),
-            next,
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-            },
-        );
+        router.get(route('projects.index'), next, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+    const handleSearchChange = (value) => {
+        setSearch(value);
+
+        clearTimeout(searchTimer.current);
+
+        searchTimer.current = setTimeout(() => {
+            applyFilters({
+                q: value.trim() || undefined,
+            });
+        }, 300);
     };
 
     const clearFilters = () => {
+        clearTimeout(searchTimer.current);
+
+        setSearch('');
+
         applyFilters({
+            q: undefined,
             type: undefined,
             team_id: undefined,
             employee_id: undefined,
@@ -153,9 +444,7 @@ export default function Index({
             label: 'Detail',
 
             onClick: () => {
-                router.visit(
-                    route('projects.show', project.id),
-                );
+                router.visit(route('projects.show', project.id));
             },
         };
 
@@ -239,15 +528,6 @@ export default function Index({
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
         }`;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Filter Select Styles
-    |--------------------------------------------------------------------------
-    */
-
-    const selectClass =
-        'h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm outline-none transition hover:border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100';
 
     return (
         <AuthenticatedLayout header="Projects">
@@ -364,6 +644,10 @@ export default function Index({
                                             ? { status: tab.key }
                                             : {}),
 
+                                        ...(filters.q
+                                            ? { q: filters.q }
+                                            : {}),
+
                                         ...(filters.type
                                             ? { type: filters.type }
                                             : {}),
@@ -374,19 +658,15 @@ export default function Index({
 
                                         ...(filters.employee_id
                                             ? {
-                                                employee_id:
-                                                    filters.employee_id,
-                                            }
+                                                  employee_id:
+                                                      filters.employee_id,
+                                              }
                                             : {}),
                                     })}
                                     preserveScroll
-                                    className={tabClass(
-                                        current === tab.key,
-                                    )}
+                                    className={tabClass(current === tab.key)}
                                     aria-current={
-                                        current === tab.key
-                                            ? 'page'
-                                            : undefined
+                                        current === tab.key ? 'page' : undefined
                                     }
                                 >
                                     {tab.label}
@@ -400,274 +680,257 @@ export default function Index({
                             <span className="font-semibold text-slate-700">
                                 {projects.total}
                             </span>{' '}
-                            {projects.total === 1
-                                ? 'project'
-                                : 'projects'}
+                            {projects.total === 1 ? 'project' : 'projects'}
                         </p>
                     </div>
 
                     {/* Filters */}
 
                     <div className="border-b border-slate-200 bg-white px-4 py-4 sm:px-5">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex flex-col gap-3">
 
-                            {/* Filter Controls */}
+                            {/* Search + Filters */}
 
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap">
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(220px,1.5fr)_minmax(145px,1fr)_minmax(145px,1fr)_minmax(165px,1fr)_auto]">
+
+                                {/* Project Search */}
+
+                                <div className="relative">
+                                    <svg
+                                        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth={2}
+                                    >
+                                        <circle cx="11" cy="11" r="7" />
+                                        <path
+                                            strokeLinecap="round"
+                                            d="m16 16 4 4"
+                                        />
+                                    </svg>
+
+                                    <input
+                                        type="search"
+                                        value={search}
+                                        onChange={(e) =>
+                                            handleSearchChange(e.target.value)
+                                        }
+                                        placeholder="Search projects..."
+                                        aria-label="Search projects"
+                                        className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                                    />
+
+                                    {search && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleSearchChange('')
+                                            }
+                                            aria-label="Clear search"
+                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                                        >
+                                            <svg
+                                                className="h-4 w-4"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                strokeWidth={2}
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    d="m6 6 12 12M18 6 6 18"
+                                                />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
 
                                 {/* Project Type */}
 
-                                <div className="relative">
-                                    <select
-                                        value={filters.type ?? ''}
-                                        aria-label="Filter by project type"
-                                        onChange={(e) =>
-                                            applyFilters({
-                                                type:
-                                                    e.target.value ||
-                                                    undefined,
-                                            })
-                                        }
-                                        className={`${selectClass} w-full lg:min-w-[145px] lg:max-w-[190px]`}
-                                    >
-                                        <option value="">
-                                            All types
-                                        </option>
-
-                                        {type_suggestions.map((type) => (
-                                            <option
-                                                key={type}
-                                                value={type}
-                                            >
-                                                {type}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                                <SearchableDropdown
+                                    value={filters.type ?? ''}
+                                    options={typeOptions}
+                                    placeholder="All types"
+                                    searchPlaceholder="Search types..."
+                                    onChange={(value) =>
+                                        applyFilters({
+                                            type: value || undefined,
+                                        })
+                                    }
+                                />
 
                                 {/* Team */}
 
-                                <div className="relative">
-                                    <select
-                                        value={filters.team_id ?? ''}
-                                        aria-label="Filter by team"
-                                        onChange={(e) =>
-                                            applyFilters({
-                                                team_id:
-                                                    e.target.value ||
-                                                    undefined,
-                                            })
-                                        }
-                                        className={`${selectClass} w-full lg:min-w-[145px] lg:max-w-[200px]`}
-                                    >
-                                        <option value="">
-                                            All teams
-                                        </option>
-
-                                        {selected.team &&
-                                            !teams.some(
-                                                (team) =>
-                                                    String(team.id) ===
-                                                    String(selected.team.id),
-                                            ) && (
-                                                <option value={selected.team.id}>
-                                                    {selected.team.name}
-                                                    {selected.team.archived
-                                                        ? ' (Archived)'
-                                                        : ''}
-                                                </option>
-                                            )}
-
-                                        {teams.map((team) => (
-                                            <option
-                                                key={team.id}
-                                                value={team.id}
-                                            >
-                                                {team.name}
-                                                {team.archived
-                                                    ? ' (Archived)'
-                                                    : ''}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                                <SearchableDropdown
+                                    value={filters.team_id ?? ''}
+                                    options={teamOptions}
+                                    placeholder="All teams"
+                                    searchPlaceholder="Search teams..."
+                                    onChange={(value) =>
+                                        applyFilters({
+                                            team_id: value || undefined,
+                                        })
+                                    }
+                                />
 
                                 {/* Employee */}
 
-                                <div className="relative">
-                                    <select
-                                        value={filters.employee_id ?? ''}
-                                        aria-label="Filter by employee"
-                                        onChange={(e) =>
-                                            applyFilters({
-                                                employee_id:
-                                                    e.target.value ||
-                                                    undefined,
-                                            })
-                                        }
-                                        className={`${selectClass} w-full lg:min-w-[165px] lg:max-w-[230px]`}
-                                    >
-                                        <option value="">
-                                            All employees
-                                        </option>
+                                <SearchableDropdown
+                                    value={filters.employee_id ?? ''}
+                                    options={employeeOptions}
+                                    placeholder="All employees"
+                                    searchPlaceholder="Search employees..."
+                                    onChange={(value) =>
+                                        applyFilters({
+                                            employee_id: value || undefined,
+                                        })
+                                    }
+                                />
 
-                                        {selected.employee &&
-                                            !employees.some(
-                                                (employee) =>
-                                                    String(employee.id) ===
-                                                    String(selected.employee.id),
-                                            ) && (
-                                                <option
-                                                    value={selected.employee.id}
-                                                >
-                                                    {selected.employee.name}
-                                                    {!selected.employee.active
-                                                        ? ' (Inactive)'
-                                                        : ''}
-                                                </option>
-                                            )}
+                                {/* Clear Filters */}
 
-                                        {employees.map((employee) => (
-                                            <option
-                                                key={employee.id}
-                                                value={employee.id}
+                                <div className="flex items-center">
+                                    {hasFilters ? (
+                                        <button
+                                            type="button"
+                                            onClick={clearFilters}
+                                            className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 lg:w-auto"
+                                        >
+                                            <svg
+                                                className="h-3.5 w-3.5"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                strokeWidth={2}
                                             >
-                                                {employee.name}
-                                                {employee.job_title
-                                                    ? ` — ${employee.job_title}`
-                                                    : ''}
-                                            </option>
-                                        ))}
-                                    </select>
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    d="M6 6l12 12M18 6 6 18"
+                                                />
+                                            </svg>
+
+                                            Clear
+                                        </button>
+                                    ) : (
+                                        <span className="hidden whitespace-nowrap text-xs text-slate-400 lg:block">
+                                            Filter projects
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Clear Filters */}
+                            {/* Active Filter Indicators */}
 
-                            <div className="flex items-center justify-between gap-3">
-                                {hasFilters ? (
-                                    <button
-                                        type="button"
-                                        onClick={clearFilters}
-                                        className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
-                                    >
-                                        <svg
-                                            className="h-3.5 w-3.5"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                            strokeWidth={2}
-                                            aria-hidden="true"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                d="M6 6l12 12M18 6L6 18"
-                                            />
-                                        </svg>
-
-                                        Clear filters
-                                    </button>
-                                ) : (
-                                    <span className="text-xs text-slate-400">
-                                        Filter projects
+                            {hasFilters && (
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-medium text-slate-400">
+                                        Active filters:
                                     </span>
-                                )}
 
-                                <p className="whitespace-nowrap text-xs text-slate-500 lg:hidden">
-                                    {projects.total} projects
-                                </p>
-                            </div>
+                                    {filters.q && (
+                                        <span className="inline-flex max-w-full items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                                            <span className="max-w-[180px] truncate">
+                                                Search: {filters.q}
+                                            </span>
+
+                                            <button
+                                                type="button"
+                                                aria-label="Remove search filter"
+                                                onClick={() => {
+                                                    clearTimeout(searchTimer.current);
+                                                    setSearch('');
+                                                    applyFilters({
+                                                        q: undefined,
+                                                    });
+                                                }}
+                                                className="ml-1 rounded hover:text-rose-600"
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    )}
+
+                                    {filters.type && (
+                                        <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-100">
+                                            Type: {filters.type}
+
+                                            <button
+                                                type="button"
+                                                aria-label="Remove type filter"
+                                                onClick={() =>
+                                                    applyFilters({
+                                                        type: undefined,
+                                                    })
+                                                }
+                                                className="ml-1 rounded hover:text-indigo-900"
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    )}
+
+                                    {filters.team_id && (
+                                        <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-100">
+                                            Team:{' '}
+                                            {selected.team?.name ??
+                                                teams.find(
+                                                    (team) =>
+                                                        String(team.id) ===
+                                                        String(filters.team_id),
+                                                )?.name ??
+                                                `#${filters.team_id}`}
+
+                                            <button
+                                                type="button"
+                                                aria-label="Remove team filter"
+                                                onClick={() =>
+                                                    applyFilters({
+                                                        team_id: undefined,
+                                                    })
+                                                }
+                                                className="ml-1 rounded hover:text-violet-900"
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    )}
+
+                                    {filters.employee_id && (
+                                        <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-100">
+                                            Employee:{' '}
+                                            {selected.employee?.name ??
+                                                employees.find(
+                                                    (employee) =>
+                                                        String(employee.id) ===
+                                                        String(filters.employee_id),
+                                                )?.name ??
+                                                `#${filters.employee_id}`}
+
+                                            <button
+                                                type="button"
+                                                aria-label="Remove employee filter"
+                                                onClick={() =>
+                                                    applyFilters({
+                                                        employee_id: undefined,
+                                                    })
+                                                }
+                                                className="ml-1 rounded hover:text-emerald-900"
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
-
-                        {/* Active Filter Indicators */}
-
-                        {hasFilters && (
-                            <div className="mt-3 flex flex-wrap items-center gap-2">
-                                <span className="text-xs font-medium text-slate-400">
-                                    Active filters:
-                                </span>
-
-                                {filters.type && (
-                                    <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-100">
-                                        Type: {filters.type}
-
-                                        <button
-                                            type="button"
-                                            aria-label="Remove type filter"
-                                            onClick={() =>
-                                                applyFilters({
-                                                    type: undefined,
-                                                })
-                                            }
-                                            className="ml-1 rounded hover:text-indigo-900"
-                                        >
-                                            ×
-                                        </button>
-                                    </span>
-                                )}
-
-                                {filters.team_id && (
-                                    <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-100">
-                                        Team:{' '}
-                                        {selected.team?.name ??
-                                            teams.find(
-                                                (team) =>
-                                                    String(team.id) ===
-                                                    String(filters.team_id),
-                                            )?.name ??
-                                            `#${filters.team_id}`}
-
-                                        <button
-                                            type="button"
-                                            aria-label="Remove team filter"
-                                            onClick={() =>
-                                                applyFilters({
-                                                    team_id: undefined,
-                                                })
-                                            }
-                                            className="ml-1 rounded hover:text-violet-900"
-                                        >
-                                            ×
-                                        </button>
-                                    </span>
-                                )}
-
-                                {filters.employee_id && (
-                                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-100">
-                                        Employee:{' '}
-                                        {selected.employee?.name ??
-                                            employees.find(
-                                                (employee) =>
-                                                    String(employee.id) ===
-                                                    String(filters.employee_id),
-                                            )?.name ??
-                                            `#${filters.employee_id}`}
-
-                                        <button
-                                            type="button"
-                                            aria-label="Remove employee filter"
-                                            onClick={() =>
-                                                applyFilters({
-                                                    employee_id: undefined,
-                                                })
-                                            }
-                                            className="ml-1 rounded hover:text-emerald-900"
-                                        >
-                                            ×
-                                        </button>
-                                    </span>
-                                )}
-                            </div>
-                        )}
                     </div>
 
                     {/* Responsive Table with Vertical Scroll */}
 
                     <div className="w-full max-h-[calc(100dvh-360px)] min-h-[200px] overflow-auto overscroll-contain">
-
                         <table className="w-full min-w-[650px] divide-y divide-slate-200 text-sm">
-
                             <thead className="sticky top-0 z-20 bg-slate-50 shadow-sm">
                                 <tr className="text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                                     <th className="px-5 py-3.5">
@@ -736,15 +999,18 @@ export default function Index({
                                                 </button>
                                             )}
 
-                                            {!hasFilters && current === 'active' && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setCreateOpen(true)}
-                                                    className="mt-3 text-sm font-semibold text-indigo-600 hover:text-indigo-700"
-                                                >
-                                                    Create a project
-                                                </button>
-                                            )}
+                                            {!hasFilters &&
+                                                current === 'active' && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setCreateOpen(true)
+                                                        }
+                                                        className="mt-3 text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+                                                    >
+                                                        Create a project
+                                                    </button>
+                                                )}
                                         </td>
                                     </tr>
                                 )}
@@ -768,7 +1034,10 @@ export default function Index({
                                                 }
 
                                                 router.visit(
-                                                    route('projects.show', project.id),
+                                                    route(
+                                                        'projects.show',
+                                                        project.id,
+                                                    ),
                                                 );
                                             }}
                                         >
@@ -776,7 +1045,6 @@ export default function Index({
 
                                             <td className="px-5 py-4">
                                                 <div className="flex min-w-0 items-center gap-3">
-
                                                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-sm font-bold text-indigo-600 ring-1 ring-inset ring-indigo-100">
                                                         {(project.name || 'P')
                                                             .trim()
@@ -801,12 +1069,6 @@ export default function Index({
                                                             {project.code}
                                                         </p>
 
-                                                        {/* {project.description && (
-                                                            <p className="mt-1 max-w-[280px] truncate text-xs text-slate-400">
-                                                                {project.description}
-                                                            </p>
-                                                        )} */}
-
                                                         {project.type && (
                                                             <p className="mt-1 text-[11px] font-medium text-indigo-500">
                                                                 {project.type}
@@ -821,15 +1083,19 @@ export default function Index({
                                             <td className="whitespace-nowrap px-5 py-4">
                                                 <span
                                                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                                                        STATUS_STYLES[project.status] ??
+                                                        STATUS_STYLES[
+                                                            project.status
+                                                        ] ??
                                                         'bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-200'
                                                     }`}
                                                 >
                                                     <span
                                                         className={`h-1.5 w-1.5 rounded-full ${
-                                                            project.status === 'ACTIVE'
+                                                            project.status ===
+                                                            'ACTIVE'
                                                                 ? 'bg-emerald-500'
-                                                                : project.status === 'COMPLETED'
+                                                                : project.status ===
+                                                                    'COMPLETED'
                                                                   ? 'bg-sky-500'
                                                                   : 'bg-slate-400'
                                                         }`}
@@ -837,7 +1103,8 @@ export default function Index({
 
                                                     {project.status === 'ACTIVE'
                                                         ? 'Active'
-                                                        : project.status === 'COMPLETED'
+                                                        : project.status ===
+                                                            'COMPLETED'
                                                           ? 'Completed'
                                                           : project.status}
                                                 </span>
@@ -846,7 +1113,9 @@ export default function Index({
                                             {/* Start Date */}
 
                                             <td className="hidden whitespace-nowrap px-5 py-4 text-slate-600 md:table-cell">
-                                                {formatDate(project.start_date)}
+                                                {formatDate(
+                                                    project.start_date,
+                                                )}
                                             </td>
 
                                             {/* Due Date */}
@@ -860,7 +1129,9 @@ export default function Index({
                                                                 : 'text-slate-600'
                                                         }
                                                     >
-                                                        {formatDate(project.due_date)}
+                                                        {formatDate(
+                                                            project.due_date,
+                                                        )}
                                                     </span>
 
                                                     {overdue && (
@@ -875,15 +1146,20 @@ export default function Index({
 
                                             <td
                                                 className="px-5 py-3 text-right"
-                                                onClick={(event) => event.stopPropagation()}
-                                                onKeyDown={(event) => event.stopPropagation()}
+                                                onClick={(event) =>
+                                                    event.stopPropagation()
+                                                }
+                                                onKeyDown={(event) =>
+                                                    event.stopPropagation()
+                                                }
                                             >
                                                 <div className="flex justify-end">
                                                     <RowActionsMenu
                                                         items={menuItems(project)}
                                                         dropUp={
                                                             rows.length > 3 &&
-                                                            index >= rows.length - 2
+                                                            index >=
+                                                                rows.length - 2
                                                         }
                                                     />
                                                 </div>
@@ -895,26 +1171,20 @@ export default function Index({
                         </table>
                     </div>
 
-                    {/* Pagination - Outside Scroll Container */}
+                    {/* Pagination */}
 
                     {projects.links.length > 3 && (
                         <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-
                             <p className="text-xs text-slate-500">
                                 Showing{' '}
-
                                 <span className="font-medium text-slate-700">
                                     {projects.from ?? 0}
                                 </span>
-
                                 {' '}to{' '}
-
                                 <span className="font-medium text-slate-700">
                                     {projects.to ?? 0}
                                 </span>
-
                                 {' '}of{' '}
-
                                 <span className="font-medium text-slate-700">
                                     {projects.total}
                                 </span>

@@ -45,21 +45,74 @@ class ProjectRepository implements ProjectRepositoryInterface
         return $query->orderByDesc('updated_at')->orderByDesc('id')->paginate($perPage)->withQueryString();
     }
 
-    public function paginateForAdmin(string $status, int $perPage, ProjectListFilters $filters, ?array $employeeProjectIds = null): LengthAwarePaginator
+    // public function paginateForAdmin(string $status, int $perPage, ProjectListFilters $filters, ?array $employeeProjectIds = null): LengthAwarePaginator
+    // {
+    //     $query = Project::query()
+    //         ->with('creator:id,name')
+    //         ->when($filters->type !== null, fn ($q) => $q->whereRaw('LOWER(type) = ?', [mb_strtolower($filters->type)]))
+    //         // Team နဲ့ လက်ရှိ active link ရှိတဲ့ project (archived team ပါ)
+    //         ->when($filters->teamId !== null, fn ($q) => $q->whereHas(
+    //             'teamLinks',
+    //             fn ($l) => $l->whereNull('removed_at')->where('team_id', $filters->teamId)
+    //         ))
+    //         ->when($employeeProjectIds !== null, fn ($q) => $q->whereIn('id', $employeeProjectIds));
+
+    //     $this->applyStatus($query, $status);
+
+    //     return $query->orderByDesc('updated_at')->orderByDesc('id')->paginate($perPage)->withQueryString();
+    // }
+
+    public function paginateForAdmin(string $status,int $perPage,ProjectListFilters $filters,?array $employeeProjectIds = null): LengthAwarePaginator 
     {
         $query = Project::query()
             ->with('creator:id,name')
-            ->when($filters->type !== null, fn ($q) => $q->whereRaw('LOWER(type) = ?', [mb_strtolower($filters->type)]))
-            // Team နဲ့ လက်ရှိ active link ရှိတဲ့ project (archived team ပါ)
-            ->when($filters->teamId !== null, fn ($q) => $q->whereHas(
-                'teamLinks',
-                fn ($l) => $l->whereNull('removed_at')->where('team_id', $filters->teamId)
-            ))
-            ->when($employeeProjectIds !== null, fn ($q) => $q->whereIn('id', $employeeProjectIds));
+
+            ->when(
+                $filters->type !== null,
+                fn ($q) => $q->whereRaw(
+                    'LOWER(type) = ?',
+                    [mb_strtolower($filters->type)]
+                )
+            )
+
+            // Search: Project name, code, description
+            ->when(
+                $filters->search !== null,
+                function ($q) use ($filters) {
+                    $search = '%' . $filters->search . '%';
+
+                    $q->where(function ($searchQuery) use ($search) {
+                        $searchQuery
+                            ->where('name', 'LIKE', $search)
+                            ->orWhere('code', 'LIKE', $search)
+                            ->orWhere('description', 'LIKE', $search);
+                    });
+                }
+            )
+
+            // Team နဲ့ လက်ရှိ active link ရှိတဲ့ project
+            ->when(
+                $filters->teamId !== null,
+                fn ($q) => $q->whereHas(
+                    'teamLinks',
+                    fn ($l) => $l
+                        ->whereNull('removed_at')
+                        ->where('team_id', $filters->teamId)
+                )
+            )
+
+            ->when(
+                $employeeProjectIds !== null,
+                fn ($q) => $q->whereIn('id', $employeeProjectIds)
+            );
 
         $this->applyStatus($query, $status);
 
-        return $query->orderByDesc('updated_at')->orderByDesc('id')->paginate($perPage)->withQueryString();
+        return $query
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     protected function applyStatus(Builder $query, string $status): void
