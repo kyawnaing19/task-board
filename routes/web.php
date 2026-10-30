@@ -10,6 +10,7 @@ use App\Http\Controllers\MyTeamController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectMemberController;
 use App\Http\Controllers\ProjectTeamController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskAttachmentController;
 use App\Http\Controllers\TaskController;
@@ -253,6 +254,18 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->group(function () {
             Route::get('/projects', [DashboardController::class, 'adminProjects'])->name('projects');
             Route::get('/workload', [DashboardController::class, 'adminWorkload'])->name('workload');
+        });
+
+    // Reports (separate page)
+    Route::middleware('super_admin')
+        ->prefix('reports')
+        ->name('reports.')
+        ->group(function () {
+            Route::get('/', [ReportController::class, 'index'])->name('index');
+            Route::get('/employees', [ReportController::class, 'employeeWorkload'])->name('employees');
+            Route::get('/tags', [ReportController::class, 'tagReport'])->name('tags');
+            Route::get('/teams', [ReportController::class, 'teamReport'])->name('teams');
+            Route::get('/tasks', [ReportController::class, 'taskDetails'])->name('tasks');
         });
 
 
