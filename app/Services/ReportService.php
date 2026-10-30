@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 class ReportService
 {
     public const DEFAULT_PER_PAGE = 25;
+
     public const MAX_PER_PAGE = 100;
 
     /**
@@ -106,15 +107,15 @@ class ReportService
             }
 
             return [
-                'id'              => $u->id,
-                'name'            => $u->name,
-                'job_title'       => $u->job_title,
-                'avatar_url'      => $u->avatar_url,
-                'assigned_open'   => (int) $u->assigned_open,
-                'overdue'         => (int) $u->overdue,
-                'due_soon'        => (int) $u->due_soon,
+                'id' => $u->id,
+                'name' => $u->name,
+                'job_title' => $u->job_title,
+                'avatar_url' => $u->avatar_url,
+                'assigned_open' => (int) $u->assigned_open,
+                'overdue' => (int) $u->overdue,
+                'due_soon' => (int) $u->due_soon,
                 'completed_count' => (int) $u->completed_count,
-                'projects'        => $projects,
+                'projects' => $projects,
             ];
         });
     }
@@ -194,15 +195,15 @@ class ReportService
             }
 
             return [
-                'id'               => $row->id,
-                'name'             => $row->name,
-                'color'            => $row->color,
-                'task_count'       => (int) $row->task_count,
-                'project_count'    => (int) $row->project_count,
-                'overdue_tasks'    => (int) $row->overdue_tasks,
-                'completed_tasks'  => (int) $row->completed_tasks,
-                'projects'         => $projects,
-                'assignees'        => $assignees,
+                'id' => $row->id,
+                'name' => $row->name,
+                'color' => $row->color,
+                'task_count' => (int) $row->task_count,
+                'project_count' => (int) $row->project_count,
+                'overdue_tasks' => (int) $row->overdue_tasks,
+                'completed_tasks' => (int) $row->completed_tasks,
+                'projects' => $projects,
+                'assignees' => $assignees,
             ];
         });
     }
@@ -284,15 +285,15 @@ class ReportService
             }
 
             return [
-                'id'               => $row->id,
-                'name'             => $row->name,
-                'description'      => $row->description,
-                'project_count'    => (int) $row->project_count,
-                'task_count'       => (int) $row->task_count,
-                'overdue_tasks'    => (int) $row->overdue_tasks,
-                'completed_tasks'  => (int) $row->completed_tasks,
-                'projects'         => $projects,
-                'assignees'        => $assignees,
+                'id' => $row->id,
+                'name' => $row->name,
+                'description' => $row->description,
+                'project_count' => (int) $row->project_count,
+                'task_count' => (int) $row->task_count,
+                'overdue_tasks' => (int) $row->overdue_tasks,
+                'completed_tasks' => (int) $row->completed_tasks,
+                'projects' => $projects,
+                'assignees' => $assignees,
             ];
         });
     }
@@ -318,7 +319,9 @@ class ReportService
             ->whereNull('t.archived_at')
             ->whereNull('p.archived_at')
             ->where('p.status', ProjectStatus::ACTIVE->value)
-            ->when($completedId !== null, fn ($q) => $q->where('t.group_id', '<>', $completedId))
+            ->when($filters->taskStatus === 'open' && $completedId !== null, fn ($q) => $q->where('t.group_id', '<>', $completedId))
+            ->when($filters->taskStatus === 'completed' && $completedId !== null, fn ($q) => $q->where('t.group_id', '=', $completedId))
+            ->when($filters->taskStatus === 'completed' && $completedId === null, fn ($q) => $q->whereRaw('1 = 0'))
             ->when($filters->teamId !== null, function ($q) use ($filters) {
                 $q->whereExists(function ($sub) use ($filters) {
                     $sub->from('project_teams as pt')
@@ -356,7 +359,7 @@ class ReportService
                     $segments = explode(':', $part, 2);
 
                     return [
-                        'id'   => (int) $segments[0],
+                        'id' => (int) $segments[0],
                         'name' => $segments[1] ?? '',
                     ];
                 })
@@ -371,8 +374,8 @@ class ReportService
                     $segments = explode(':', $part, 3);
 
                     return [
-                        'id'    => (int) $segments[0],
-                        'name'  => $segments[1] ?? '',
+                        'id' => (int) $segments[0],
+                        'name' => $segments[1] ?? '',
                         'color' => $segments[2] ?? '',
                     ];
                 })
@@ -380,25 +383,25 @@ class ReportService
                 ->all();
 
             $isCompleted = (bool) $row->is_completed;
-            $isOverdue = $row->end_date && !$isCompleted && $row->end_date < $this->today();
+            $isOverdue = $row->end_date && ! $isCompleted && $row->end_date < $this->today();
 
             return [
-                'id'              => $row->id,
-                'project_id'      => $row->project_id,
-                'sequence'        => $row->sequence,
-                'code'            => $row->code,
-                'title'           => $row->title,
-                'priority'        => $row->priority,
-                'start_date'      => $row->start_date,
-                'end_date'        => $row->end_date,
-                'group_id'        => $row->group_id,
-                'group_name'      => $row->group_name,
-                'is_completed'    => $isCompleted,
-                'project_code'    => $row->project_code,
-                'project_name'    => $row->project_name,
-                'assignees'       => $assignees,
-                'tags'            => $tags,
-                'is_overdue'      => $isOverdue,
+                'id' => $row->id,
+                'project_id' => $row->project_id,
+                'sequence' => $row->sequence,
+                'code' => $row->code,
+                'title' => $row->title,
+                'priority' => $row->priority,
+                'start_date' => $row->start_date,
+                'end_date' => $row->end_date,
+                'group_id' => $row->group_id,
+                'group_name' => $row->group_name,
+                'is_completed' => $isCompleted,
+                'project_code' => $row->project_code,
+                'project_name' => $row->project_name,
+                'assignees' => $assignees,
+                'tags' => $tags,
+                'is_overdue' => $isOverdue,
             ];
         });
     }
@@ -490,18 +493,18 @@ class ReportService
             ->count('ta.user_id');
 
         return [
-            'active_projects'       => $activeProjects,
-            'total_open_tasks'      => (int) ($taskStats->total ?? 0),
-            'overdue_tasks'         => (int) ($taskStats->overdue ?? 0),
-            'due_soon_tasks'        => (int) ($taskStats->due_soon ?? 0),
-            'completed_tasks'       => (int) ($taskStats->completed ?? 0),
-            'total_employees'       => $employeeCount,
-            'employees_with_tasks'  => $employeesWithTasks,
-            'total_teams'           => $teamCount,
-            'total_tags'            => $tagCount,
-            'generated_at'          => Carbon::now()->toIso8601String(),
-            'today'                 => $today,
-            'due_soon_window'       => ['from' => $today, 'to' => $soonEnd],
+            'active_projects' => $activeProjects,
+            'total_open_tasks' => (int) ($taskStats->total ?? 0),
+            'overdue_tasks' => (int) ($taskStats->overdue ?? 0),
+            'due_soon_tasks' => (int) ($taskStats->due_soon ?? 0),
+            'completed_tasks' => (int) ($taskStats->completed ?? 0),
+            'total_employees' => $employeeCount,
+            'employees_with_tasks' => $employeesWithTasks,
+            'total_teams' => $teamCount,
+            'total_tags' => $tagCount,
+            'generated_at' => Carbon::now()->toIso8601String(),
+            'today' => $today,
+            'due_soon_window' => ['from' => $today, 'to' => $soonEnd],
         ];
     }
 
@@ -582,21 +585,21 @@ class ReportService
             $completed = (int) ($s->completed ?? 0);
 
             return [
-                'id'          => $project->id,
-                'code'        => $project->code,
-                'name'        => $project->name,
-                'type'        => $project->type,
-                'start_date'  => $project->start_date,
-                'due_date'    => $project->due_date,
-                'updated_at'  => $project->updated_at,
-                'total_tasks'     => $total,
-                'open_tasks'      => (int) ($s->open ?? 0),
-                'overdue_tasks'   => (int) ($s->overdue ?? 0),
+                'id' => $project->id,
+                'code' => $project->code,
+                'name' => $project->name,
+                'type' => $project->type,
+                'start_date' => $project->start_date,
+                'due_date' => $project->due_date,
+                'updated_at' => $project->updated_at,
+                'total_tasks' => $total,
+                'open_tasks' => (int) ($s->open ?? 0),
+                'overdue_tasks' => (int) ($s->overdue ?? 0),
                 'completed_tasks' => $completed,
-                'progress'  => [
-                    'percent'  => $total === 0 ? null : ($completed === $total ? 100 : (int) floor($completed * 100 / $total)),
+                'progress' => [
+                    'percent' => $total === 0 ? null : ($completed === $total ? 100 : (int) floor($completed * 100 / $total)),
                     'completed' => $completed,
-                    'total'    => $total,
+                    'total' => $total,
                     'no_tasks' => $total === 0,
                 ],
             ];
@@ -616,6 +619,7 @@ class ReportService
     protected function completedGroupId(): ?int
     {
         $id = TaskGroup::query()->where('is_completed', 1)->value('id');
+
         return $id === null ? null : (int) $id;
     }
 
@@ -623,6 +627,7 @@ class ReportService
     {
         $dateFrom = $filters->dateFrom ? Carbon::parse($filters->dateFrom)->format('Y-m-d') : null;
         $dateTo = $filters->dateTo ? Carbon::parse($filters->dateTo)->format('Y-m-d') : null;
+
         return [$dateFrom, $dateTo];
     }
 

@@ -16,14 +16,15 @@ class ReportListRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'per_page'   => ['nullable', 'integer', 'min:1', 'max:'.ReportService::MAX_PER_PAGE],
-            'page'       => ['nullable', 'integer', 'min:1'],
-            'sort'       => ['nullable', Rule::in(['workload', 'name', 'overdue', 'due_soon'])],
-            'team_id'    => ['nullable', 'integer', 'min:1', 'exists:teams,id'],
-            'employee_id'=> ['nullable', 'integer', 'min:1', 'exists:users,id'],
-            'tag_id'     => ['nullable', 'integer', 'min:1', 'exists:tags,id'],
-            'date_from'  => ['nullable', 'date_format:Y-m-d'],
-            'date_to'    => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:'.ReportService::MAX_PER_PAGE],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'sort' => ['nullable', Rule::in(['workload', 'name', 'overdue', 'due_soon'])],
+            'task_status' => ['nullable', Rule::in(['open', 'completed', 'all'])],
+            'team_id' => ['nullable', 'integer', 'min:1', 'exists:teams,id'],
+            'employee_id' => ['nullable', 'integer', 'min:1', 'exists:users,id'],
+            'tag_id' => ['nullable', 'integer', 'min:1', 'exists:tags,id'],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
         ];
     }
 
@@ -35,6 +36,7 @@ class ReportListRequest extends FormRequest
     public function page(): ?int
     {
         $page = $this->validated('page');
+
         return $page === null ? null : (int) $page;
     }
 

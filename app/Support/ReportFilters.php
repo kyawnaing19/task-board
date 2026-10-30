@@ -11,6 +11,7 @@ final class ReportFilters
         public readonly ?string $dateFrom = null,
         public readonly ?string $dateTo = null,
         public readonly string $sort = 'workload',
+        public readonly string $taskStatus = 'open',
     ) {}
 
     /**
@@ -25,6 +26,7 @@ final class ReportFilters
             dateFrom: self::dateString($query['date_from'] ?? null),
             dateTo: self::dateString($query['date_to'] ?? null),
             sort: self::validSort($query['sort'] ?? 'workload'),
+            taskStatus: self::validTaskStatus($query['task_status'] ?? 'open'),
         );
     }
 
@@ -40,12 +42,13 @@ final class ReportFilters
     public function toArray(): array
     {
         return [
-            'team_id'     => $this->teamId,
+            'team_id' => $this->teamId,
             'employee_id' => $this->employeeId,
-            'tag_id'      => $this->tagId,
-            'date_from'   => $this->dateFrom,
-            'date_to'     => $this->dateTo,
-            'sort'        => $this->sort,
+            'tag_id' => $this->tagId,
+            'date_from' => $this->dateFrom,
+            'date_to' => $this->dateTo,
+            'sort' => $this->sort,
+            'task_status' => $this->taskStatus,
         ];
     }
 
@@ -58,6 +61,7 @@ final class ReportFilters
         ) {
             return null;
         }
+
         return (int) $value;
     }
 
@@ -73,6 +77,7 @@ final class ReportFilters
         }
         // Validate it's a real date
         $parsed = \DateTime::createFromFormat('Y-m-d', $date);
+
         return $parsed && $parsed->format('Y-m-d') === $date ? $date : null;
     }
 
@@ -80,6 +85,14 @@ final class ReportFilters
     {
         $allowed = ['workload', 'name', 'overdue', 'due_soon'];
         $sort = is_string($value) ? $value : 'workload';
+
         return in_array($sort, $allowed, true) ? $sort : 'workload';
+    }
+
+    private static function validTaskStatus(mixed $value): string
+    {
+        $status = is_string($value) ? $value : 'open';
+
+        return in_array($status, ['open', 'completed', 'all'], true) ? $status : 'open';
     }
 }

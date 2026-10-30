@@ -96,6 +96,7 @@ export default function Index({
         tag_id: filters.tag_id ?? '',
         date_from: filters.date_from ?? '',
         date_to: filters.date_to ?? '',
+        task_status: filters.task_status ?? 'open',
     });
 
     const isFiltered = Boolean(
@@ -133,6 +134,7 @@ export default function Index({
             tag_id: '',
             date_from: '',
             date_to: '',
+            task_status: 'open',
         };
 
         setForm(cleared);
@@ -222,7 +224,7 @@ export default function Index({
                                             employee_id: e.target.value,
                                         })
                                     }
-                                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                    className="w-full sm:w-60 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                                 >
                                     <option value="">All employees</option>
                                     {filter_options.employees.map(
@@ -408,7 +410,11 @@ export default function Index({
                                 Tasks
                             </h2>
                             <p className="mt-1 text-xs text-slate-500">
-                                Open tasks matching the current filters
+                                {form.task_status === 'completed'
+                                    ? 'Completed tasks matching the current filters'
+                                    : form.task_status === 'all'
+                                      ? 'All tasks matching the current filters'
+                                      : 'Open tasks matching the current filters'}
                             </p>
                         </div>
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
@@ -421,7 +427,43 @@ export default function Index({
                         <table className="w-full min-w-0">
                             <thead className="bg-slate-50/70">
                                 <tr>
-                                    <th className={thClass}>Task</th>
+                                    <th className={thClass}>
+                                        <div className="flex items-center gap-2">
+                                            <span className="shrink-0 text-xs font-medium text-slate-600">
+                                                Task
+                                            </span>
+
+                                            <div className="relative inline-flex">
+                                                <select
+                                                    aria-label="Task status"
+                                                    value={form.task_status}
+                                                    onChange={(event) =>
+                                                        applyFilter({
+                                                            task_status: event.target.value,
+                                                        })
+                                                    }
+                                                    className="!appearance-none rounded-lg border border-slate-200 bg-white py-1 pl-3 pr-9 text-xs font-medium text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                                >
+                                                    <option value="open">Open</option>
+                                                    <option value="all">All</option>
+                                                    <option value="completed">Completed</option>
+                                                </select>
+
+                                                <svg
+                                                    className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 20 20"
+                                                    fill="currentColor"
+                                                >
+                                                    <path
+                                                        fillRule="evenodd"
+                                                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.09 1.03l-4.25 4.5a.75.75 0 01-1.09 0l-4.25-4.5a.75.75 0 01.02-1.05z"
+                                                        clipRule="evenodd"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </th>
                                     <th className={thClass}>Project</th>
                                     <th className={thClass}>Assignees</th>
                                     <th className={thClass}>Group</th>
