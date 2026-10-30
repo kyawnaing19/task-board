@@ -10,9 +10,11 @@ use App\Models\Project;
 use App\Repositories\Contracts\ProjectMemberRepositoryInterface;
 use App\Repositories\Contracts\ProjectRepositoryInterface;
 use App\Repositories\Contracts\ProjectTeamRepositoryInterface;
+use App\Services\AdminProjectListService;
 use App\Services\ProjectAccess;
 use App\Services\ProjectCreationService;
 use App\Services\ProjectService;
+use App\Support\ProjectListFilters;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,32 +30,45 @@ class ProjectController extends Controller
         protected ProjectMemberRepositoryInterface $memberLinks,
         protected ProjectAccess $access,
         protected ProjectCreationService $creation,
+        protected AdminProjectListService $list
+
     ) {}
+
+    // public function index(Request $request): Response
+    // {
+    //     $status = $request->query('status');
+    //     $filter = in_array($status, ['completed', 'archived'], true) ? $status : 'active';
+
+    //     $type = trim((string) $request->query('type', ''));
+    //     $type = $type !== '' ? mb_substr($type, 0, 100) : null;
+
+    //     return Inertia::render('Projects/Index', [
+    //         'projects'         => $this->projects->paginate($filter, 15, null, $type),
+    //         'filters'          => ['status' => $filter, 'type' => $type],
+    //         'type_suggestions' => $this->projects->types(),
+    //     ]);
+    // }
 
     public function index(Request $request): Response
     {
         $status = $request->query('status');
-        $filter = in_array($status, ['completed', 'archived'], true) ? $status : 'active';
+        $status = in_array($status, ['completed', 'archived'], true) ? $status : 'active';
 
-        $type = trim((string) $request->query('type', ''));
-        $type = $type !== '' ? mb_substr($type, 0, 100) : null;
+        $filters = ProjectListFilters::fromArray($request->query());
+        $perPage = is_numeric($request->query('per_page'))
+            ? (int) $request->query('per_page')
+            : AdminProjectListService::DEFAULT_PER_PAGE;
 
         return Inertia::render('Projects/Index', [
-            'projects'         => $this->projects->paginate($filter, 15, null, $type),
-            'filters'          => ['status' => $filter, 'type' => $type],
+            'projects'         => $this->list->list($status, $filters, $perPage),
+            'filters'          => array_merge($filters->toArray(), ['status' => $status]),
+            'filter_options'   => $this->list->options($filters),
             'type_suggestions' => $this->projects->types(),
         ]);
     }
 
 
-    // public function store(StoreProjectRequest $request): RedirectResponse
-    // {
-    //     $project = $this->service->create($request->user(), $request->validated());
 
-    //     return redirect()
-    //         ->route('projects.index')
-    //         ->with('success', "Project {$project->code} created.");
-    // }
     public function store(StoreProjectRequest $request): RedirectResponse
     {
         $project = $this->creation->create($request->user(), $request->validated());
@@ -105,12 +120,6 @@ class ProjectController extends Controller
         ]);
     }
 
-    // public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
-    // {
-    //     $this->service->update($project, $request->validated());
-
-    //     return back()->with('success', 'Project updated.');
-    // }
 
     public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
     {
@@ -119,16 +128,6 @@ class ProjectController extends Controller
         return back()->with('success', 'Project updated.');
     }
 
-    // public function changeStatus(ChangeProjectStatusRequest $request, Project $project): RedirectResponse
-    // {
-    //     $target = ProjectStatus::from($request->validated('status'));
-
-    //     $this->service->changeStatus($project, $target);
-
-    //     return back()->with('success', $target === ProjectStatus::COMPLETED
-    //         ? 'Project marked as completed.'
-    //         : 'Project reopened.');
-    // }
 
     public function changeStatus(ChangeProjectStatusRequest $request, Project $project): RedirectResponse
     {

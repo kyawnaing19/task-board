@@ -5,6 +5,7 @@ namespace App\Repositories\Contracts;
 use App\Models\Project;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use App\Support\ProjectListFilters;
 
 interface ProjectRepositoryInterface
 {
@@ -12,6 +13,14 @@ interface ProjectRepositoryInterface
     //public function paginate(string $filter = 'active', int $perPage = 15, ?array $projectIds = null): LengthAwarePaginator;
     
     public function paginate(string $filter = 'active', int $perPage = 15, ?array $projectIds = null, ?string $type = null): LengthAwarePaginator;
+
+    /**
+     * Super Admin ရဲ့ Projects list။ Status tab + type + team + employee ကို AND လုပ်မယ်။
+     * Sort: updated_at desc၊ id desc။
+     *
+     * @param int[]|null $employeeProjectIds ပေးရင် ဒီ id တွေထဲကပဲ (employee filter ရဲ့ effective access)၊ [] ဆိုရင် ဗလာ
+     */
+    public function paginateForAdmin(string $status, int $perPage, ProjectListFilters $filters, ?array $employeeProjectIds = null): LengthAwarePaginator;
 
     /** ရှိပြီးသား type များ (အကြီးအသေးမခွဲ ထပ်တူမရှိ၊ နာမည်စဉ်) */
     public function types(): array;
