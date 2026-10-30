@@ -197,60 +197,66 @@ export default function Index({ employees, roles, filters }) {
             </div> */}
 
             {/* Search */}
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="relative w-full sm:w-80">
-                    <svg
-                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        aria-hidden="true"
-                    >
-                        <path
-                            fillRule="evenodd"
-                            d="M9 3a6 6 0 1 0 3.874 10.583l3.771 3.772a1 1 0 0 0 1.414-1.414l-3.772-3.771A6 6 0 0 0 9 3Zm-4 6a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"
-                            clipRule="evenodd"
-                        />
-                    </svg>
+            {/* Search + New Employee */}
+<div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={(e) =>
-                            setSearch(e.target.value)
-                        }
-                        placeholder="Search employees..."
-                        className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-                    />
+    {/* Search Section */}
+    <div className="w-full sm:w-80">
+        <div className="relative">
+            <svg
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+            >
+                <path
+                    fillRule="evenodd"
+                    d="M9 3a6 6 0 1 0 3.874 10.583l3.771 3.772a1 1 0 0 0 1.414-1.414l-3.772-3.771A6 6 0 0 0 9 3Zm-4 6a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"
+                    clipRule="evenodd"
+                />
+            </svg>
 
-                    {search && (
-                        <button
-                            type="button"
-                            onClick={() => setSearch('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
-                            aria-label="Clear search"
-                        >
-                            ×
-                        </button>
-                    )}
+            <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search employees..."
+                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+            />
 
-                    
-                </div>
+            {search && (
                 <button
-                    onClick={() => setCreateOpen(true)}
-                    className="shrink-0 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700"
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
+                    aria-label="Clear search"
                 >
-                    + New employee
+                    ×
                 </button>
+            )}
+        </div>
 
-                {search && (
-                    <p className="text-xs text-slate-500">
-                        Searching for{' '}
-                        <span className="font-medium text-slate-700">
-                            "{search}"
-                        </span>
-                    </p>
-                )}
-            </div>
+        {/* Search Info - Keep inside search section */}
+        {search && (
+            <p className="mt-2 text-xs text-slate-500">
+                Searching for{' '}
+                <span className="font-medium text-slate-700">
+                    "{search}"
+                </span>
+            </p>
+        )}
+    </div>
+
+    {/* New Employee Button */}
+    <button
+        type="button"
+        onClick={() => setCreateOpen(true)}
+        className="shrink-0 self-start rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700"
+    >
+        + New employee
+    </button>
+
+</div>
 
             {/* Success */}
             {flash?.success && (
