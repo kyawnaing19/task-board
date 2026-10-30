@@ -79,7 +79,17 @@ class TaskService
                 'created_by'    => $actor->id,
             ]);
 
-            $this->tasks->attachAssignees($task, $assigneeIds, $actor->id);
+            // Auto-assign creator if no assignees provided and creator is a valid project member
+            // Superadmins are excluded from memberIds, so they won't be auto-assigned
+            $effectiveAssigneeIds = $assigneeIds;
+            if (empty($assigneeIds)) {
+                $memberIds = $this->access->memberIds($locked);
+                if (in_array($actor->id, $memberIds, true)) {
+                    $effectiveAssigneeIds = [$actor->id];
+                }
+            }
+
+            $this->tasks->attachAssignees($task, $effectiveAssigneeIds, $actor->id);
             $this->tasks->attachTags($task, $tagIds);
 
             // Initial state ကို created history မှာပဲ မှတ်မယ်၊ move event မဖန်တီးဘူး
@@ -87,7 +97,7 @@ class TaskService
                 'group'        => ['id' => $group->id, 'name' => $group->name],
                 'completed'    => $completed,
                 'priority'     => $priority->value,
-                'assignee_ids' => $assigneeIds,
+                'assignee_ids' => $effectiveAssigneeIds,
                 'tag_ids'      => $tagIds,
             ]);
 
