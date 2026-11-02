@@ -262,6 +262,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->name('reports.')
         ->group(function () {
             Route::get('/', [ReportController::class, 'index'])->name('index');
+            Route::get('/export', [ReportController::class, 'export'])->name('export');
             Route::get('/employees', [ReportController::class, 'employeeWorkload'])->name('employees');
             Route::get('/tags', [ReportController::class, 'tagReport'])->name('tags');
             Route::get('/teams', [ReportController::class, 'teamReport'])->name('teams');

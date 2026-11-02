@@ -12,6 +12,7 @@ use App\Support\ReportFilters;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -415,6 +416,24 @@ class ReportService
                 'is_overdue' => $isOverdue,
             ];
         });
+    }
+
+    /**
+     * Return every task matching the report filters, using the same query and
+     * task presentation as the paginated report table.
+     */
+    public function taskDetailsForExport(ReportFilters $filters): Collection
+    {
+        $tasks = collect();
+        $page = 1;
+
+        do {
+            $paginator = $this->taskDetails($filters, self::MAX_PER_PAGE, $page);
+            $tasks = $tasks->concat($paginator->items());
+            $page++;
+        } while ($paginator->hasMorePages());
+
+        return $tasks->values();
     }
 
     /**

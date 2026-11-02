@@ -207,6 +207,12 @@ export default function Index({
         visit(cleared);
     };
 
+    const exportParams = Object.fromEntries(
+        Object.entries({ ...form, task_status: activeTab }).filter(
+            ([, value]) => value !== '' && value != null,
+        ),
+    );
+
     return (
         <AuthenticatedLayout header="Reports">
             <Head title="Task Report" />
@@ -323,7 +329,7 @@ export default function Index({
                 <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
 
                     {/* TABS */}
-                    <div className="border-b border-slate-200 px-4 pt-3 sm:px-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 pt-3 sm:px-5">
 
                         <div
                             className="flex flex-wrap gap-5"
@@ -363,6 +369,16 @@ export default function Index({
                                 );
                             })}
                         </div>
+
+                        <a
+                            href={route('reports.export', exportParams)}
+                            className="mb-2 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
+                        >
+                            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path d="M10 2.5a.75.75 0 0 1 .75.75v7.19l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06l2.22 2.22V3.25A.75.75 0 0 1 10 2.5ZM3.5 13.75A.75.75 0 0 1 4.25 13h11.5a.75.75 0 0 1 .75.75v2.5a1.25 1.25 0 0 1-1.25 1.25h-10A1.25 1.25 0 0 1 4 16.25v-2.5a.75.75 0 0 1-.5.75Zm2 .75v1.5h9v-1.5h-9Z" />
+                            </svg>
+                            Export Excel
+                        </a>
                     </div>
 
                     {/* TABLE */}

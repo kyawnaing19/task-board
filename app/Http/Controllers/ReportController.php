@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\TaskReportExport;
 use App\Http\Requests\Report\ReportListRequest;
 use App\Services\ReportService;
 use App\Support\ReportFilters;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReportController extends Controller
 {
@@ -54,6 +58,72 @@ class ReportController extends Controller
             'tasks' => $this->service->taskDetails($filters, self::TASKS_PER_PAGE, $taskPage)->withQueryString(),
         ]);
     }
+
+    // public function export(Request $request): BinaryFileResponse
+    // {
+    //     $filters = ReportFilters::fromArray($request->query());
+    //     $options = $this->service->getFilterOptions();
+    //     $filterName = static function (array $options, ?int $id): string {
+    //         if ($id === null) {
+    //             return 'All';
+    //         }
+
+    //         return data_get(collect($options)->firstWhere('id', $id), 'name', 'All');
+    //     };
+
+    //     $criteria = [
+    //         'team' => $filterName($options['teams'], $filters->teamId),
+    //         'employee' => $filterName($options['employees'], $filters->employeeId),
+    //         'tag' => $filterName($options['tags'], $filters->tagId),
+    //         'date_from' => $filters->dateFrom ?? 'Any',
+    //         'date_to' => $filters->dateTo ?? 'Any',
+    //         'status' => ucfirst($filters->taskStatus),
+    //     ];
+
+    //     $filename = 'task-report-'.now()->format('Y-m-d-His').'.xlsx';
+
+    //     return Excel::download(
+    //         new TaskReportExport($this->service->taskDetailsForExport($filters), $criteria),
+    //         $filename,
+    //     );
+    // }
+
+    public function export(Request $request): BinaryFileResponse
+{
+    $filters = ReportFilters::fromArray($request->query());
+    $options = $this->service->getFilterOptions();
+
+    $filterName = static function (Collection $options, ?int $id): string {
+        if ($id === null) {
+            return 'All';
+        }
+
+        return (string) data_get(
+            $options->firstWhere('id', $id),
+            'name',
+            'All'
+        );
+    };
+
+    $criteria = [
+        'team' => $filterName($options['teams'], $filters->teamId),
+        'employee' => $filterName($options['employees'], $filters->employeeId),
+        'tag' => $filterName($options['tags'], $filters->tagId),
+        'date_from' => $filters->dateFrom ?? 'Any',
+        'date_to' => $filters->dateTo ?? 'Any',
+        'status' => ucfirst($filters->taskStatus),
+    ];
+
+    $filename = 'task-report-'.now()->format('Y-m-d-His').'.xlsx';
+
+    return Excel::download(
+        new TaskReportExport(
+            $this->service->taskDetailsForExport($filters),
+            $criteria
+        ),
+        $filename,
+    );
+}
 
     /**
      * Filtered detail reports (JSON)
