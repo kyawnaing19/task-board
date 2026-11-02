@@ -107,9 +107,8 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
             $projectCode = $firstTask['project_code'] ?? null;
             $projectName = $firstTask['project_name'] ?? 'Unknown Project';
 
-            $projectTitle = trim(
-                ($projectCode ? $projectCode.' — ' : '').$projectName
-            );
+            $projectTitle = $projectName
+            .($projectCode ? " ({$projectCode})" : '');
 
             // Project Header
             $rows->push(
@@ -143,12 +142,7 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                     $this->makeRow([
                         $index + 1,
 
-                        trim(
-                            (($task['code'] ?? null)
-                                ? $task['code'].' — '
-                                : '')
-                            .($task['title'] ?? '')
-                        ),
+                       $task['title'] ?? '',
 
                         collect($task['assignees'] ?? [])
                             ->pluck('name')
