@@ -13,6 +13,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ReportService
 {
@@ -315,6 +316,10 @@ class ReportService
             ->leftJoin('users as u', 'u.id', '=', 'ta.user_id')
             ->leftJoin('task_tag as tt', 'tt.task_id', '=', 't.id')
             ->leftJoin('tags as tag', 'tag.id', '=', 'tt.tag_id')
+            ->leftJoin('project_teams as pt', function ($join) {
+                $join->on('pt.project_id', '=', 'p.id')->whereNull('pt.removed_at');
+            })
+            ->leftJoin('teams as team', 'team.id', '=', 'pt.team_id')
             ->whereIn('t.project_id', $this->activeProjectIds())
             ->whereNull('t.archived_at')
             ->whereNull('p.archived_at')
@@ -332,20 +337,21 @@ class ReportService
             })
             ->when($filters->employeeId !== null, fn ($q) => $q->where('ta.user_id', $filters->employeeId))
             ->when($filters->tagId !== null, fn ($q) => $q->where('tt.tag_id', $filters->tagId))
-            ->when($dateFrom !== null, fn ($q) => $q->where('t.end_date', '>=', $dateFrom))
-            ->when($dateTo !== null, fn ($q) => $q->where('t.end_date', '<=', $dateTo))
+            ->when($dateFrom !== null, fn ($q) => $q->where('t.start_date', '>=', $dateFrom))
+            ->when($dateTo !== null, fn ($q) => $q->where('t.start_date', '<=', $dateTo))
             ->groupBy(
                 't.id', 't.project_id', 't.sequence', 't.code', 't.title', 't.priority',
-                't.start_date', 't.end_date', 't.group_id', 'tg.name', 'tg.is_completed',
+                't.start_date', 't.end_date', 't.completed_at', 't.group_id', 'tg.name', 'tg.is_completed',
                 'p.code', 'p.name'
             )
             ->selectRaw(
                 't.id, t.project_id, t.sequence, t.code, t.title, t.priority, '
-                .'t.start_date, t.end_date, t.group_id, '
+                .'t.start_date, t.end_date, t.completed_at, t.group_id, '
                 .'tg.name as group_name, tg.is_completed, '
                 .'p.code as project_code, p.name as project_name, '
-                ."GROUP_CONCAT(DISTINCT CONCAT_WS(':', u.id, u.name)) as assignees_data, "
-                ."GROUP_CONCAT(DISTINCT CONCAT_WS(':', tag.id, tag.name, tag.color)) as tags_data"
+                ."GROUP_CONCAT(DISTINCT CONCAT_WS(':', u.id, COALESCE(u.avatar_disk, ''), COALESCE(u.avatar_path, ''), u.name)) as assignees_data, "
+                ."GROUP_CONCAT(DISTINCT CONCAT_WS(':', tag.id, tag.name, tag.color)) as tags_data, "
+                .'GROUP_CONCAT(DISTINCT team.name) as teams_data'
             )
             ->orderBy('p.name')
             ->orderBy('t.sequence');
@@ -356,11 +362,14 @@ class ReportService
                 ->filter()
                 ->map(function ($part) {
                     // Id က အရင် (':' နောက်မှာ နာမည်ထဲက ':' ရှိနိုင်လို့ limit 2)
-                    $segments = explode(':', $part, 2);
+                    $segments = explode(':', $part, 4);
 
                     return [
                         'id' => (int) $segments[0],
-                        'name' => $segments[1] ?? '',
+                        'avatar_url' => ! empty($segments[2])
+                            ? Storage::disk($segments[1] ?: 'public')->url($segments[2])
+                            : null,
+                        'name' => $segments[3] ?? '',
                     ];
                 })
                 // Sequence မထိခိုက်စေဖို့ key ကို id နဲ့ ဖြေးပြီး values ပြန်ယူ
@@ -394,6 +403,7 @@ class ReportService
                 'priority' => $row->priority,
                 'start_date' => $row->start_date,
                 'end_date' => $row->end_date,
+                'completed_at' => $row->completed_at,
                 'group_id' => $row->group_id,
                 'group_name' => $row->group_name,
                 'is_completed' => $isCompleted,
@@ -401,6 +411,7 @@ class ReportService
                 'project_name' => $row->project_name,
                 'assignees' => $assignees,
                 'tags' => $tags,
+                'teams' => $row->teams_data ? explode(',', $row->teams_data) : [],
                 'is_overdue' => $isOverdue,
             ];
         });
