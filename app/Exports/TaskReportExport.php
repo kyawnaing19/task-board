@@ -48,25 +48,52 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
 
     public function collection(): Collection
     {
+        // Reset row tracking.
+        $this->projectHeaderRows = [];
+        $this->columnHeaderRows = [];
+        $this->projectSummaryRows = [];
+        $this->dataRows = [];
+        $this->overallSummaryRow = 0;
+
+        // Report title and filter rows.
+        // Applied Filters and Key | Value title rows are removed.
         $rows = collect([
             $this->makeRow(['TASK ACTIVITY REPORT']),
-            $this->makeRow(['APPLIED FILTERS']),
+
             $this->makeRow([
                 'Team',
-                $this->filters['team'],
-                'Employee',
-                $this->filters['employee'],
-                'Tag',
-                $this->filters['tag'],
+                $this->filters['team'] ?? 'All',
             ]),
+
+            $this->makeRow([
+                'Employee',
+                $this->filters['employee'] ?? 'All',
+            ]),
+
+            $this->makeRow([
+                'Tag',
+                $this->filters['tag'] ?? 'All',
+            ]),
+
             $this->makeRow([
                 'Date From',
-                $this->filters['date_from'],
-                'Date To',
-                $this->filters['date_to'],
-                'Status',
-                $this->filters['status'],
+                filled($this->filters['date_from'] ?? null)
+                    ? $this->filters['date_from']
+                    : '-',
             ]),
+
+            $this->makeRow([
+                'Date To',
+                filled($this->filters['date_to'] ?? null)
+                    ? $this->filters['date_to']
+                    : '-',
+            ]),
+
+            $this->makeRow([
+                'Status',
+                $this->filters['status'] ?? 'All',
+            ]),
+
             $this->blankRow(),
         ]);
 
@@ -160,7 +187,9 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                 ->count();
 
             $overdueCount = $projectTasks
-                ->filter(fn (array $task): bool => (bool) ($task['is_overdue'] ?? false))
+                ->filter(
+                    fn (array $task): bool => (bool) ($task['is_overdue'] ?? false)
+                )
                 ->count();
 
             $totalCount = $projectTasks->count();
@@ -182,7 +211,6 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
 
             $this->projectSummaryRows[] = $rows->count();
 
-            // Explicit blank row (never use [])
             $rows->push($this->blankRow());
         }
 
@@ -208,7 +236,9 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                 'Completed: '.$completedCount,
                 'Open: '.($totalCount - $completedCount),
                 'Overdue: '.$this->tasks
-                    ->filter(fn (array $task): bool => (bool) ($task['is_overdue'] ?? false))
+                    ->filter(
+                        fn (array $task): bool => (bool) ($task['is_overdue'] ?? false)
+                    )
                     ->count(),
             ])
         );
@@ -233,7 +263,7 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
     public function columnWidths(): array
     {
         return [
-            'A' => 10,
+            'A' => 16,
             'B' => 38,
             'C' => 25,
             'D' => 25,
@@ -270,28 +300,27 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
 
                 $lastRow = $sheet->getHighestRow();
 
-                // Main header
+                // Main report title only.
                 $sheet->mergeCells('A1:K1');
-                $sheet->mergeCells('A2:K2');
 
-                // Project headers
+                // Project headers.
                 foreach ($this->projectHeaderRows as $row) {
                     $sheet->mergeCells("A{$row}:K{$row}");
                 }
 
-                // Project summaries
+                // Project summaries.
                 foreach ($this->projectSummaryRows as $row) {
                     $sheet->mergeCells("A{$row}:F{$row}");
                 }
 
-                // Overall summary
+                // Overall summary.
                 $sheet->mergeCells(
                     "A{$this->overallSummaryRow}:F{$this->overallSummaryRow}"
                 );
 
                 $sheet->getDefaultRowDimension()->setRowHeight(21);
 
-                // Base style
+                // Base style.
                 $sheet->getStyle("A1:K{$lastRow}")->applyFromArray([
                     'font' => [
                         'name' => 'Aptos',
@@ -303,13 +332,13 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                     ],
                     'borders' => [
                         'bottom' => [
-                            'borderStyle' => Border::BORDER_HAIR,
-                            'color' => ['rgb' => 'E2E8F0'],
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => 'CBD5E1'],
                         ],
                     ],
                 ]);
 
-                // Report title
+                // Report title.
                 $sheet->getStyle('A1:K1')->applyFromArray([
                     'font' => [
                         'name' => 'Aptos Display',
@@ -323,41 +352,46 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                     ],
                     'alignment' => [
                         'vertical' => Alignment::VERTICAL_CENTER,
-                        'horizontal' => Alignment::HORIZONTAL_LEFT,
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    ],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => '312E81'],
+                        ],
                     ],
                 ]);
 
                 $sheet->getRowDimension(1)->setRowHeight(40);
 
-                // Applied filters title
-                $sheet->getStyle('A2:K2')->applyFromArray([
-                    'font' => [
-                        'bold' => true,
-                        'size' => 11,
-                        'color' => ['rgb' => '312E81'],
-                    ],
-                    'fill' => [
-                        'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => 'EEF2FF'],
-                    ],
-                ]);
-
-                // Filter information
-                $sheet->getStyle('A3:K4')->applyFromArray([
+                // Filter rows (Team, Employee, Tag, Date From, Date To, Status).
+                $sheet->getStyle('A2:B7')->applyFromArray([
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
                         'startColor' => ['rgb' => 'F8FAFC'],
                     ],
+                    'alignment' => [
+                        'vertical' => Alignment::VERTICAL_CENTER,
+                    ],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => 'CBD5E1'],
+                        ],
+                    ],
                 ]);
 
-                foreach (['A3', 'C3', 'E3', 'A4', 'C4', 'E4'] as $cell) {
-                    $sheet->getStyle($cell)->getFont()
-                        ->setBold(true)
-                        ->getColor()
-                        ->setRGB('475569');
-                }
+                $sheet->getStyle('A2:A7')->applyFromArray([
+                    'font' => [
+                        'bold' => true,
+                        'color' => ['rgb' => '475569'],
+                    ],
+                ]);
 
-                // Project headers
+                $sheet->getStyle('B2:B7')->getFont()
+                    ->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF1E293B'));
+
+                // Project headers.
                 foreach ($this->projectHeaderRows as $row) {
                     $sheet->getStyle("A{$row}:K{$row}")->applyFromArray([
                         'font' => [
@@ -372,12 +406,18 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                         'alignment' => [
                             'vertical' => Alignment::VERTICAL_CENTER,
                         ],
+                        'borders' => [
+                            'allBorders' => [
+                                'borderStyle' => Border::BORDER_THIN,
+                                'color' => ['rgb' => '3730A3'],
+                            ],
+                        ],
                     ]);
 
                     $sheet->getRowDimension($row)->setRowHeight(29);
                 }
 
-                // Column headers
+                // Column headers.
                 foreach ($this->columnHeaderRows as $row) {
                     $sheet->getStyle("A{$row}:K{$row}")->applyFromArray([
                         'font' => [
@@ -393,7 +433,7 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                             'horizontal' => Alignment::HORIZONTAL_CENTER,
                         ],
                         'borders' => [
-                            'bottom' => [
+                            'allBorders' => [
                                 'borderStyle' => Border::BORDER_THIN,
                                 'color' => ['rgb' => 'CBD5E1'],
                             ],
@@ -403,11 +443,17 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                     $sheet->getRowDimension($row)->setRowHeight(25);
                 }
 
-                // Task rows
+                // Task rows.
                 foreach ($this->dataRows as $row) {
                     $sheet->getStyle("A{$row}:K{$row}")->applyFromArray([
                         'alignment' => [
                             'vertical' => Alignment::VERTICAL_CENTER,
+                        ],
+                        'borders' => [
+                            'allBorders' => [
+                                'borderStyle' => Border::BORDER_THIN,
+                                'color' => ['rgb' => 'E2E8F0'],
+                            ],
                         ],
                     ]);
 
@@ -419,7 +465,7 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                         ->setFormatCode('dd mmm yyyy');
                 }
 
-                // Project summaries
+                // Project summaries.
                 foreach ($this->projectSummaryRows as $row) {
                     $sheet->getStyle("A{$row}:K{$row}")->applyFromArray([
                         'font' => [
@@ -431,7 +477,7 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                             'startColor' => ['rgb' => 'CCFBF1'],
                         ],
                         'borders' => [
-                            'top' => [
+                            'allBorders' => [
                                 'borderStyle' => Border::BORDER_THIN,
                                 'color' => ['rgb' => '99F6E4'],
                             ],
@@ -441,7 +487,7 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                     $sheet->getRowDimension($row)->setRowHeight(24);
                 }
 
-                // Overall summary
+                // Overall summary.
                 $sheet->getStyle(
                     "A{$this->overallSummaryRow}:K{$this->overallSummaryRow}"
                 )->applyFromArray([
@@ -455,8 +501,8 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                         'startColor' => ['rgb' => '0F172A'],
                     ],
                     'borders' => [
-                        'top' => [
-                            'borderStyle' => Border::BORDER_MEDIUM,
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
                             'color' => ['rgb' => '334155'],
                         ],
                     ],
@@ -465,17 +511,12 @@ class TaskReportExport implements FromCollection, WithColumnWidths, WithEvents, 
                 $sheet->getRowDimension($this->overallSummaryRow)
                     ->setRowHeight(28);
 
-                // Alignment and borders
+                // Alignment and wrapping.
                 $sheet->getStyle("A1:K{$lastRow}")
                     ->getAlignment()
                     ->setWrapText(true);
 
-                $sheet->getStyle("A1:K{$lastRow}")
-                    ->getBorders()
-                    ->getAllBorders()
-                    ->setBorderStyle(Border::BORDER_HAIR);
-
-                // Print settings
+                // Print settings.
                 $sheet->getPageSetup()
                     ->setOrientation(PageSetup::ORIENTATION_LANDSCAPE);
 
