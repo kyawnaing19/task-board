@@ -386,9 +386,9 @@ export default function Show({ team, members = [], projects = [] }) {
                                 Team members
                             </h2>
 
-                            <p className="mt-1 text-sm text-slate-500">
+                            {/* <p className="mt-1 text-sm text-slate-500">
                                 People who have access to this team.
-                            </p>
+                            </p> */}
                         </div>
 
                         <span className="inline-flex w-fit items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">

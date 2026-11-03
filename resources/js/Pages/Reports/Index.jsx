@@ -221,56 +221,47 @@ export default function Index({
 
                 {/* FILTER SECTION */}
                 <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
-
-                        <div>
-                            <h3 className="text-sm font-semibold text-slate-800">
-                                Filters
-                            </h3>
-
-                            <p className="mt-0.5 text-xs text-slate-400">
-                                Refine tasks by team, employee, tag and date.
-                            </p>
-                        </div>
-
+                    {/* Filter Header */}
+                    <div className="flex items-center justify-end px-4 pt-3 sm:px-5">
                         {hasFilters && (
                             <button
                                 type="button"
                                 onClick={clearFilters}
-                                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-indigo-600"
+                                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-50 hover:text-rose-500"
                             >
                                 <svg
                                     className="h-3.5 w-3.5"
                                     viewBox="0 0 20 20"
                                     fill="none"
                                     stroke="currentColor"
-                                    strokeWidth="1.7"
+                                    strokeWidth="1.6"
                                 >
                                     <path
-                                        d="M4 7h12M7 7V4h6v3m-7 0 1 9h6l1-9"
+                                        d="M3.5 10a6.5 6.5 0 1 0 1.9-4.6L3.5 7.3"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                    <path
+                                        d="M3.5 3.8v3.5H7"
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
                                     />
                                 </svg>
 
-                                Clear filters
+                                Clear all
                             </button>
                         )}
                     </div>
 
-                    <div className="grid grid-cols-1 gap-x-4 gap-y-3 p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 sm:px-5 sm:py-4">
-
+                    {/* Filter Fields */}
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-3 p-4 pt-2 sm:grid-cols-2 sm:px-5 sm:pb-4 lg:grid-cols-3 xl:grid-cols-5">
                         <SelectFilter
                             label="Team"
                             value={form.team_id}
                             placeholder="All teams"
                             options={filter_options.teams}
                             onChange={(event) =>
-                                updateFilter(
-                                    'team_id',
-                                    event.target.value,
-                                )
+                                updateFilter('team_id', event.target.value)
                             }
                         />
 
@@ -280,10 +271,7 @@ export default function Index({
                             placeholder="All employees"
                             options={filter_options.employees}
                             onChange={(event) =>
-                                updateFilter(
-                                    'employee_id',
-                                    event.target.value,
-                                )
+                                updateFilter('employee_id', event.target.value)
                             }
                         />
 
@@ -293,10 +281,7 @@ export default function Index({
                             placeholder="All tags"
                             options={filter_options.tags}
                             onChange={(event) =>
-                                updateFilter(
-                                    'tag_id',
-                                    event.target.value,
-                                )
+                                updateFilter('tag_id', event.target.value)
                             }
                         />
 
@@ -304,10 +289,7 @@ export default function Index({
                             label="Date From"
                             value={form.date_from}
                             onChange={(event) =>
-                                updateFilter(
-                                    'date_from',
-                                    event.target.value,
-                                )
+                                updateFilter('date_from', event.target.value)
                             }
                         />
 
@@ -315,13 +297,9 @@ export default function Index({
                             label="Date To"
                             value={form.date_to}
                             onChange={(event) =>
-                                updateFilter(
-                                    'date_to',
-                                    event.target.value,
-                                )
+                                updateFilter('date_to', event.target.value)
                             }
                         />
-
                     </div>
                 </section>
 
@@ -370,15 +348,33 @@ export default function Index({
                             })}
                         </div>
 
-                        <a
-                            href={route('reports.export', exportParams)}
-                            className="mb-2 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
-                        >
-                            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path d="M10 2.5a.75.75 0 0 1 .75.75v7.19l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06l2.22 2.22V3.25A.75.75 0 0 1 10 2.5ZM3.5 13.75A.75.75 0 0 1 4.25 13h11.5a.75.75 0 0 1 .75.75v2.5a1.25 1.25 0 0 1-1.25 1.25h-10A1.25 1.25 0 0 1 4 16.25v-2.5a.75.75 0 0 1-.5.75Zm2 .75v1.5h9v-1.5h-9Z" />
-                            </svg>
-                            Export Excel
-                        </a>
+                      <a
+    href={route('reports.export', exportParams)}
+    className="mb-2 inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+>
+    <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+    >
+        <path
+            d="M12 3v12m0 0 4-4m-4 4-4-4"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+        <path
+            d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
+
+    Export Excel
+</a>
                     </div>
 
                     {/* TABLE */}

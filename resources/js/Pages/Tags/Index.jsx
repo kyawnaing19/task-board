@@ -373,11 +373,11 @@ export default function Index({
                                     : 'Active tags'}
                             </h2>
 
-                            <p className="mt-1 text-xs leading-5 text-slate-500">
+                            {/* <p className="mt-1 text-xs leading-5 text-slate-500">
                                 {isArchived
                                     ? 'Archived tags cannot be selected for new tasks.'
                                     : 'Manage the tags available when creating or editing tasks.'}
-                            </p>
+                            </p> */}
                         </div>
 
                         <span className="inline-flex w-fit shrink-0 items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">

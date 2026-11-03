@@ -1028,7 +1028,7 @@ export default function AdminDashboard() {
                 <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <SectionHeader
                         title="Active Projects"
-                        description="Review open tasks, overdue work, and completion progress for each project."
+                        // description="Review open tasks, overdue work, and completion progress for each project."
                         count={projects.total}
                     />
 
@@ -1058,7 +1058,7 @@ export default function AdminDashboard() {
                 <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <SectionHeader
                         title="Employee Workload"
-                        description="Current assignments across active projects. Multi-assignee tasks count once for each assigned employee."
+                        //description="Current assignments across active projects. Multi-assignee tasks count once for each assigned employee."
                         count={workload.total}
                         action={
                             <label className="flex items-center gap-2">
@@ -1111,10 +1111,10 @@ export default function AdminDashboard() {
                 {/* Footer */}
 
                 <div className="pb-2 text-center">
-                    <p className="text-xs leading-5 text-slate-400">
+                    {/* <p className="text-xs leading-5 text-slate-400">
                         Archived projects and archived tasks are excluded
                         from dashboard metrics.
-                    </p>
+                    </p> */}
                 </div>
             </div>
         </div>
